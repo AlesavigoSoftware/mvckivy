@@ -1,0 +1,31 @@
+<MDIconRemake>
+    font_style: "Icon"
+    source: None if self.icon in md_icons else self.icon
+    adaptive_size: True
+    text:
+        ( \
+        u"{}".format(md_icons[self.icon]) \
+        if self.icon in md_icons else \
+        "blank" \
+        ) \
+        if self.font_name == "Icons" else self.icon
+    color:
+        self.icon_color \
+        if self.icon_color else \
+        self.theme_cls.onSurfaceVariantColor
+
+
+<AutoResizeIcon>
+    font_style: "Icon"
+    source: None if self.icon in md_icons else self.icon
+    text:
+        ( \
+        u"{}".format(md_icons[self.icon]) \
+        if self.icon in md_icons else \
+        "blank" \
+        ) \
+        if self.font_name == "Icons" else self.icon
+    color:
+        self.icon_color \
+        if self.icon_color else \
+        self.theme_cls.onSurfaceVariantColor

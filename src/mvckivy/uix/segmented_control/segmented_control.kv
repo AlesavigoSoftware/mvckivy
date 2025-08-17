@@ -1,0 +1,47 @@
+<MVCSegmentedControlItem>
+    pos_hint: {"center_y": .5}
+    style: "text"
+    theme_width: "Custom"
+    size_hint: 1, 1
+    text: ""
+    icon: "blank"
+    icon_spacing: dp(10)
+    disable_hover_behavior: True
+
+    MDButtonIcon:
+        x: text.x - (self.width + root.icon_spacing)
+        icon: root.icon
+
+    MDButtonText:
+        id: text
+        text: root.text
+        pos_hint: {"center_x": .5, "center_y": .5}
+
+
+<MVCSegmentedControl>
+    size_hint: None, None
+    size: segment_panel.size
+
+    _segment_switch: segment_switch
+    _segment_panel: segment_panel
+
+    MVCSegmentSwitch:
+        id: segment_switch
+        size_hint: None, None
+        width: segment_panel.width / max(segment_panel.items_count, 1) - segment_panel.spacing
+        height: segment_panel.height - dp(12)
+        pos_hint: {"center_y": .5}
+        style: "elevated"
+        x: root._segment_switch_x
+        md_bg_color: root.segment_color
+        elevation: 1
+        _radius: root.radius[0] - 4
+        shadow_radius: self._radius
+
+    MVCSegmentPanel:
+        id: segment_panel
+        radius: 12
+        spacing: dp(12)
+        padding: dp(12)
+        size_hint: None, None
+        size: root.segment_panel_width, root.segment_panel_height

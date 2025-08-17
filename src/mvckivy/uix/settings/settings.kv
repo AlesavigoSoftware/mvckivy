@@ -1,0 +1,433 @@
+#:import kivy kivy
+#:import MDSwitch kivymd.uix.selectioncontrol.selectioncontrol.MDSwitch
+#:import MDLabel kivymd.uix.label.MDLabel
+
+
+<MDSettingSpacer>
+    size_hint_y: None
+    height: 5
+
+    canvas:
+        Color:
+            rgba: app.theme_cls.onPrimaryContainerColor
+        Rectangle:
+            pos: self.x, self.center_y
+            size: self.width, dp(1)
+
+
+<MDSettingItem>
+    size_hint_x: 1.
+    content: content
+
+    MDListItemLeadingIcon:
+        icon: root.icon
+
+    MDListItemHeadlineText:
+        text: root.title
+
+    MDListItemSupportingText:
+        text: root.desc
+
+    MDBoxLayout:
+        id: content
+        size_hint_x: .1
+
+
+<MDSettingBoolean>
+    icon: 'toggle-switch-off-outline'
+
+    MDSwitch:
+        text: 'Boolean'
+        pos: root.pos
+        pos_hint: {'center_y': .5, 'center_x': .5}
+        active: bool(root.values.index(root.value)) if root.value in root.values else False
+        on_active: root.value = root.values[int(args[1])]
+        disabled: root.disabled
+
+
+<MDSettingString>
+    icon: 'form-textbox'
+
+    MDLabel:
+        text: root.value or ''
+        pos: root.pos
+        theme_font_size: 'Custom'
+        font_size: sp(15)
+
+
+<MDSettingPath>
+    icon: 'folder-edit-outline'
+
+    MDLabel:
+        text: root.value or ''
+        pos: root.pos
+        theme_font_size: 'Custom'
+        font_size: sp(15)
+
+
+<MDSettingColor>
+    icon: 'palette-outline'
+
+    MDBoxLayout:
+        MDLabel:
+            size_hint_x: None
+            width: dp(44)
+            padding: (0, dp(5))
+            canvas.before:
+                # white border to see that there's a color tile at dark colors e.g. black
+                Color:
+                    rgba: (1,1,1,1.)
+                Line:
+                    rectangle: self.x,self.y,self.width,self.height
+                Color:
+                    rgba: kivy.utils.get_color_from_hex(root.value) if root.value else (1,1,1,1.)
+                Rectangle:
+                    pos: self.pos
+                    size: self.size
+
+        MDLabel:
+            text: root.value or ''
+            pos: root.pos
+            theme_font_size: 'Custom'
+            font_size: sp(15)
+            valign: 'middle'
+            halign: 'center'
+            padding: (5,0)
+
+
+<MDSettingButton>
+    icon: 'gesture-tap-button'
+
+
+<MDSettingInfo>
+    icon: 'information-outline'
+
+
+<MDSettingOptions>
+    icon: 'format-list-bulleted'
+
+    MDLabel:
+        text: root.value or ''
+        pos: root.pos
+        theme_font_size: 'Custom'
+        font_size: sp(15)
+
+
+<MDSettingTitle>
+    orientation: 'vertical'
+    size_hint_y: None
+    height: label.height + divider.height
+
+    MDLabel:
+        id: label
+        text: root.title
+        size_hint_y: None
+        height: max(dp(20), self.font_size + dp(20))
+        theme_font_size: 'Custom'
+        font_size: sp(16)
+
+    MDDivider:
+        id: divider
+        orientation: 'horizontal'
+        size_hint_x: 1.
+
+
+<MDSettingSidebarLabel>
+    size_hint: 1, None
+    text_size: self.width - 32, None
+    height: self.texture_size[1] + dp(20)
+    font_size: sp(15)
+
+    canvas.before:
+        Color:
+            rgba: app.theme_cls.primaryContainerColor[:3] + [int(self.selected)]
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: dp(10), dp(10), dp(10), dp(10)
+
+
+<MDSettingsPanel>
+    spacing: dp(5)
+    padding: dp(5)
+    size_hint_y: None
+    height: self.minimum_height
+
+
+<MDSettings>
+    orientation: 'horizontal'
+
+
+<MDInterfaceWithSidebar>
+    orientation: 'horizontal'
+    menu: menu
+    content: content
+
+    MDContentPanel:
+        id: content
+        current_uid: menu.selected_uid
+
+#    MDDivider:
+#        orientation: 'vertical'
+
+    MDMenuSidebar:
+        id: menu
+
+
+<MDInterfaceWithSpinner>
+    orientation: 'vertical'
+    menu: menu
+    content: content
+
+    MDMenuSpinner:
+        id: menu
+
+    MDContentPanel:
+        id: content
+        current_uid: menu.selected_uid
+
+
+<MDMenuSpinner>
+    orientation: 'horizontal'
+    size_hint_y: None
+    height: '50dp'
+    spinner: spinner
+    spinner_text: spinner.text
+    close_button: button
+
+    Spinner:
+        id: spinner
+
+    Button:
+        text: 'Close'
+        id: button
+        size_hint_x: None
+        width: min(dp(200), 0.4*root.width)
+        font_size: '15sp'
+
+
+<MDMenuSidebar>
+    size_hint_x: None
+    width: dp(200)
+    buttons_layout: menu
+    spacing: dp(20)
+
+    MDGridLayout:
+        pos: root.pos
+        cols: 1
+        id: menu
+        padding: dp(5)
+
+        canvas.after:
+            Color:
+                rgba: app.theme_cls.backgroundColor
+            RoundedRectangle:
+                pos: self.right - 1, self.y
+                size: 1, self.height
+                radius: dp(10), dp(10), dp(10), dp(10)
+
+    MDButton:
+        id: load_button
+        size_hint: None, None
+        theme_width: 'Custom'
+        width: root.width - dp(20)
+        height: min(dp(50), self.width * 2.5)
+
+        pos: root.x + dp(10), root.y + dp(10)
+
+        theme_font_size: 'Custom'
+        font_size: sp(15)
+
+        style: 'tonal'
+
+        MDButtonIcon:
+            x: load_button_text.x - (self.width + dp(10))
+            icon: "download"
+
+        MDButtonText:
+            id: load_button_text
+            text: 'Загрузить'
+            pos_hint: {"center_x": .5, "center_y": .5}
+
+    MDButton:
+        id: upload_button
+        size_hint: None, None
+        theme_width: 'Custom'
+        width: root.width - dp(20)
+        height: min(dp(50), self.width * 2.5)
+
+        pos: root.x + dp(10), root.y + dp(10) + upload_button.height + root.spacing
+
+        theme_font_size: 'Custom'
+        font_size: sp(15)
+
+        style: 'tonal'
+
+        MDButtonIcon:
+            x: upload_button_text.x - (self.width + dp(10))
+            icon: "upload"
+
+        MDButtonText:
+            id: upload_button_text
+            text: 'Отправить'
+            pos_hint: {"center_x": .5, "center_y": .5}
+
+
+<MDContentPanel>
+    do_scroll_x: False
+    container: content
+
+    MDGridLayout:
+        id: content
+        cols: 1
+        size_hint_y: None
+        height: self.minimum_height
+
+
+<MDInterfaceWithTabbedPanel>
+    tabbedpanel: tp
+
+    TabbedPanel:
+        id: tp
+        size: root.size
+        pos: root.pos
+        #do_default_tab: False
+        background_color: app.theme_cls.backgroundColor
+
+# ───────────────── StringValueDialog ─────────────────
+<StringValueDialog>:
+    type: "custom"
+    auto_dismiss: False
+    md_bg_color: "Surface"
+
+    MDAdaptiveDialogIcon:
+        icon: "textbox"
+
+    MDAdaptiveDialogHeadlineText:
+        text: root.title if root.title else "Введите значение"
+
+    MDAdaptiveDialogSupportingText:
+        text: ""
+
+    MDAdaptiveDialogContentContainer:
+        orientation: "vertical"
+        spacing: "12dp"
+        padding: "12dp"
+
+        MDTextField:
+            id: input
+            text: root.initial
+            hint_text: "Значение"
+            on_text_validate: root.on_ok()
+
+    MDAdaptiveDialogButtonContainer:
+        spacing: "8dp"
+        Widget:
+        MDButton:
+            style: "text"
+            on_release: root.dismiss()
+            MDButtonText:
+                text: "Отмена"
+        MDButton:
+            on_release: root.on_ok()
+            MDButtonText:
+                text: "OK"
+
+# ───────────────── OptionsValueDialog ─────────────────
+<OptionsValueDialog>:
+    type: "custom"
+    auto_dismiss: True
+    md_bg_color: "Surface"
+
+    MDAdaptiveDialogIcon:
+        icon: "format-list-bulleted"
+
+    MDAdaptiveDialogHeadlineText:
+        text: root.title if root.title else "Выберите значение"
+
+    MDAdaptiveDialogSupportingText:
+        text: ""
+
+    MDAdaptiveDialogContentContainer:
+        orientation: "vertical"
+        padding: "0dp"
+
+        MDList:
+            id: opts
+
+    MDAdaptiveDialogButtonContainer:
+        spacing: "8dp"
+        Widget:
+        MDButton:
+            style: "text"
+            on_release: root.dismiss()
+            MDButtonText:
+                text: "Закрыть"
+
+# ───────────────── PathValueDialog ─────────────────
+<PathValueDialog>:
+    type: "custom"
+    auto_dismiss: False
+    md_bg_color: "Surface"
+
+    MDAdaptiveDialogIcon:
+        icon: "folder"
+
+    MDAdaptiveDialogHeadlineText:
+        text: root.title if root.title else "Выбор пути"
+
+    MDAdaptiveDialogSupportingText:
+        text: ""
+
+    MDAdaptiveDialogContentContainer:
+        orientation: "vertical"
+        padding: "0dp"
+
+        MDFileManager:
+            id: fm
+            selector: "folder" if root.dirselect else "any"
+            on_select_path: root.on_accept_path(args[1])
+            search: True
+            show_hidden_files: root.show_hidden
+            current_path: root.initial if root.initial else "/"
+
+    MDAdaptiveDialogButtonContainer:
+        spacing: "8dp"
+        Widget:
+        MDButton:
+            style: "text"
+            on_release: root.dismiss()
+            MDButtonText:
+                text: "Закрыть"
+
+# ───────────────── ColorValueDialog ─────────────────
+<ColorValueDialog>:
+    type: "custom"
+    auto_dismiss: False
+    md_bg_color: "Surface"
+
+    MDAdaptiveDialogIcon:
+        icon: "palette"
+
+    MDAdaptiveDialogHeadlineText:
+        text: root.title if root.title else "Выбор цвета"
+
+    MDAdaptiveDialogSupportingText:
+        text: ""
+
+    MDAdaptiveDialogContentContainer:
+        orientation: "vertical"
+        padding: "8dp"
+
+        ColorPicker:
+            id: cp
+            on_color: root.on_color(self.color)
+
+    MDAdaptiveDialogButtonContainer:
+        spacing: "8dp"
+        Widget:
+        MDButton:
+            style: "text"
+            on_release: root.dismiss()
+            MDButtonText:
+                text: "Отмена"

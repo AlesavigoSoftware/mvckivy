@@ -1,0 +1,37 @@
+<SideMenu>
+    id: side_menu
+    radius: 0, 0, 0, 0
+    anchor: 'right'
+    drawer_type: 'modal'
+
+
+<SideMenuNavigationItem>
+    active_indicator_color: self.theme_cls.rippleColor
+
+    MDNavigationDrawerItemLeadingIcon:
+        icon: root.icon
+
+    MDNavigationDrawerItemText:
+        text: root.text
+
+
+<SideMenuLabel>
+    orientation: 'horizontal'
+    padding: dp(18), dp(12), dp(18), dp(4)
+    spacing: 0
+    size_hint: 1., None
+    height: dp(40)
+
+    AutoResizeIcon:
+        icon: root.icon
+        halign: 'center'
+        size_hint: [.001, 1.] if not root.icon else [.4, 1.]
+
+    AutoResizeLabel:
+        text: root.text
+        halign: 'left'
+        size_hint: [1., 1.] if not root.icon else [.6, 1.]
+
+
+<-SideMenuHeader>
+    adaptive_height: False

@@ -1,0 +1,98 @@
+<BaseButtonLegacy>
+    canvas:
+        Clear
+        Color:
+            group: "bg-color"
+            rgba:
+                self._md_bg_color \
+                if not self.disabled else \
+                self._md_bg_color_disabled
+        RoundedRectangle:
+            size: self.size
+            pos: self.pos
+            source: self.source if hasattr(self, "source") else ""
+            radius: [root._radius, ]
+        Color:
+            group: "outline-color"
+            rgba:
+                root._line_color \
+                if not root.disabled else \
+                (root._line_color_disabled or self._disabled_color)
+        Line:
+            width: root.line_width
+            rounded_rectangle:
+                ( \
+                self.x, self.y, self.width, self.height, \
+                root._radius, root._radius, root._radius, root._radius, \
+                self.height \
+                )
+
+    size_hint: None, None
+    anchor_x: root.halign
+    anchor_y: root.valign
+    _round_rad: [self._radius] * 4
+
+
+<ButtonContentsIconLegacy>
+    lbl_ic: lbl_ic
+    size: "48dp", "48dp"
+    padding: "12dp" if root.icon in md_icons else (0, 0, 0, 0)
+    # Backwards compatibility.
+    theme_icon_color: root.theme_icon_color or root.theme_text_color
+
+    MDIcon:
+        id: lbl_ic
+        icon: root.icon
+        font_size: root.icon_size if root.icon_size else self.font_size
+        font_name: root.font_name if root.font_name else self.font_name
+        opposite_color: root.theme_cls.onPrimaryColor
+        text_color:
+            (root._icon_color if root._icon_color else root.theme_cls.onPrimaryColor) \
+            if not root.disabled else \
+            root.theme_cls.disabled_hint_text_color \
+            if not root.disabled_color else \
+            root.disabled_color
+
+        # on_icon:
+        #     if self.icon not in md_icons.keys(): self.size_hint = (1, 1)
+        theme_text_color: "Primary"
+
+
+<BaseFloatingBottomButtonLegacy>
+    theme_text_color: "Custom"
+    md_bg_color: self.theme_cls.primaryColor
+
+    canvas.before:
+        Color:
+            rgba:
+                self.theme_cls.primaryColor \
+                if not self._bg_color else \
+                self._bg_color
+        RoundedRectangle:
+            pos:
+                (self.x - self._canvas_width + dp(1.5)) + self._padding_right / 2, \
+                self.y - self._padding_right / 2 + dp(1.5)
+            size:
+                self.width + self._canvas_width - dp(3), \
+                self.height + self._padding_right - dp(3)
+            radius: [self.height / 2]
+
+
+<MDFloatingRootButtonLegacy>
+    theme_text_color: "Primary"
+    md_bg_color: self.theme_cls.primaryColor
+
+
+<MDFloatingLabelLegacy>
+    padding_x: "8dp"
+    padding_y: "8dp"
+    adaptive_size: True
+    theme_text_color: "Custom"
+
+    canvas.before:
+        Color:
+            rgba: self.bg_color
+        RoundedRectangle:
+            size: self.size
+            pos: self.pos
+            radius: self.radius

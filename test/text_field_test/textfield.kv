@@ -1,0 +1,75 @@
+#:kivy 2.3.0
+#:import dp kivy.metrics.dp
+
+<ScaledTextWidth@FloatLayout>:
+    id: stw
+    size_hint: None, None
+
+    # управляется извне/из Python
+    scale: 1.0                     # максимум 1.0; Python ограничивает 0.5..1.0
+    base_height: dp(88)
+    base_radius: dp(10)
+    base_border_width: dp(1.2)
+
+    # ВНЕШНЮЮ ширину задаёте здесь (или снаружи при создании виджета)
+    width: dp(280)
+
+    # Видимая высота поля: защищаемся от None
+    height:
+        ( (root.base_height if root.base_height is not None else dp(88)) \
+        * (root.scale if root.scale else 1.0) )
+
+    # --- содержимое масштабируем только вниз (0.5..1.0), без апскейла ---
+    Scatter:
+        id: sc
+        size_hint: None, None
+        do_translation: False
+        do_rotation: False
+        do_scale: False
+        scale: root.scale
+        pos: root.pos
+        size: root.size
+
+        MDTextField:
+            id: tf
+            mode: "outlined"
+            multiline: False
+            size_hint: None, None
+
+            # ВИДИМАЯ ширина = ScaledTextWidth.width
+            width: root.width / max(sc.scale or 1.0, 0.001)
+            # ВИДИМАЯ высота = ScaledTextWidth.height
+            height: root.height / max(sc.scale or 1.0, 0.001)
+
+            MDTextFieldLeadingIcon:
+                icon: "account"
+            MDTextFieldHintText:
+                text: "Input text"
+            MDTextFieldHelperText:
+                text: "Helper text"
+                mode: "persistent"
+            MDTextFieldTrailingIcon:
+                icon: "information"
+            MDTextFieldMaxLengthText:
+                max_text_length: 10
+
+MDScreen:
+    md_bg_color: app.theme_cls.backgroundColor
+
+    AnchorLayout:
+        anchor_x: "center"
+        anchor_y: "center"
+        padding: dp(12)
+
+        # здесь вы управляете шириной компонента:
+        ScaledTextWidth:
+            id: stw
+            width: dp(320)   # ← задайте нужную видимую ширину
+            base_height: dp(88)   # «эталонная» высота до масштабирования
+
+    MDLabel:
+        text: f"{round(stw.scale, 2)}x"
+        adaptive_size: True
+        pos_hint: {"center_x": .5}
+        y: dp(12)
+        opacity: .6

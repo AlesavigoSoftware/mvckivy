@@ -1,0 +1,6 @@
+DESKTOP_PLATFORMS = ("win", "linux", "macosx")
+MOBILE_PLATFORMS = ("android", "ios")
+AVAILABLE_PLATFORMS = (*DESKTOP_PLATFORMS, *MOBILE_PLATFORMS)
+DEVICE_TYPES = ("mobile", "tablet", "desktop")
+DEVICE_ORIENTATIONS = ("portrait", "landscape")
+INPUT_MODES = ("mouse", "touch")

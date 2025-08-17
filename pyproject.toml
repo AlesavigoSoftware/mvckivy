@@ -1,0 +1,72 @@
+[build-system]
+requires = ["hatchling>=1.24"]
+build-backend = "hatchling.build"
+
+[project]
+name = "mvckivy"
+version = "0.1.0"
+description = "Авторский фреймворк, продолжающий идеи kivymd и расширяющих их внедрением mvc паттерна на всех уровнях вложенности виджетов, а также находками авторов kivy-school"
+readme = "README.md"
+requires-python = "~=3.11.0"
+authors = [{ name = "Alesavigo", email = "alesavigo@gmail.com" }]
+
+# Обязательные runtime-зависимости (ровно как в исходнике),
+# при этом kivymd / mapview / akivymd берём из твоих форков
+dependencies = [
+  "kivy>=2.3.1,<3",
+  "kivymd @ git+https://github.com/AlesavigoSoftware/kivymd-production-fork.git@main",
+  "kivy-garden-mapview @ git+https://github.com/AlesavigoSoftware/mapview-production-fork.git@main",
+  "kivymd-extensions-akivymd @ git+https://github.com/AlesavigoSoftware/akivymd-production-fork.git@main",
+  "ffpyplayer>=4.5.2,<5",
+  "trio>=0.29.0,<0.30",
+  "olefile>=0.47,<0.48",
+]
+
+# Extras-группы. "optionals" оставлена пустой намеренно —
+# чтобы поддержать установку mvckivy[optionals] без добавления новых пакетов.
+[project.optional-dependencies]
+optionals = []
+dev = [
+  "pytest>=8.3.4,<9",
+  "mypy>=1.15.0,<2",
+  "black>=25.1.0,<26",
+  "pyinstaller>=6.12.0,<7",
+  "matplotlib>=3.8.0,<4",
+  "watchdog>=6.0.0,<7",
+]
+
+[project.urls]
+Homepage = "https://github.com/AlesavigoSoftware/mvckivy"
+Repository = "https://github.com/AlesavigoSoftware/mvckivy"
+Issues = "https://github.com/AlesavigoSoftware/mvckivy/issues"
+
+# src-layout: собираем пакет из src/mvckivy
+[tool.hatch.build.targets.wheel]
+packages = ["src/mvckivy"]
+
+[tool.hatch.build.targets.sdist]
+include = ["src/mvckivy", "README.md", "LICENSE", "pyproject.toml"]
+exclude = ["test", "tests", ".venv"]
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+# Для удобства с uv (не мешает pip)
+[dependency-groups]
+dev = [
+  "pytest>=8.3.4,<9",
+  "mypy>=1.15.0,<2",
+  "black>=25.1.0,<26",
+  "pyinstaller>=6.12.0,<7",
+  "matplotlib>=3.8.0,<4",
+  "watchdog>=6.0.0,<7",
+]
+
+[tool.uv]
+package = true
+default-groups = ["dev"]
+
+[tool.uv.sources]
+kivymd = { git = "https://github.com/AlesavigoSoftware/kivymd-production-fork.git", rev = "main" }
+kivy-garden-mapview = { git = "https://github.com/AlesavigoSoftware/mapview-production-fork.git", rev = "main" }
+kivymd-extensions-akivymd = { git = "https://github.com/AlesavigoSoftware/akivymd-production-fork.git", rev = "main" }

@@ -1,0 +1,10 @@
+#:import platform kivy.utils.platform
+#:import MOBILE_PLATFORMS Utility.constants.MOBILE_PLATFORMS
+
+
+<CustomMapView>
+    id: custom_map_view
+
+    double_tap_zoom: False
+    pause_on_action: platform in MOBILE_PLATFORMS
+    snap_to_zoom: False

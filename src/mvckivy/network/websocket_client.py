@@ -1,0 +1,2 @@
+class WebsocketClient:
+    pass
