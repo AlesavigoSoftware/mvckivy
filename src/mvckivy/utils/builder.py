@@ -3,7 +3,7 @@ from pathlib import Path
 from kivy.lang import BuilderBase, Builder
 from typing import Union, Iterable, Literal
 
-from src.mvckivy.project_management.path_manager import PathItem, MVCPathManager
+from mvckivy.project_management.path_manager import PathItem, MVCPathManager
 
 
 logger = logging.getLogger("mvckivy")

@@ -19,6 +19,8 @@ from kivymd.uix.list import (
 )
 from kivymd.uix.button import MDButton
 
+from mvckivy.utils.builder import MVCBuilder
+
 
 def _vpad(pad) -> float:
     if isinstance(pad, (list, tuple)):
@@ -312,10 +314,12 @@ class DemoApp(MDApp):
     dialog_list: AdaptiveListDialog | None = None
     dialog_success: SuccessGSConnDialog | None = None
 
-    def build(self):
-        # ваш общий dialog.kv с контейнерами MDAdaptiveDialog
-        Builder.load_file(r"/src/mvckivy\uix\dialog\dialog.kv")
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         self.model = AppModel()
+
+    def build(self):
+        MVCBuilder.load_libs_kv_files()
         return Builder.load_file("md_list.kv")
 
     def open_list_dialog(self, count=40):

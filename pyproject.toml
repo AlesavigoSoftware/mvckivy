@@ -20,6 +20,7 @@ dependencies = [
   "ffpyplayer>=4.5.2,<5",
   "trio>=0.29.0,<0.30",
   "olefile>=0.47,<0.48",
+  "watchdog>=6.0.0,<7",
 ]
 
 # Extras-группы. "optionals" оставлена пустой намеренно —
@@ -32,7 +33,6 @@ dev = [
   "black>=25.1.0,<26",
   "pyinstaller>=6.12.0,<7",
   "matplotlib>=3.8.0,<4",
-  "watchdog>=6.0.0,<7",
 ]
 
 [project.urls]

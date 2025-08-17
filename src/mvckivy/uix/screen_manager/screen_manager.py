@@ -1,4 +1,4 @@
-from utility.logger import logger
+from mvckivy import logger
 from kivymd.uix.screenmanager import MDScreenManager
 from kivymd.uix.transition.transition import MDTransitionBase
 

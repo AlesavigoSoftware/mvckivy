@@ -4,9 +4,9 @@ from kivy.properties import ObjectProperty
 from typing import List, Callable
 
 from mvckivy.uix.behaviors.mvc_behavior import MVCWidget
-from utility.logger import logger
-from src.mvckivy.network import UrlRequestRequests
-from src.mvckivy.network import call_after
+from mvckivy import logger
+from mvckivy.network import UrlRequestRequests
+from mvckivy.network.decorators import call_after
 
 
 class DispatchException(Exception):

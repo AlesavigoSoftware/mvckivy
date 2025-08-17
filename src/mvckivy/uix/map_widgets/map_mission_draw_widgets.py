@@ -7,7 +7,7 @@ from kivy.animation import Animation
 from kivy.clock import Clock
 from kivy.properties import ListProperty, NumericProperty
 
-from utility.logger import logger
+from mvckivy import logger
 from controllers.app_screen.children.utils import create_fringing_line
 
 from mvckivy import MultiVehicleContainerMixin

@@ -7,7 +7,7 @@ from kivy.network.urlrequest import g_requests
 from kivy.network.urlrequest import UrlRequestRequests as BaseUrlRequestRequests
 from kivy.weakmethod import WeakMethod
 
-from utility.logger import logger
+from mvckivy import logger
 
 
 class ResultCodeException(Exception):
