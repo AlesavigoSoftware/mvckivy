@@ -60,6 +60,7 @@ dev = [
   "pyinstaller>=6.12.0,<7",
   "matplotlib>=3.8.0,<4",
   "watchdog>=6.0.0,<7",
+  "kivy-stubs",
 ]
 
 [tool.uv]
@@ -70,3 +71,4 @@ default-groups = ["dev"]
 kivymd = { git = "https://github.com/AlesavigoSoftware/kivymd-production-fork.git", rev = "main" }
 kivy-garden-mapview = { git = "https://github.com/AlesavigoSoftware/mapview-production-fork.git", rev = "main" }
 kivymd-extensions-akivymd = { git = "https://github.com/AlesavigoSoftware/akivymd-production-fork.git", rev = "main" }
+kivy-stubs = { git = "https://github.com/AlesavigoSoftware/kivy-stubs.git", rev = "main" }
