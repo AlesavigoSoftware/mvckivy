@@ -1,15 +1,51 @@
 from __future__ import annotations
 
+from threading import Thread
+
+import numpy as np
 from kivy.animation import Animation
 from kivy.clock import Clock
 from kivy.core.window import Window
 from kivy.lang import Builder
 from kivy.metrics import dp
 from kivy.properties import BooleanProperty, NumericProperty, StringProperty
+
 from kivy.uix.widget import Widget
 
 from kivymd.app import MDApp
 from kivymd.uix.segmentedbutton import MDSegmentedButton
+
+
+from headless_kivy.config import setup_headless_kivy, SetupHeadlessConfig
+
+
+def headless_render(
+    *,
+    rectangle: tuple[int, int, int, int],
+    data: list[np.uint8],
+    data_hash: int,
+    last_render_thread: Thread,
+) -> None: ...
+
+
+setup_headless_kivy(
+    SetupHeadlessConfig(
+        callback=headless_render,
+        width=240,
+        height=240,
+        bandwidth_limit=1000000,  # number of pixels per second
+        bandwidth_limit_window=0.1,
+        # allow bandwidth_limit x bandwidth_limit_window pixels to be transmitted in bandwidth_limit_window seconds
+        bandwidth_limit_overhead=1000,
+        # each draw command, regardless of the size, has equivalent of this many pixels of cost in bandwidth
+        is_debug_mode=False,
+        rotation=1,  # gets multiplied by 90 degrees
+        flip_horizontal=True,
+        double_buffering=True,  # let headless kivy generate the next frame while the previous callback is still running
+    )
+)
+
+from headless_kivy import HeadlessWidget
 
 
 class StretchSegmentedButton(MDSegmentedButton):
@@ -25,7 +61,7 @@ class StretchSegmentedButton(MDSegmentedButton):
             self.bind(width=lambda *_: setattr(c, "width", self.width))
 
 
-class CollapsibleMenuController(Widget):
+class CollapsibleMenuController(HeadlessWidget):
     """Сворачиваемая карточка с drag по «ручке» и клиппингом контента."""
 
     title = StringProperty("Управление миссией БПЛА")
@@ -188,7 +224,7 @@ class CollapsibleMenuController(Widget):
         return super().on_touch_up(touch)
 
 
-class DemoApp(MDApp):
+class HeadlessDemoApp(MDApp):
     def build(self):
         self.title = "Collapsible Left Menu • KivyMD 2.0"
         self.theme_cls.theme_style = "Dark"
@@ -196,4 +232,4 @@ class DemoApp(MDApp):
 
 
 if __name__ == "__main__":
-    DemoApp().run()
+    HeadlessDemoApp().run()

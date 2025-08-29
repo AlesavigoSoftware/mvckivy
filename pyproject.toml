@@ -35,6 +35,7 @@ dev = [
   "pyinstaller>=6.12.0,<7",
   "matplotlib>=3.8.0,<4",
   "kivy-stubs",
+  "headless-kivy[test]"
 ]
 
 [project.urls]
@@ -47,8 +48,8 @@ Issues = "https://github.com/AlesavigoSoftware/mvckivy/issues"
 packages = ["src/mvckivy"]
 
 [tool.hatch.build.targets.sdist]
-include = ["src/mvckivy", "README.md", "LICENSE", "pyproject.toml"]
-exclude = ["test", "tests", ".venv"]
+include = ["src/mvckivy", "README.md", "LICENSE", "pyproject.toml", ".python-version"]
+exclude = ["test", ".venv"]
 
 [tool.hatch.metadata]
 allow-direct-references = true
@@ -63,6 +64,7 @@ dev = [
   "matplotlib>=3.8.0,<4",
   "watchdog>=6.0.0,<7",
   "kivy-stubs",
+  "headless-kivy[test]"
 ]
 
 [tool.uv]
