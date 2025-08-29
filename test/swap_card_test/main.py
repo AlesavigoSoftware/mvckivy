@@ -152,15 +152,15 @@ class CollapsibleMenuController(Widget):
         menu_items = []
         for name in ["БПЛА-1", "БПЛА-2", "БПЛА-3"]:
             selected = name == self.transport
-            menu_items.append(
-                {
-                    "text": name,
-                    "leading_icon": "check" if selected else "",
-                    "text_color": app.theme_cls.primaryColor if selected else None,
-                    "leading_icon_color": app.theme_cls.primaryColor if selected else None,
-                    "on_release": lambda x=name: self.set_transport(x),
-                }
-            )
+            item = {
+                "text": name,
+                "on_release": lambda x=name: self.set_transport(x),
+            }
+            if selected:
+                item["leading_icon"] = "check"
+                item["text_color"] = app.theme_cls.primaryColor
+                item["leading_icon_color"] = app.theme_cls.primaryColor
+            menu_items.append(item)
         self._transport_menu = MDDropdownMenu(caller=caller, items=menu_items)
         self._transport_menu.open()
 
