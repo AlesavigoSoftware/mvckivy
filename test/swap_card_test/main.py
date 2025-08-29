@@ -1,16 +1,66 @@
 from __future__ import annotations
 
+import numpy as np
+import os
+import sys
+import types
+
+# ---------------------------------------------------------------------------
+# Headless/Debug environment setup
+# ---------------------------------------------------------------------------
+
+DEBUG_MODE = os.getenv("MVCKIVY_DEBUG_MODE", "0") == "1"
+
+os.environ.setdefault("KIVY_NO_ARGS", "1")
+os.environ.setdefault("KIVY_INPUT", "mouse")
+
+sys.modules.setdefault("kivy.input.providers.mtdev", types.ModuleType("mtdev"))
+sys.modules.setdefault("kivy.lib.mtdev", types.ModuleType("mtdev"))
+
+HEADLESS_OK = False
+if not DEBUG_MODE:
+    # Try a couple of environment setups for headless mode
+    for env in (
+        {"SDL_VIDEODRIVER": "dummy", "KIVY_GL_BACKEND": "mock", "KIVY_WINDOW": "sdl2"},
+        {"SDL_VIDEODRIVER": "dummy", "KIVY_GL_BACKEND": "angle_sdl2", "KIVY_WINDOW": "sdl2"},
+        {"KIVY_GL_BACKEND": "mock", "KIVY_WINDOW": "mock"},
+    ):
+        os.environ.update(env)
+        try:
+            from headless_kivy.config import setup_headless_kivy, SetupHeadlessConfig
+
+            def _noop_render(**_):
+                return None
+
+            setup_headless_kivy(
+                SetupHeadlessConfig(callback=_noop_render, width=240, height=240)
+            )
+            HEADLESS_OK = True
+            break
+        except Exception:
+            continue
+
+if not HEADLESS_OK:
+    DEBUG_MODE = True
+
 from kivy.animation import Animation
 from kivy.clock import Clock
 from kivy.core.window import Window
 from kivy.lang import Builder
 from kivy.metrics import dp
-from kivy.properties import BooleanProperty, NumericProperty, StringProperty, ObjectProperty
+from kivy.properties import BooleanProperty, NumericProperty, StringProperty
 from kivy.uix.widget import Widget
 
 from kivymd.app import MDApp
-from kivymd.uix.segmentedbutton import MDSegmentedButton
 from kivymd.uix.menu import MDDropdownMenu
+from kivymd.uix.dropdownitem import MDDropDownItem
+from kivymd.uix.segmentedbutton import MDSegmentedButton
+
+if HEADLESS_OK:
+    from headless_kivy import HeadlessWidget
+else:
+    class HeadlessWidget(Widget):  # fallback for debug/failed headless
+        pass
 
 
 class StretchSegmentedButton(MDSegmentedButton):
@@ -26,12 +76,12 @@ class StretchSegmentedButton(MDSegmentedButton):
             self.bind(width=lambda *_: setattr(c, "width", self.width))
 
 
-class CollapsibleMenuController(Widget):
+class CollapsibleMenuBase(Widget):
     """Сворачиваемая карточка с drag по «ручке» и клиппингом контента."""
 
     title = StringProperty("Управление миссией БПЛА")
-    transport = StringProperty("БПЛА-1")
-    _transport_menu = ObjectProperty(None)
+    transport = StringProperty("Квадрокоптер")
+    transport_icon = StringProperty("quadcopter")
 
     # авто 1↔2 столбца
     cols = NumericProperty(1)
@@ -50,6 +100,7 @@ class CollapsibleMenuController(Widget):
     swipe_threshold_px = NumericProperty(dp(48))
     _layout_ready = BooleanProperty(False)
     _finalize_trigger = None
+    _transport_menu = None
 
     def on_kv_post(self, _):
         Window.bind(size=self._on_window_resize)
@@ -144,6 +195,46 @@ class CollapsibleMenuController(Widget):
     def collapse(self):
         self.animate_to(1.0)
 
+    def open_transport_menu(self, caller):
+        menu_items = [
+            {
+                "text": "Квадрокоптер",
+                "leading_icon": "quadcopter",
+                "on_release": lambda x="Квадрокоптер": self._set_transport(x),
+            },
+            {
+                "text": "Самолёт",
+                "leading_icon": "airplane",
+                "on_release": lambda x="Самолёт": self._set_transport(x),
+            },
+            {
+                "text": "Ровер",
+                "leading_icon": "car",
+                "on_release": lambda x="Ровер": self._set_transport(x),
+            },
+        ]
+        if not self._transport_menu:
+            self._transport_menu = MDDropdownMenu(caller=caller, items=menu_items)
+        else:
+            self._transport_menu.caller = caller
+            self._transport_menu.items = menu_items
+        self._transport_menu.open()
+
+    def _set_transport(self, name):
+        icon_map = {
+            "Квадрокоптер": "quadcopter",
+            "Самолёт": "airplane",
+            "Ровер": "car",
+        }
+        self.transport = name
+        self.transport_icon = icon_map.get(name, "help-circle")
+        if "transport_text" in self.ids:
+            self.ids.transport_text.text = name
+        if "transport_icon" in self.ids:
+            self.ids.transport_icon.icon = self.transport_icon
+        if self._transport_menu:
+            self._transport_menu.dismiss()
+
     def on_segment_pressed(self, _key: str):
         self.expand()
 
@@ -211,6 +302,14 @@ class CollapsibleMenuController(Widget):
             self.animate_to(target)
             return True
         return super().on_touch_up(touch)
+
+
+if HEADLESS_OK:
+    class CollapsibleMenuController(HeadlessWidget, CollapsibleMenuBase):
+        pass
+else:
+    class CollapsibleMenuController(CollapsibleMenuBase):
+        pass
 
 
 class DemoApp(MDApp):

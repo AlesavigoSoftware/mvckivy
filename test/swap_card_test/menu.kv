@@ -56,6 +56,27 @@
 
     MDBoxLayout:
         adaptive_size: True
+        spacing: dp(4)
+
+        MDIcon:
+            id: transport_icon
+            icon: root.controller.transport_icon if root.controller else ""
+            theme_text_color: "Custom"
+            text_color: 1, 1, 1, 1
+            size_hint: None, None
+            size: dp(24), dp(24)
+
+        MDDropDownItem:
+            id: transport_item
+            md_bg_color: get_color_from_hex("#35363A")
+            on_release: root.controller.open_transport_menu(self) if root.controller else None
+
+            MDDropDownItemText:
+                id: transport_text
+                text: root.controller.transport if root.controller else ""
+
+    MDBoxLayout:
+        adaptive_size: True
         spacing: dp(8)
 
         MDIcon:
