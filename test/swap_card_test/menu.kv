@@ -41,6 +41,15 @@
         valign: "middle"
         halign: "left"
 
+    MDDropDownItem:
+        id: transport_selector
+        pos_hint: {"center_y": .5}
+        on_release: root.controller.open_transport_menu(self) if root.controller else None
+
+        MDDropDownItemText:
+            id: transport_selector_text
+            text: root.controller.current_transport if root.controller else ""
+
     MDBoxLayout:
         adaptive_size: True
         spacing: dp(8)

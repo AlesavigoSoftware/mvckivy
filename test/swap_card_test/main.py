@@ -5,10 +5,16 @@ from kivy.clock import Clock
 from kivy.core.window import Window
 from kivy.lang import Builder
 from kivy.metrics import dp
-from kivy.properties import BooleanProperty, NumericProperty, StringProperty
+from kivy.properties import (
+    BooleanProperty,
+    NumericProperty,
+    ObjectProperty,
+    StringProperty,
+)
 from kivy.uix.widget import Widget
 
 from kivymd.app import MDApp
+from kivymd.uix.menu import MDDropdownMenu
 from kivymd.uix.segmentedbutton import MDSegmentedButton
 
 
@@ -28,7 +34,9 @@ class StretchSegmentedButton(MDSegmentedButton):
 class CollapsibleMenuController(Widget):
     """Сворачиваемая карточка с drag по «ручке» и клиппингом контента."""
 
-    title = StringProperty("Управление миссией БПЛА")
+    title = StringProperty("Управление миссией")
+    current_transport = StringProperty("БПЛА")
+    _transport_menu = ObjectProperty(None)
 
     # авто 1↔2 столбца
     cols = NumericProperty(1)
@@ -73,6 +81,28 @@ class CollapsibleMenuController(Widget):
 
         # Первый пересчёт после сборки KV.
         Clock.schedule_once(lambda *_: self._finalize_trigger(), 0)
+
+    def open_transport_menu(self, caller):
+        """Opens dropdown menu to select transport."""
+
+        items = [
+            {
+                "text": name,
+                "on_release": lambda x=name: self.set_transport(x),
+            }
+            for name in ["БПЛА", "Самолёт", "Вертолёт"]
+        ]
+        self._transport_menu = MDDropdownMenu(caller=caller, items=items)
+        self._transport_menu.open()
+
+    def set_transport(self, value):
+        """Sets current transport and updates header text."""
+
+        self.current_transport = value
+        if self._transport_menu:
+            self._transport_menu.dismiss()
+        if "hdr" in self.ids and "transport_selector_text" in self.ids.hdr.ids:
+            self.ids.hdr.ids.transport_selector_text.text = value
 
     def _finalize_layout(self):
         """Единая точка: пересчитать высоты и применить slide без анимации."""
