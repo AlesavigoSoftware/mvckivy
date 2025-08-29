@@ -14,38 +14,8 @@ from kivy.uix.widget import Widget
 
 from kivymd.app import MDApp
 from kivymd.uix.segmentedbutton import MDSegmentedButton
-
-
-from headless_kivy.config import setup_headless_kivy, SetupHeadlessConfig
-
-
-def headless_render(
-    *,
-    rectangle: tuple[int, int, int, int],
-    data: list[np.uint8],
-    data_hash: int,
-    last_render_thread: Thread,
-) -> None: ...
-
-
-setup_headless_kivy(
-    SetupHeadlessConfig(
-        callback=headless_render,
-        width=240,
-        height=240,
-        bandwidth_limit=1000000,  # number of pixels per second
-        bandwidth_limit_window=0.1,
-        # allow bandwidth_limit x bandwidth_limit_window pixels to be transmitted in bandwidth_limit_window seconds
-        bandwidth_limit_overhead=1000,
-        # each draw command, regardless of the size, has equivalent of this many pixels of cost in bandwidth
-        is_debug_mode=False,
-        rotation=1,  # gets multiplied by 90 degrees
-        flip_horizontal=True,
-        double_buffering=True,  # let headless kivy generate the next frame while the previous callback is still running
-    )
-)
-
-from headless_kivy import HeadlessWidget
+from kivymd.uix.menu import MDDropdownMenu
+from kivymd.uix.dropdownitem import MDDropDownItem, MDDropDownItemText  # noqa: F401 - register in Factory
 
 
 class StretchSegmentedButton(MDSegmentedButton):
@@ -61,14 +31,20 @@ class StretchSegmentedButton(MDSegmentedButton):
             self.bind(width=lambda *_: setattr(c, "width", self.width))
 
 
-class CollapsibleMenuController(HeadlessWidget):
+class CollapsibleMenuController(Widget):
     """Сворачиваемая карточка с drag по «ручке» и клиппингом контента."""
 
     title = StringProperty("Управление миссией БПЛА")
 
+    # текущий транспорт и его иконка
+    current_transport = StringProperty("Квадрокоптер")
+    transport_icon = StringProperty("quadcopter")
+
     # авто 1↔2 столбца
     cols = NumericProperty(1)
-    two_cols_breakpoint = NumericProperty(dp(520))
+    # Порог переключения на 2 колонки чуть выше, чтобы на ширине ~520px
+    # оставаться в 1 колонке (как ожидается при старте)
+    two_cols_breakpoint = NumericProperty(dp(560))
 
     # нормированное состояние
     slide = NumericProperty(1.0)  # 0.0 = раскрыто, 1.0 = свернуто
@@ -83,6 +59,7 @@ class CollapsibleMenuController(HeadlessWidget):
     swipe_threshold_px = NumericProperty(dp(48))
     _layout_ready = BooleanProperty(False)
     _finalize_trigger = None
+    _transport_menu: MDDropdownMenu | None = None
 
     def on_kv_post(self, _):
         Window.bind(size=self._on_window_resize)
@@ -184,6 +161,49 @@ class CollapsibleMenuController(HeadlessWidget):
         Animation.cancel_all(self, "slide")
         Animation(slide=target, d=duration, t="out_cubic").start(self)
 
+    # --- Транспорт: выпадающее меню в заголовке ---
+    def open_transport_menu(self, caller_widget):
+        """Открыть меню выбора транспорта, закрепив его за `caller_widget`."""
+        items = [
+            {
+                "text": "Квадрокоптер",
+                "leading_icon": "quadcopter",
+                "on_release": lambda: self._set_transport("Квадрокоптер", "quadcopter"),
+            },
+            {
+                "text": "Самолёт",
+                "leading_icon": "airplane",
+                "on_release": lambda: self._set_transport("Самолёт", "airplane"),
+            },
+            {
+                "text": "Вездеход",
+                "leading_icon": "car",
+                "on_release": lambda: self._set_transport("Вездеход", "car"),
+            },
+            {
+                "text": "Вертолёт",
+                "leading_icon": "helicopter",
+                "on_release": lambda: self._set_transport("Вертолёт", "helicopter"),
+            },
+        ]
+
+        if self._transport_menu is None:
+            self._transport_menu = MDDropdownMenu(
+                items=items,
+                position="center",
+            )
+
+        # Каждый раз переопределяем якорь и перечень (чтобы ламбды ссылались на актуальный self)
+        self._transport_menu.caller = caller_widget
+        self._transport_menu.items = items
+        self._transport_menu.open()
+
+    def _set_transport(self, name: str, icon: str):
+        self.current_transport = name
+        self.transport_icon = icon
+        if self._transport_menu:
+            self._transport_menu.dismiss()
+
     # жест по ручке
     def _in_handle(self, touch) -> bool:
         if "grip" not in self.ids:
@@ -228,7 +248,15 @@ class HeadlessDemoApp(MDApp):
     def build(self):
         self.title = "Collapsible Left Menu • KivyMD 2.0"
         self.theme_cls.theme_style = "Dark"
-        return Builder.load_file("menu.kv")
+        # Загружаем KV рядом с данным файлом, чтобы демон запускался из любого CWD
+        try:
+            from pathlib import Path
+
+            kv_path = Path(__file__).with_name("menu.kv")
+            return Builder.load_file(str(kv_path))
+        except Exception:
+            # на всякий случай - старый относительный путь
+            return Builder.load_file("menu.kv")
 
 
 if __name__ == "__main__":

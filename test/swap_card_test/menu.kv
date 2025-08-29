@@ -41,6 +41,34 @@
         valign: "middle"
         halign: "left"
 
+    # Выбор текущего транспорта (MD3 drop-down)
+    MDBoxLayout:
+        adaptive_height: True
+        size_hint_x: None
+        width: self.minimum_width
+        spacing: dp(6)
+        padding: dp(10), dp(6)
+        md_bg_color: get_color_from_hex("#23262A")
+        radius: dp(12)
+
+        MDIcon:
+            icon: root.controller.transport_icon if root.controller else "airplane"
+            theme_text_color: "Custom"
+            text_color: 1, 1, 1, 1
+            size_hint: None, None
+            size: dp(18), dp(18)
+            pos_hint: {"center_y": .5}
+
+        MDDropDownItem:
+            id: transport_drop
+            size_hint: None, None
+            height: dp(24)
+            width: self.minimum_width
+            on_release: root.controller.open_transport_menu(self) if root.controller else None
+
+            MDDropDownItemText:
+                text: root.controller.current_transport if root.controller else "—"
+
     MDBoxLayout:
         adaptive_size: True
         spacing: dp(8)
@@ -113,7 +141,8 @@
 
                 MDScrollView:
                     id: scroll
-                    bar_width: dp(3)
+                    # скрываем скроллбар, чтобы не появлялась вертикальная линия
+                    bar_width: 0
                     do_scroll_x: False
 
                     MDBoxLayout:
@@ -322,27 +351,40 @@
                 size_hint_y: None
                 height: dp(40)
                 type: "normal"
+                # убираем обводку у сегментов для MD3-«filled» вида
+                # (каждый item ниже получает прозрачную линию)
 
                 MDSegmentedButtonItem:
+                    theme_line_color: "Custom"
+                    line_color: 0, 0, 0, 0
                     on_active: root.on_segment_pressed("map")
                     MDSegmentButtonIcon:
                         icon: "map-outline"
                     MDSegmentButtonLabel:
-                        text: "Карта"
+                        # Показываем подписи у всех при ширине панели >= 420dp,
+                        # иначе только у активного сегмента
+                        text: "Карта" if (seg_control.width >= dp(420) or self.parent.parent.active) else ""
+                        padding: (dp(12), 0, dp(12), 0) if (seg_control.width >= dp(420) or self.parent.parent.active) else (0, 0, 0, 0)
 
                 MDSegmentedButtonItem:
+                    theme_line_color: "Custom"
+                    line_color: 0, 0, 0, 0
                     on_active: root.on_segment_pressed("list")
                     MDSegmentButtonIcon:
                         icon: "format-list-bulleted"
                     MDSegmentButtonLabel:
-                        text: "Список"
+                        text: "Список" if (seg_control.width >= dp(420) or self.parent.parent.active) else ""
+                        padding: (dp(12), 0, dp(12), 0) if (seg_control.width >= dp(420) or self.parent.parent.active) else (0, 0, 0, 0)
 
                 MDSegmentedButtonItem:
+                    theme_line_color: "Custom"
+                    line_color: 0, 0, 0, 0
                     on_active: root.on_segment_pressed("nav")
                     MDSegmentButtonIcon:
                         icon: "navigation-variant-outline"
                     MDSegmentButtonLabel:
-                        text: "Навигация"
+                        text: "Навигация" if (seg_control.width >= dp(420) or self.parent.parent.active) else ""
+                        padding: (dp(12), 0, dp(12), 0) if (seg_control.width >= dp(420) or self.parent.parent.active) else (0, 0, 0, 0)
 
 # корень
 CollapsibleMenuController:
