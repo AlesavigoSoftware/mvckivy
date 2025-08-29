@@ -3,18 +3,6 @@
 #:import MDLabel kivymd.uix.label.MDLabel
 
 
-<MDSettingSpacer>
-    size_hint_y: None
-    height: 5
-
-    canvas:
-        Color:
-            rgba: app.theme_cls.onPrimaryContainerColor
-        Rectangle:
-            pos: self.x, self.center_y
-            size: self.width, dp(1)
-
-
 <MDSettingItem>
     size_hint_x: 1.
     content: content
@@ -167,43 +155,40 @@
         id: content
         current_uid: menu.selected_uid
 
-#    MDDivider:
-#        orientation: 'vertical'
-
     MDMenuSidebar:
         id: menu
 
 
-<MDInterfaceWithSpinner>
-    orientation: 'vertical'
-    menu: menu
-    content: content
+#<MDInterfaceWithSpinner>
+#    orientation: 'vertical'
+#    menu: menu
+#    content: content
+#
+#    MDMenuSpinner:
+#        id: menu
+#
+#    MDContentPanel:
+#        id: content
+#        current_uid: menu.selected_uid
 
-    MDMenuSpinner:
-        id: menu
 
-    MDContentPanel:
-        id: content
-        current_uid: menu.selected_uid
-
-
-<MDMenuSpinner>
-    orientation: 'horizontal'
-    size_hint_y: None
-    height: '50dp'
-    spinner: spinner
-    spinner_text: spinner.text
-    close_button: button
-
-    Spinner:
-        id: spinner
-
-    Button:
-        text: 'Close'
-        id: button
-        size_hint_x: None
-        width: min(dp(200), 0.4*root.width)
-        font_size: '15sp'
+#<MDMenuSpinner>
+#    orientation: 'horizontal'
+#    size_hint_y: None
+#    height: '50dp'
+#    spinner: spinner
+#    spinner_text: spinner.text
+#    close_button: button
+#
+#    Spinner:
+#        id: spinner
+#
+#    Button:
+#        text: 'Close'
+#        id: button
+#        size_hint_x: None
+#        width: min(dp(200), 0.4*root.width)
+#        font_size: '15sp'
 
 
 <MDMenuSidebar>
@@ -226,73 +211,72 @@
                 size: 1, self.height
                 radius: dp(10), dp(10), dp(10), dp(10)
 
-    MDButton:
-        id: load_button
-        size_hint: None, None
-        theme_width: 'Custom'
-        width: root.width - dp(20)
-        height: min(dp(50), self.width * 2.5)
-
-        pos: root.x + dp(10), root.y + dp(10)
-
-        theme_font_size: 'Custom'
-        font_size: sp(15)
-
-        style: 'tonal'
-
-        MDButtonIcon:
-            x: load_button_text.x - (self.width + dp(10))
-            icon: "download"
-
-        MDButtonText:
-            id: load_button_text
-            text: 'Загрузить'
-            pos_hint: {"center_x": .5, "center_y": .5}
-
-    MDButton:
-        id: upload_button
-        size_hint: None, None
-        theme_width: 'Custom'
-        width: root.width - dp(20)
-        height: min(dp(50), self.width * 2.5)
-
-        pos: root.x + dp(10), root.y + dp(10) + upload_button.height + root.spacing
-
-        theme_font_size: 'Custom'
-        font_size: sp(15)
-
-        style: 'tonal'
-
-        MDButtonIcon:
-            x: upload_button_text.x - (self.width + dp(10))
-            icon: "upload"
-
-        MDButtonText:
-            id: upload_button_text
-            text: 'Отправить'
-            pos_hint: {"center_x": .5, "center_y": .5}
+#    MDButton:
+#        id: load_button
+#        size_hint: None, None
+#        theme_width: 'Custom'
+#        width: root.width - dp(20)
+#        height: min(dp(50), self.width * 2.5)
+#
+#        pos: root.x + dp(10), root.y + dp(10)
+#
+#        theme_font_size: 'Custom'
+#        font_size: sp(15)
+#
+#        style: 'tonal'
+#
+#        MDButtonIcon:
+#            x: load_button_text.x - (self.width + dp(10))
+#            icon: "download"
+#
+#        MDButtonText:
+#            id: load_button_text
+#            text: 'Загрузить'
+#            pos_hint: {"center_x": .5, "center_y": .5}
+#
+#    MDButton:
+#        id: upload_button
+#        size_hint: None, None
+#        theme_width: 'Custom'
+#        width: root.width - dp(20)
+#        height: min(dp(50), self.width * 2.5)
+#
+#        pos: root.x + dp(10), root.y + dp(10) + upload_button.height + root.spacing
+#
+#        theme_font_size: 'Custom'
+#        font_size: sp(15)
+#
+#        style: 'tonal'
+#
+#        MDButtonIcon:
+#            x: upload_button_text.x - (self.width + dp(10))
+#            icon: "upload"
+#
+#        MDButtonText:
+#            id: upload_button_text
+#            text: 'Отправить'
+#            pos_hint: {"center_x": .5, "center_y": .5}
 
 
 <MDContentPanel>
     do_scroll_x: False
     container: content
 
-    MDGridLayout:
+    MDBoxLayout:
         id: content
-        cols: 1
-        size_hint_y: None
-        height: self.minimum_height
+        orientation: "vertical"
+        adaptive_height: True
 
 
-<MDInterfaceWithTabbedPanel>
-    tabbedpanel: tp
-
-    TabbedPanel:
-        id: tp
-        size: root.size
-        pos: root.pos
-        #do_default_tab: False
-        background_color: app.theme_cls.backgroundColor
+#<MDInterfaceWithTabbedPanel>
+#    tabbedpanel: tp
+#
+#    TabbedPanel:
+#        id: tp
+#        size: root.size
+#        pos: root.pos
+#        #do_default_tab: False
+#        background_color: app.theme_cls.backgroundColor
 
 # ───────────────── StringValueDialog ─────────────────
 <StringValueDialog>:

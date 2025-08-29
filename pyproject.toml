@@ -21,6 +21,7 @@ dependencies = [
   "trio>=0.29.0,<0.30",
   "olefile>=0.47,<0.48",
   "watchdog>=6.0.0,<7",
+  "kivy-garden-hover",
 ]
 
 # Extras-группы. "optionals" оставлена пустой намеренно —
@@ -33,6 +34,7 @@ dev = [
   "black>=25.1.0,<26",
   "pyinstaller>=6.12.0,<7",
   "matplotlib>=3.8.0,<4",
+  "kivy-stubs",
 ]
 
 [project.urls]
@@ -72,3 +74,4 @@ kivymd = { git = "https://github.com/AlesavigoSoftware/kivymd-production-fork.gi
 kivy-garden-mapview = { git = "https://github.com/AlesavigoSoftware/mapview-production-fork.git", rev = "main" }
 kivymd-extensions-akivymd = { git = "https://github.com/AlesavigoSoftware/akivymd-production-fork.git", rev = "main" }
 kivy-stubs = { git = "https://github.com/AlesavigoSoftware/kivy-stubs.git", rev = "main" }
+kivy-garden-hover = { git = "https://github.com/pythonic64/hover.git" }

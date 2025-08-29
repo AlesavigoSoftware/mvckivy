@@ -44,10 +44,6 @@ class AttributeIsUnset(ValueError):
     pass
 
 
-class MDSettingSpacer(Widget):
-    pass
-
-
 class MDSettingItem(MDListItem):
     """mvckivy class for individual settings (within a panel). This class cannot
     be used directly; it is used for implementing the other setting classes.
@@ -56,10 +52,6 @@ class MDSettingItem(MDListItem):
 
     Look at :class:`MDSettingBoolean`, :class:`MDSettingNumeric` and
     :class:`MDSettingOptions` for usage examples.
-
-    :Events:
-        `on_release`
-            Fired when the item is touched and then released.
 
     """
 
@@ -111,55 +103,22 @@ class MDSettingItem(MDListItem):
     defaults to None.
     """
 
-    selected_alpha = NumericProperty(0)
-    """(internal) Float value from 0 to 1, used to animate the background when
-    the user touches the item.
-
-    :attr:`selected_alpha` is a :class:`~kivy.properties.NumericProperty` and
-    defaults to 0.
-    """
-
     icon = StringProperty("checkbox-blank-circle")
 
-    __events__ = ("on_release",)
+    def _open_dialog(self):
+        pass
+
+    def on_release(self):
+        self._open_dialog()
 
     def add_widget(self, *args, **kwargs):
         if self.content is None:
             return super(MDSettingItem, self).add_widget(*args, **kwargs)
         return self.content.add_widget(*args, **kwargs)
 
-    def on_release(self):
-        pass
-
-    def on_value(self, instance, value):
-
-        if not self.key:
-            raise AttributeIsUnset(f"Attribute {self.key=} <{self.__class__.__name__}>")
-
-        self.panel.set_value(self.key, value)
-
 
 class MDSettingBoolean(MDSettingItem):
-    """Implementation of a boolean setting on top of a :class:`MDSettingItem`.
-    It is visualized with a :class:`~kivy.uix.switch.Switch` widget.
-    By default, 0 and 1 are used for values: you can change them by setting
-    :attr:`values`.
-    """
-
     values = ListProperty([0, 1])
-    """Values used to represent the state of the setting. If you want to use
-    "yes" and "no" in your ConfigParser instance::
-
-        MDSettingBoolean(..., values=['no', 'yes'])
-
-    .. warning::
-
-        You need a minimum of two values, the index 0 will be used as False,
-        and index 1 as True
-
-    :attr:`values` is a :class:`~kivy.properties.ListProperty` and defaults to
-    ['0', '1']
-    """
 
 
 class MDSettingString(MDSettingItem):
@@ -184,11 +143,6 @@ class MDSettingString(MDSettingItem):
     :attr:`textinput` is an :class:`~kivy.properties.ObjectProperty` and
     defaults to None.
     """
-
-    def on_panel(self, instance, value):
-        if value is None:
-            return
-        self.fbind("on_release", self._create_popup)
 
     def _dismiss(self, *largs):
         if self.textinput:
@@ -240,7 +194,7 @@ class MDSettingString(MDSettingItem):
         btnlayout.add_widget(btn)
         content.add_widget(btnlayout)
 
-        # all done, open the popup !
+        # all done, open the popup
         popup.open()
 
 
@@ -615,60 +569,60 @@ class MDInterfaceWithSidebar(MDBoxLayout):
         pass
 
 
-class MDInterfaceWithSpinner(MDBoxLayout):
-    """A settings interface that displays a spinner at the top for
-    switching between panels.
-
-    The workings of this class are considered internal and are not
-    documented. See :meth:`MDInterfaceWithSidebar` for
-    information on implementing your own interface class.
-
-    """
-
-    __events__ = ("on_close",)
-
-    menu = ObjectProperty()
-    """(internal) A reference to the sidebar menu widget.
-
-    :attr:`menu` is an :class:`~kivy.properties.ObjectProperty` and
-    defaults to None.
-    """
-
-    content = ObjectProperty()
-    """(internal) A reference to the panel display widget (a
-    :class:`ContentPanel`).
-
-    :attr:`menu` is an :class:`~kivy.properties.ObjectProperty` and
-    defaults to None.
-
-    """
-
-    def __init__(self, *args, **kwargs):
-        super(MDInterfaceWithSpinner, self).__init__(*args, **kwargs)
-        self.menu.close_button.bind(on_release=lambda j: self.dispatch("on_close"))
-
-    def add_panel(self, panel, name, uid):
-        """This method is used by MDSettings to add new panels for possible
-        display. Any replacement for ContentPanel *must* implement
-        this method.
-
-        :Parameters:
-            `panel`: :class:`MDSettingsPanel`
-                It should be stored and the interface should provide a way to
-                switch between panels.
-            `name`:
-                The name of the panel as a string. It may be used to represent
-                the panel but may not be unique.
-            `uid`:
-                A unique int identifying the panel. It should be used to
-                identify and switch between panels.
-
-        """
-        self.content.add_panel(panel, name, uid)
-        self.menu.add_item(name, uid)
-
-    def on_close(self, *args):
-        pass
+# class MDInterfaceWithSpinner(MDBoxLayout):
+#     """A settings interface that displays a spinner at the top for
+#     switching between panels.
+#
+#     The workings of this class are considered internal and are not
+#     documented. See :meth:`MDInterfaceWithSidebar` for
+#     information on implementing your own interface class.
+#
+#     """
+#
+#     __events__ = ("on_close",)
+#
+#     menu = ObjectProperty()
+#     """(internal) A reference to the sidebar menu widget.
+#
+#     :attr:`menu` is an :class:`~kivy.properties.ObjectProperty` and
+#     defaults to None.
+#     """
+#
+#     content = ObjectProperty()
+#     """(internal) A reference to the panel display widget (a
+#     :class:`ContentPanel`).
+#
+#     :attr:`menu` is an :class:`~kivy.properties.ObjectProperty` and
+#     defaults to None.
+#
+#     """
+#
+#     def __init__(self, *args, **kwargs):
+#         super(MDInterfaceWithSpinner, self).__init__(*args, **kwargs)
+#         self.menu.close_button.bind(on_release=lambda j: self.dispatch("on_close"))
+#
+#     def add_panel(self, panel, name, uid):
+#         """This method is used by MDSettings to add new panels for possible
+#         display. Any replacement for ContentPanel *must* implement
+#         this method.
+#
+#         :Parameters:
+#             `panel`: :class:`MDSettingsPanel`
+#                 It should be stored and the interface should provide a way to
+#                 switch between panels.
+#             `name`:
+#                 The name of the panel as a string. It may be used to represent
+#                 the panel but may not be unique.
+#             `uid`:
+#                 A unique int identifying the panel. It should be used to
+#                 identify and switch between panels.
+#
+#         """
+#         self.content.add_panel(panel, name, uid)
+#         self.menu.add_item(name, uid)
+#
+#     def on_close(self, *args):
+#         pass
 
 
 class MDContentPanel(MVCScrollView):
@@ -807,8 +761,6 @@ class MDSettings(MDBoxLayout):
 
     """
 
-    __events__ = ("on_close",)
-
     NO_PROPERTY_CLASSES = [MDSettingButton, MDSettingTitle]
 
     def __init__(self, *args, **kwargs):
@@ -835,9 +787,6 @@ class MDSettings(MDBoxLayout):
     def register_type(self, tp, cls):
         """Register a new type that can be used in the JSON definition."""
         self._types[tp] = cls
-
-    def on_close(self, *args):
-        pass
 
     def add_interface(self):
         """(Internal) creates an instance of :attr:`MDSettings.interface_cls`,
@@ -924,37 +873,33 @@ class MDSettings(MDBoxLayout):
 
 
 class MDSettingsWithSidebar(MDSettings):
-    """A settings widget that displays settings panels with a sidebar to
-    switch between them. This is the default behavior of
-    :class:`MDSettings`, and this widget is a trivial wrapper subclass.
-
-    """
+    pass
 
 
-class MDSettingsWithSpinner(MDSettings):
-    """A settings widget that displays one settings panel at a time with a
-    spinner at the top to switch between them.
+# class MDSettingsWithSpinner(MDSettings):
+#     """A settings widget that displays one settings panel at a time with a
+#     spinner at the top to switch between them.
+#
+#     """
+#
+#     def __init__(self, *args, **kwargs):
+#         self.interface_cls = MDInterfaceWithSpinner
+#         super(MDSettingsWithSpinner, self).__init__(*args, **kwargs)
 
-    """
 
-    def __init__(self, *args, **kwargs):
-        self.interface_cls = MDInterfaceWithSpinner
-        super(MDSettingsWithSpinner, self).__init__(*args, **kwargs)
-
-
-class MDSettingsWithTabbedPanel(MDSettings):
-    """A settings widget that displays settings panels as pages in a
-    :class:`~kivy.uix.tabbedpanel.TabbedPanel`.
-    """
-
-    __events__ = ("on_close",)
-
-    def __init__(self, *args, **kwargs):
-        self.interface_cls = MDInterfaceWithTabbedPanel
-        super(MDSettingsWithTabbedPanel, self).__init__(*args, **kwargs)
-
-    def on_close(self, *args):
-        pass
+# class MDSettingsWithTabbedPanel(MDSettings):
+#     """A settings widget that displays settings panels as pages in a
+#     :class:`~kivy.uix.tabbedpanel.TabbedPanel`.
+#     """
+#
+#     __events__ = ("on_close",)
+#
+#     def __init__(self, *args, **kwargs):
+#         self.interface_cls = MDInterfaceWithTabbedPanel
+#         super(MDSettingsWithTabbedPanel, self).__init__(*args, **kwargs)
+#
+#     def on_close(self, *args):
+#         pass
 
 
 class MDSettingsWithNoMenu(MDSettings):
@@ -994,70 +939,70 @@ class MDInterfaceWithNoMenu(MDContentPanel):
         super(MDInterfaceWithNoMenu, self).add_widget(*args, **kwargs)
 
 
-class MDInterfaceWithTabbedPanel(MDFloatLayout):
-    """The content widget used by :class:`MDSettingsWithTabbedPanel`. It
-    stores and displays MDSettings panels in tabs of a TabbedPanel.
+# class MDInterfaceWithTabbedPanel(MDFloatLayout):
+#     """The content widget used by :class:`MDSettingsWithTabbedPanel`. It
+#     stores and displays MDSettings panels in tabs of a TabbedPanel.
+#
+#     This widget is considered internal and is not documented. See
+#     :class:`MDInterfaceWithSidebar` for information on defining your own
+#     interface widget.
+#
+#     """
+#
+#     tabbedpanel = ObjectProperty()
+#     close_button = ObjectProperty()
+#
+#     __events__ = ("on_close",)
+#
+#     def __init__(self, *args, **kwargs):
+#         super(MDInterfaceWithTabbedPanel, self).__init__(**kwargs)
+#         self.close_button.bind(on_release=lambda j: self.dispatch("on_close"))
+#
+#     def add_panel(self, panel, name, uid):
+#         scrollview = MVCScrollView()
+#         scrollview.add_widget(panel)
+#         if not self.tabbedpanel.default_tab_content:
+#             self.tabbedpanel.default_tab_text = name
+#             self.tabbedpanel.default_tab_content = scrollview
+#         else:
+#             panelitem = TabbedPanelHeader(text=name, content=scrollview)
+#             self.tabbedpanel.add_widget(panelitem)
+#
+#     def on_close(self, *args):
+#         pass
 
-    This widget is considered internal and is not documented. See
-    :class:`MDInterfaceWithSidebar` for information on defining your own
-    interface widget.
 
-    """
-
-    tabbedpanel = ObjectProperty()
-    close_button = ObjectProperty()
-
-    __events__ = ("on_close",)
-
-    def __init__(self, *args, **kwargs):
-        super(MDInterfaceWithTabbedPanel, self).__init__(**kwargs)
-        self.close_button.bind(on_release=lambda j: self.dispatch("on_close"))
-
-    def add_panel(self, panel, name, uid):
-        scrollview = MVCScrollView()
-        scrollview.add_widget(panel)
-        if not self.tabbedpanel.default_tab_content:
-            self.tabbedpanel.default_tab_text = name
-            self.tabbedpanel.default_tab_content = scrollview
-        else:
-            panelitem = TabbedPanelHeader(text=name, content=scrollview)
-            self.tabbedpanel.add_widget(panelitem)
-
-    def on_close(self, *args):
-        pass
-
-
-class MDMenuSpinner(MDBoxLayout):
-    """The menu class used by :class:`MDSettingsWithSpinner`. It provides a
-    sidebar with an entry for each settings panel.
-
-    This widget is considered internal and is not documented. See
-    :class:`MenuSidebar` for information on menus and creating your own menu
-    class.
-
-    """
-
-    selected_uid = NumericProperty(0)
-    close_button = ObjectProperty(0)
-    spinner = ObjectProperty()
-    panel_names = DictProperty({})
-    spinner_text = StringProperty()
-
-    def add_item(self, name, uid):
-        values = self.spinner.values
-        if name in values:
-            i = 2
-            while name + " {}".format(i) in values:
-                i += 1
-            name = name + " {}".format(i)
-        self.panel_names[name] = uid
-        self.spinner.values.append(name)
-        if not self.spinner.text:
-            self.spinner.text = name
-
-    def on_spinner_text(self, *args):
-        text = self.spinner_text
-        self.selected_uid = self.panel_names[text]
+# class MDMenuSpinner(MDBoxLayout):
+#     """The menu class used by :class:`MDSettingsWithSpinner`. It provides a
+#     sidebar with an entry for each settings panel.
+#
+#     This widget is considered internal and is not documented. See
+#     :class:`MenuSidebar` for information on menus and creating your own menu
+#     class.
+#
+#     """
+#
+#     selected_uid = NumericProperty(0)
+#     close_button = ObjectProperty(0)
+#     spinner = ObjectProperty()
+#     panel_names = DictProperty({})
+#     spinner_text = StringProperty()
+#
+#     def add_item(self, name, uid):
+#         values = self.spinner.values
+#         if name in values:
+#             i = 2
+#             while name + " {}".format(i) in values:
+#                 i += 1
+#             name = name + " {}".format(i)
+#         self.panel_names[name] = uid
+#         self.spinner.values.append(name)
+#         if not self.spinner.text:
+#             self.spinner.text = name
+#
+#     def on_spinner_text(self, *args):
+#         text = self.spinner_text
+#         self.selected_uid = self.panel_names[text]
 
 
 class MDMenuSidebar(MDFloatLayout):
@@ -1137,16 +1082,16 @@ class MDSettingSidebarLabel(MDLabel):
         self.menu.selected_uid = self.uid
 
 
-class MDSettingsCloseButton(MDIconButton, CommonElevationBehavior):
-    def on_enter(self):
-        super().on_enter()
-        self.md_bg_color = "grey"
-        self.icon_color = "black"
-
-    def on_leave(self):
-        super().on_leave()
-        self.md_bg_color = "black"
-        self.icon_color = "white"
+# class MDSettingsCloseButton(MDIconButton, CommonElevationBehavior):
+#     def on_enter(self):
+#         super().on_enter()
+#         self.md_bg_color = "grey"
+#         self.icon_color = "black"
+#
+#     def on_leave(self):
+#         super().on_leave()
+#         self.md_bg_color = "black"
+#         self.icon_color = "white"
 
 
 # Диалоги (визуал — в .kv)

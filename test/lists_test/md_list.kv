@@ -24,17 +24,6 @@
                 MDButtonText:
                     text: "Открыть список (40)"
 
-            MDButton:
-                style: "filled"
-                on_release: app.open_list_dialog(200)
-                MDButtonText:
-                    text: "Открыть большой список (200)"
-
-            MDButton:
-                style: "tonal"
-                on_release: app.open_success_dialog()
-                MDButtonText:
-                    text: "Открыть SuccessGSConnDialog"
 
 MDRoot:
 
@@ -87,12 +76,14 @@ MDRoot:
             id: scroll
             do_scroll_x: False
             size_hint_y: None
+            size_hint_x: 1.
             height: self.parent.height
             bar_width: dp(4)
 
             MDList:
                 id: items_list
                 size_hint_y: None
+                size_hint_x: 1.
                 height: self.minimum_height
 
     MDAdaptiveDialogButtonContainer:
@@ -102,79 +93,15 @@ MDRoot:
         spacing: dp(8)
 
         Widget:
-
-        # интерактивные кнопки — с учётом масштаба диалога
         ScaledMDButton:
             scale_provider: root
             style: "text"
             on_release: root.dismiss()
             MDButtonText:
                 text: "Отмена"
-
         ScaledMDButton:
             scale_provider: root
             style: "filled"
             on_release: root.on_save()
             MDButtonText:
                 text: "Сохранить"
-
-# ---------- SuccessGSConnDialog ----------
-<SuccessGSConnDialog>:
-    elevation: 0
-    radius: [dp(28)] * 4
-    padding: dp(24)
-    md_bg_color: self.theme_cls.surfaceContainerLowColor
-
-    canvas.before:
-        PushMatrix
-        Scale:
-            x: root.render_scale
-            y: root.render_scale
-            origin: self.center
-    canvas.after:
-        PopMatrix
-
-    MDAdaptiveDialogIcon:
-        id: icon_c
-        icon: "connection"
-
-    MDAdaptiveDialogHeadlineText:
-        id: headline_c
-        text: "Успешно подключено к наземной станции"
-        halign: "center"
-        text_size: self.width, None
-        adaptive_height: True
-
-    MDAdaptiveDialogSupportingText:
-        id: support_c
-        text:
-            "Ниже вы можете выбрать устройства для подключения.\n" \
-            "Изменить этот параметр вы можете в настройках приложения.\n" \
-            "Если устройство не обнаружено, попробуйте перезагрузить его"
-        halign: "center"
-        text_size: self.width, None
-        adaptive_height: True
-
-    MDAdaptiveDialogContentContainer:
-        id: content_c
-        orientation: "vertical"
-        size_hint_y: None
-        height: dp(200)
-        MDLabel:
-            text: "Здесь может быть ваш контент"
-            adaptive_height: True
-
-    MDAdaptiveDialogButtonContainer:
-        id: buttons_c
-        size_hint_y: None
-        height: dp(44)
-        spacing: dp(8)
-
-        Widget:
-
-        ScaledMDButton:
-            scale_provider: root
-            style: "text"
-            on_release: root.dismiss()
-            MDButtonText:
-                text: "Закрыть"
