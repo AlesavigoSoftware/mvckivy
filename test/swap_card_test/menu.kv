@@ -41,6 +41,19 @@
         valign: "middle"
         halign: "left"
 
+    MDDropDownItem:
+        id: transport_item
+        on_release: root.controller.open_transport_menu(self) if root.controller else None
+        pos_hint: {"center_y": .5}
+        md_bg_color: app.theme_cls.surfaceContainerColor
+        radius: dp(8)
+
+        MDDropDownItemText:
+            text: root.controller.transport if root.controller else ""
+            role: "medium"
+            theme_text_color: "Custom"
+            text_color: app.theme_cls.onSurfaceColor
+
     MDBoxLayout:
         adaptive_size: True
         spacing: dp(8)
