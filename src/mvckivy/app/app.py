@@ -1,17 +1,18 @@
 from __future__ import annotations
 
-import logging
-import sys
-import os
 from fnmatch import fnmatch
 from importlib import reload
+import logging
+import os
 from os.path import realpath
 from pathlib import Path
+import sys
+import trio
+from trio import Nursery
 from typing import TYPE_CHECKING, Iterable, Literal
 
-import trio
 from kivy.app import App
-from kivy.base import ExceptionManager
+from kivy.base import ExceptionManager, ExceptionHandler, async_runTouchApp
 from kivy.clock import mainthread, Clock
 from kivy.config import Config
 from kivy.core.window import Window
@@ -22,20 +23,23 @@ from kivy.properties import (
     StringProperty,
     BooleanProperty,
     NumericProperty,
-    DictProperty,
-    ListProperty,
 )
-from kivy.uix.popup import Popup
-from kivymd.app import FpsMonitoring
+from kivy.uix.widget import Widget
+
 from kivymd.theming import ThemeManager
-from kivymd.tools.hotreload.app import original_argv, monotonic
-from trio import Nursery
+from kivymd.utils.fpsmonitor import FpsMonitor
 
 from mvckivy.app import ScreenRegistrator
-from mvckivy.utils.clock_handler import ClockHandler
 from mvckivy.utils.builder import MVCBuilder
+from mvckivy.utils.constants import Scheme, Palette
+from mvckivy.utils.error_handlers import ClockHandler, AppExceptionNotifyHandler
+from mvckivy.utils.hot_reload_utils import HotReloadConfig, EXCEPTION_POPUP_KV
 
-from utility.constants import Scheme, Palette
+
+try:
+    from monotonic import monotonic
+except ImportError:
+    monotonic = None
 
 
 if TYPE_CHECKING:
@@ -46,22 +50,19 @@ if TYPE_CHECKING:
     from mvckivy.base_mvc.base_app_screen import BaseAppScreen
 
 
+original_argv = sys.argv
 logger = logging.getLogger("mvckivy")
 
 
-class UnsupportedSettingsImplementationException(Exception):
-    pass
-
-
 class MVCApp(App):
-    """
-    Application class, see :class:`~kivy.app.App` class documentation for more
-    information.
-    """
+    __events__ = ["on_idle", "on_wakeup"]
+
+    idle_detection = BooleanProperty(False)
+    idle_timeout = NumericProperty(60)
+    debug_mode: BooleanProperty = BooleanProperty(False)
 
     icon: StringProperty = StringProperty("kivymd/images/logo/kivymd-icon-512.png")
     theme_cls: ObjectProperty[ThemeManager] = ObjectProperty()
-    debug_mode: BooleanProperty = BooleanProperty(False)
 
     model: ObjectProperty[BaseAppModel] = ObjectProperty()
     controller: ObjectProperty[BaseAppController] = ObjectProperty()
@@ -70,6 +71,7 @@ class MVCApp(App):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.nursery: Nursery | None = None
+        self.idle_timer: monotonic = None
         self.theme_cls: ThemeManager = ThemeManager()
         self.theme_cls.bind(
             theme_style=self.theme_cls.update_theme_colors,
@@ -88,16 +90,10 @@ class MVCApp(App):
         self._registrator.create_models_and_controllers()
         self.model: BaseAppModel = self._registrator.get_app_model()
         self.controller: BaseAppController = self._registrator.get_app_controller()
+
         for _registration_report in self._registrator.create_initial_screens():
-            logger.debug(
-                "mvckivy: Initial screens registration succeeded: %s. Progress: %d%%",
-                _registration_report["name"],
-                int(
-                    _registration_report["current"]
-                    / _registration_report["total"]
-                    * 100
-                ),
-            )
+            self.log_screen_register_progress(_registration_report)
+
         self.screen: BaseAppScreen = self._registrator.get_app_screen()
 
         self._configure_window_behavior()
@@ -106,9 +102,23 @@ class MVCApp(App):
 
         self._bind_and_init_theme_settings()
 
-    def build(self):
-        self.root = self.get_root()
-        return super().build()
+    def log_screen_register_progress(self, load_info: dict) -> None:
+        logger.debug(
+            "mvckivy: Screen '%s' registered. Progress: %.2f%%",
+            load_info.get("name", "unknown"),
+            self._calc_screen_loading_progress(load_info, percent=True),
+        )
+
+    @staticmethod
+    def _calc_screen_loading_progress(load_info: dict, percent=False) -> float:
+        res = round(load_info.get("current", 1.0) / load_info.get("total", 1.0), 1)
+        return res * 100.0 if percent else res
+
+    @classmethod
+    def get_exception_handlers(cls) -> list[ExceptionHandler]:
+        return [
+            ClockHandler(),
+        ]
 
     def get_root(self) -> BaseAppScreen | None:
         """
@@ -140,6 +150,15 @@ class MVCApp(App):
         :return: Screen instance.
         """
         return self._registrator.get_screen(name)
+
+    def get_models(self) -> Iterable[BaseModel] | None:
+        return self._registrator.get_models()
+
+    def get_controllers(self) -> Iterable[BaseController] | None:
+        return self._registrator.get_controllers()
+
+    def get_screens(self) -> Iterable[BaseScreen] | None:
+        return self._registrator.get_screens()
 
     def register_screen_dirs(self) -> dict[str, PathItem]:
         raise NotImplementedError()
@@ -201,12 +220,23 @@ class MVCApp(App):
             },
         )
 
-    @staticmethod
-    def _register_error_handlers() -> None:
-        handlers = [
-            ClockHandler(),
-        ]
-        for handler in handlers:
+    def config_loggers(self):
+        import logging
+
+        for name, _logger in logging.root.manager.loggerDict.items():
+            logger.debug(f"{name}: {_logger}")
+
+        urllib_loggers = (
+            logging.getLogger("urllib3.connectionpool"),
+            logging.getLogger("urllib3.connection"),
+            logging.getLogger("urllib3.response"),
+        )
+
+        for _logger in urllib_loggers:
+            _logger.setLevel(logging.INFO if self.debug_mode else logging.WARNING)
+
+    def _register_error_handlers(self) -> None:
+        for handler in self.get_exception_handlers():
             ExceptionManager.add_handler(handler)
 
     def _configure_window_behavior(self) -> None:
@@ -220,8 +250,7 @@ class MVCApp(App):
         Clock.max_iteration = 30
 
     def dispatch_to_all_controllers(self, event_type: str):
-        self.controller.dispatch(event_type)
-        for c in self.controllers.values():
+        for c in self.get_controllers():
             c.dispatch(event_type)
 
     def create_and_open_dialog(self, *args, **kwargs) -> None:
@@ -233,230 +262,27 @@ class MVCApp(App):
     def switch_screen(self):
         pass
 
+    def on_start(self):
+        self.config_loggers()
+        self.dispatch_to_all_controllers("on_app_start")
 
-class MVCDebugApp(MVCApp, FpsMonitoring):
-    """HotReload Application class."""
-
-    debug_mode = BooleanProperty(True)
-    """
-    Control either we activate debugging in the app or not.
-    Defaults depend if 'DEBUG' exists in os.environ.
-
-    :attr:`DEBUG` is a :class:`~kivy.properties.BooleanProperty`.
-    """
-
-    FOREGROUND_LOCK = BooleanProperty(False)
-    """
-    If `True` it will require the foreground lock on windows.
-
-    :attr:`FOREGROUND_LOCK` is a :class:`~kivy.properties.BooleanProperty`
-    and defaults to `False`.
-    """
-
-    KV_FILES = ListProperty()
-    """
-    List of KV files under management for auto reloader.
-
-    :attr:`KV_FILES` is a :class:`~kivy.properties.ListProperty`
-    and defaults to `[]`.
-    """
-
-    KV_DIRS = ListProperty()
-    """
-    List of managed KV directories for autoloader.
-
-    :attr:`KV_DIRS` is a :class:`~kivy.properties.ListProperty`
-    and defaults to `[]`.
-    """
-
-    AUTORELOADER_PATHS = ListProperty([(".", {"recursive": True})])
-    """
-    List of path to watch for auto reloading.
-
-    :attr:`AUTORELOADER_PATHS` is a :class:`~kivy.properties.ListProperty`
-    and defaults to `([(".", {"recursive": True})]`.
-    """
-
-    AUTORELOADER_IGNORE_PATTERNS = ListProperty(["*.pyc", "*__pycache__*"])
-    """
-    List of extensions to ignore.
-
-    :attr:`AUTORELOADER_IGNORE_PATTERNS` is a :class:`~kivy.properties.ListProperty`
-    and defaults to `['*.pyc', '*__pycache__*']`.
-    """
-
-    CLASSES = DictProperty()
-    """
-    Factory classes managed by hotreload.
-
-    :attr:`CLASSES` is a :class:`~kivy.properties.DictProperty`
-    and defaults to `{}`.
-    """
-
-    IDLE_DETECTION = BooleanProperty(False)
-    """
-    Idle detection (if True, event on_idle/on_wakeup will be fired).
-    Rearming idle can also be done with `rearm_idle()`.
-
-    :attr:`IDLE_DETECTION` is a :class:`~kivy.properties.BooleanProperty`
-    and defaults to `False`.
-    """
-
-    IDLE_TIMEOUT = NumericProperty(60)
-    """
-    Default idle timeout.
-
-    :attr:`IDLE_TIMEOUT` is a :class:`~kivy.properties.NumericProperty`
-    and defaults to `60`.
-    """
-
-    RAISE_ERROR = BooleanProperty(True)
-    """
-    Raise error.
-    When the `DEBUG` is activated, it will raise any error instead
-    of showing it on the screen. If you still want to show the error
-    when not in `DEBUG`, put this to `False`.
-
-    :attr:`RAISE_ERROR` is a :class:`~kivy.properties.BooleanProperty`
-    and defaults to `True`.
-    """
-
-    __events__ = ["on_idle", "on_wakeup"]
-
-    def build(self):
-        if self.DEBUG:
-            logger.info("{}: Debug mode activated".format(self.appname))
-            self.enable_autoreload()
-            self.patch_builder()
-            self.bind_key(32, self.rebuild)
-        if self.FOREGROUND_LOCK:
-            self.prepare_foreground_lock()
-
-        self.state = None
-        self.approot = None
-        self.root = self.get_root()
-        self.rebuild(first=True)
-
-        if self.IDLE_DETECTION:
-            self.install_idle(timeout=self.IDLE_TIMEOUT)
-
-        return super().build()
-
-    def unload_app_dependencies(self):
-        """
-        Called when all the application dependencies must be unloaded.
-        Usually happen before a reload
-        """
-
-        for path_to_kv_file in self.KV_FILES:
-            path_to_kv_file = realpath(path_to_kv_file)
-            Builder.unload_file(path_to_kv_file)
-
-        for name, module in self.CLASSES.items():
-            Factory.unregister(name)
-
-        for path in self.KV_DIRS:
-            for path_to_dir, dirs, files in os.walk(path):
-                for name_file in files:
-                    if os.path.splitext(name_file)[1] == ".kv":
-                        path_to_kv_file = os.path.join(path_to_dir, name_file)
-                        Builder.unload_file(path_to_kv_file)
-
-    def load_app_dependencies(self):
-        """
-        Load all the application dependencies.
-        This is called before rebuild.
-        """
-
-        for path_to_kv_file in self.KV_FILES:
-            path_to_kv_file = realpath(path_to_kv_file)
-            Builder.load_file(path_to_kv_file)
-
-        for name, module in self.CLASSES.items():
-            Factory.register(name, module=module)
-
-        for path in self.KV_DIRS:
-            for path_to_dir, dirs, files in os.walk(path):
-                for name_file in files:
-                    if os.path.splitext(name_file)[1] == ".kv":
-                        path_to_kv_file = os.path.join(path_to_dir, name_file)
-                        Builder.load_file(path_to_kv_file)
-
-    @mainthread
-    def set_error(self, exc, tb=None):
-        print(tb)
-        from kivy.core.window import Window
-        from kivy.utils import get_color_from_hex
-
-        scroll = Factory.MDScrollView(
-            scroll_y=0, md_bg_color=get_color_from_hex("#e50000")
-        )
-        lbl = Factory.Label(
-            text_size=(Window.width - 100, None),
-            size_hint_y=None,
-            text="{}\n\n{}".format(exc, tb or ""),
-        )
-        lbl.bind(texture_size=lbl.setter("size"))
-        scroll.add_widget(lbl)
-        self.set_widget(scroll)
-
-    def bind_key(self, key, callback):
-        """Bind a key (keycode) to a callback (cannot be unbind)."""
-
-        from kivy.core.window import Window
-
-        def _on_keyboard(window, keycode, *args):
-            if key == keycode:
-                return callback()
-
-        Window.bind(on_keyboard=_on_keyboard)
+    def on_stop(self):
+        self.dispatch_to_all_controllers("on_app_exit")
 
     @property
     def appname(self):
         """Return the name of the application class."""
-
         return self.__class__.__name__
 
-    def prepare_foreground_lock(self):
-        """
-        Try forcing app to front permanently to avoid windows
-        pop-ups and notifications etc.app.
-
-        Requires fake full screen and borderless.
-
-        .. note::
-            This function is called automatically if `FOREGROUND_LOCK` is set
-        """
-
-        try:
-            import ctypes
-
-            LSFW_LOCK = 1
-            ctypes.windll.user32.LockSetForegroundWindow(LSFW_LOCK)
-            logger.info("App: Foreground lock activated")
-        except Exception:
-            logger.warning("App: No foreground lock available")
-
-    def set_widget(self, wid):
-        """
-        Clear the root container, and set the new approot widget to `wid`.
-        """
-
-        self.root.clear_widgets()
-        self.approot = wid
-        if wid is None:
+    def _check_idle(self, *args):
+        if not hasattr(self, "idle_timer"):
             return
-        self.root.add_widget(self.approot)
-        try:
-            wid.do_layout()
-        except Exception:
-            pass
+        if self.idle_timer is None:
+            return
+        if monotonic() - self.idle_timer > self.idle_timeout:
+            self.idle_timer = None
+            self.dispatch("on_idle")
 
-    # State management.
-    def apply_state(self, state):
-        """Whatever the current state is, reapply the current state."""
-
-    # Idle management leave.
     def install_idle(self, timeout=60):
         """
         Install the idle detector. Default timeout is 60s.
@@ -487,41 +313,122 @@ class MVCDebugApp(MVCApp, FpsMonitoring):
             self.dispatch("on_wakeup")
         self.idle_timer = monotonic()
 
-    # Internals.
-    def patch_builder(self):
-        Builder.orig_load_string = Builder.load_string
-        Builder.load_string = self._builder_load_string
-
     def on_idle(self, *args):
         """Event fired when the application enter the idle mode."""
 
     def on_wakeup(self, *args):
         """Event fired when the application leaves idle mode."""
 
+    def build(self):
+        self.root = self.get_root()
+
+        if self.idle_detection:
+            self.install_idle(timeout=self.idle_timeout)
+
+        return super().build()
+
+    async def async_run(self, async_lib="trio"):
+        async with trio.open_nursery() as nursery:
+            logger.info("%s: Starting Async Kivy app", self.appname)
+            self.nursery = nursery
+            self._run_prepare()
+            await async_runTouchApp(async_lib=async_lib)
+            self._stop()
+            nursery.cancel_scope.cancel()
+
+
+class MVCDebugApp(MVCApp):
+    debug_mode = BooleanProperty(True)
+    raise_error = BooleanProperty(not debug_mode.defaultvalue)
+    """
+    When the `debug_mode` is activated, 
+    it will show any error on the screen instead of raising it.
+    """
+    show_fps_monitor = BooleanProperty(True)
+    manual_reload_key_code = NumericProperty(32)  # Space key
+    foreground_lock = BooleanProperty(False)
+    hotreload_config: HotReloadConfig | None = None
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self._observer = None
+        self.w_handler = None
+
+    @classmethod
+    def get_exception_handlers(cls) -> list[ExceptionHandler]:
+        return [ClockHandler(), AppExceptionNotifyHandler()]
+
     @mainthread
-    def _reload_from_watchdog(self, event):
-        from watchdog.events import FileModifiedEvent
+    def set_error(self, exc, tb=None):
+        if self.debug_mode:
+            popup = Builder.load_string(EXCEPTION_POPUP_KV)
+            popup.text = f"{exc}\n\n{tb or ''}"
+            popup.open()
 
-        if not isinstance(event, FileModifiedEvent):
-            return
+    def build(self):
+        if not self.debug_mode:
+            return super().build()
 
-        for pat in self.AUTORELOADER_IGNORE_PATTERNS:
-            if fnmatch(event.src_path, pat):
-                return
+        self.hotreload_config = self.fill_hotreload_config(HotReloadConfig())
 
-        if event.src_path.endswith(".py"):
-            # source changed, reload it
-            try:
-                Builder.unload_file(event.src_path)
-                self._reload_py(event.src_path)
-            except Exception as e:
-                import traceback
+        if self.show_fps_monitor:
+            self.fps_monitor_start()
 
-                self.set_error(repr(e), traceback.format_exc())
-                return
+        if self.foreground_lock:
+            self.prepare_foreground_lock()
 
-        Clock.unschedule(self.rebuild)
-        Clock.schedule_once(self.rebuild, 0.1)
+        self.patch_builder()
+        self.enable_manual_reload()
+        self.enable_autoreload()
+
+        self.rebuild(first=True)
+
+        return super().build()
+
+    def fill_hotreload_config(
+        self, hotreload_config: HotReloadConfig
+    ) -> HotReloadConfig:
+        raise NotImplementedError()
+
+    @staticmethod
+    def fps_monitor_start(anchor: str = "top") -> None:
+        """
+        Adds a monitor to the main application window.
+
+        :type anchor: str;
+        :param anchor: anchor FPS panel ('top' or 'bottom');
+        """
+
+        def add_monitor(*args):
+            monitor = FpsMonitor(anchor=anchor)
+            monitor.start()
+            Window.add_widget(monitor)
+
+        Clock.schedule_once(add_monitor)
+
+    def prepare_foreground_lock(self):
+        """
+        Try forcing app to front permanently to avoid windows
+        pop-ups and notifications etc.app.
+
+        Requires fake full screen and borderless.
+
+        .. note::
+            This function is called automatically if `FOREGROUND_LOCK` is set
+        """
+
+        try:
+            import ctypes
+
+            LSFW_LOCK = 1
+            ctypes.windll.user32.LockSetForegroundWindow(LSFW_LOCK)
+            logger.info("%s: Foreground lock activated", self.appname)
+        except Exception:
+            logger.warning("%s: No foreground lock available", self.appname)
+
+    def patch_builder(self):
+        Builder.orig_load_string = Builder.load_string
+        Builder.load_string = self._builder_load_string
 
     def _builder_load_string(self, string, **kwargs):
         if "filename" not in kwargs:
@@ -531,14 +438,77 @@ class MVCDebugApp(MVCApp, FpsMonitoring):
             kwargs["filename"] = caller.filename
         return Builder.orig_load_string(string, **kwargs)
 
-    def _check_idle(self, *args):
-        if not hasattr(self, "idle_timer"):
+    def enable_manual_reload(self):
+        """
+        Enable manual reload by key press.
+        Default key is space.
+        """
+
+        key_names = {
+            32: "Space [default]",
+            13: "Enter",
+            9: "Tab",
+            103: "F4",
+            102: "F3",
+            101: "F2",
+            100: "F1",
+            105: "F6",
+            104: "F5",
+            108: "F10",
+            107: "F9",
+            106: "F8",
+            109: "F11",
+            110: "F12",
+        }
+        logger.info(
+            "%s: Manual reload activated, keycode: %d - %s",
+            self.appname,
+            self.manual_reload_key_code,
+            key_names.get(
+                self.manual_reload_key_code, f"Unknown-{self.manual_reload_key_code}"
+            ),
+        )
+        Window.bind(
+            on_keyboard=lambda window, keycode, *args: (
+                self.rebuild() if self.manual_reload_key_code == keycode else None
+            )
+        )
+
+    def enable_autoreload(self):
+        try:
+            from watchdog.events import FileSystemEventHandler
+            from watchdog.observers import Observer
+        except ImportError:
+            logger.error("%s: Auto reloader is missing watchdog", self.appname)
             return
-        if self.idle_timer is None:
+        logger.info("%s: Auto reloader activated", self.appname)
+        self.w_handler = handler = FileSystemEventHandler()
+        handler.dispatch = self._reload_from_watchdog
+        self._observer = observer = Observer()
+        for path in self.hotreload_config.autoreloader_paths:
+            options = {"recursive": True}
+            if isinstance(path, Iterable):
+                path, options = path
+            observer.schedule(handler, path, **options)
+        observer.start()
+
+    @mainthread
+    def _reload_from_watchdog(self, event):
+        from watchdog.events import FileModifiedEvent
+
+        if not isinstance(event, FileModifiedEvent):
             return
-        if monotonic() - self.idle_timer > self.idle_timeout:
-            self.idle_timer = None
-            self.dispatch("on_idle")
+
+        for pat in self.hotreload_config.autoreloader_ignore_patterns:
+            if fnmatch(event.src_path, pat):
+                return
+
+        if event.src_path.endswith(".py"):
+            Builder.unload_file(event.src_path)
+            self._reload_py(event.src_path)
+
+        Clock.unschedule(self.rebuild)
+        Clock.schedule_once(self.rebuild, 0.05)
 
     def _reload_py(self, filename):
         # We don't have dependency graph yet, so if the module actually exists
@@ -550,6 +520,7 @@ class MVCDebugApp(MVCApp, FpsMonitoring):
             mod = sys.modules[self.__class__.__module__]
             mod_filename = realpath(mod.__file__)
         except Exception:
+            mod = None
             mod_filename = None
 
         # Detect if it's the application class // main.
@@ -562,6 +533,38 @@ class MVCDebugApp(MVCApp, FpsMonitoring):
             Factory.unregister_from_filename(filename)
             self._unregister_factory_from_module(module)
             reload(sys.modules[module])
+
+    def _restart_app(self, mod, os=None):
+        _has_execv = sys.platform != "win32"
+        cmd = [sys.executable] + original_argv
+        if not _has_execv:
+            import subprocess
+
+            subprocess.Popen(cmd)
+            sys.exit(0)
+        else:
+            try:
+                os.execv(sys.executable, cmd)
+            except OSError:
+                os.spawnv(os.P_NOWAIT, sys.executable, cmd)
+                os._exit(0)
+
+    def _filename_to_module(self, filename: str):
+        orig_filename = filename
+        rootpath = self._get_root_path()
+        if filename.startswith(rootpath):
+            filename = filename[len(rootpath) :]
+        if filename.startswith("/"):
+            filename = filename[1:]
+        module = filename[:-3].replace("/", ".")
+        logger.debug(
+            "{}: Translated {} to {}".format(self.appname, orig_filename, module)
+        )
+        return module
+
+    @classmethod
+    def _get_root_path(cls):
+        return realpath(os.getcwd())
 
     def _unregister_factory_from_module(self, module):
         # Check module directly.
@@ -579,166 +582,117 @@ class MVCDebugApp(MVCApp, FpsMonitoring):
         for name in set(to_remove):
             del Factory.classes[name]
 
-    def _filename_to_module(self, filename):
-        orig_filename = filename
-        rootpath = self.get_root_path()
-        if filename.startswith(rootpath):
-            filename = filename[len(rootpath) :]
-        if filename.startswith("/"):
-            filename = filename[1:]
-        module = filename[:-3].replace("/", ".")
-        logger.debug(
-            "{}: Translated {} to {}".format(self.appname, orig_filename, module)
-        )
-        return module
-
-    def _restart_app(self, mod, os=None):
-        _has_execv = sys.platform != "win32"
-        cmd = [sys.executable] + original_argv
-        if not _has_execv:
-            import subprocess
-
-            subprocess.Popen(cmd)
-            sys.exit(0)
-        else:
-            try:
-                os.execv(sys.executable, cmd)
-            except OSError:
-                os.spawnv(os.P_NOWAIT, sys.executable, cmd)
-                os._exit(0)
-
-    @mainthread
-    def set_error(self, exc, tb=None):
-        logger.warning(tb)
-        if self.debug_mode:
-            from kivy.core.window import Window
-            from kivy.utils import get_color_from_hex
-
-            p = Factory.Popup(title="Exception caught!", size_hint=(0.9, 0.9))
-            scroll = Factory.MDScrollView(
-                scroll_y=0, md_bg_color=get_color_from_hex("#e50000")
-            )
-            box = Factory.MDBoxLayout(orientation="vertical")
-            lbl = Factory.Label(
-                text_size=(Window.width - 100, None),
-                size_hint_y=None,
-                text="{}\n\n{}".format(exc, tb or ""),
-            )
-            cls_btn = Factory.MDButton(
-                Factory.MDButtonText(text="Закрыть"),
-                style="elevated",
-                on_release=lambda *_: p.dismiss(),
-            )
-
-            lbl.bind(texture_size=lbl.setter("size"))
-
-            box.add_widget(lbl)
-            box.add_widget(cls_btn)
-            scroll.add_widget(box)
-            p.content = scroll
-            p._open()
-
-    def enable_autoreload(self):
-        """
-        Enable autoreload manually. It is activated automatically
-        if "DEBUG" exists in environ. It requires the `watchdog` module.
-        """
-
-        try:
-            from watchdog.events import FileSystemEventHandler
-            from watchdog.observers import Observer
-        except ImportError:
-            logger.warning("{}: Auto reloader is missing watchdog".format(self.appname))
-            return
-        logger.info("{}: Auto reloader activated".format(self.appname))
-        self.w_handler = handler = FileSystemEventHandler()
-        handler.dispatch = self._reload_from_watchdog
-        self._observer = observer = Observer()
-        for path in self.AUTORELOADER_PATHS:
-            options = {"recursive": True}
-            if isinstance(path, (tuple, list)):
-                path, options = path
-            observer.schedule(handler, path, **options)
-        observer.start()
-
-    def config_loggers(self):
-        import logging
-
-        for name, _logger in logging.root.manager.loggerDict.items():
-            logger.debug(f"{name}: {_logger}")
-
-        urllib_loggers = (
-            logging.getLogger("urllib3.connectionpool"),
-            logging.getLogger("urllib3.connection"),
-            logging.getLogger("urllib3.response"),
-        )
-
-        for _logger in urllib_loggers:
-            _logger.setLevel(logging.INFO if self.debug_mode else logging.WARNING)
-
-    def on_start(self):
-        self.config_loggers()
-
-    def on_stop(self) -> None:
-        self.dispatch_to_all_controllers("on_app_exit")
-
-    # End utility block
-
-    # Begin build block
-
     def rebuild(self, *args, first: bool = False, **kwargs):
-        logger.info(f"{self.appname}: Rebuilding the application")
-        try:
-            self.unload_app_dependencies()
+        logger.info("%s: Rebuilding the application", self.appname)
+        self.unload_app_dependencies()
+        Builder.rulectx = {}
+        self.load_app_dependencies()
+        self.root.clear_widgets()
+        for widget in self.fill_root(first=first):
+            self.root.add_widget(widget)
 
-            Builder.rulectx = {}
+    def unload_app_dependencies(self):
+        """
+        Called when all the application dependencies must be unloaded.
+        Usually happen before a reload
+        """
 
-            self.load_app_dependencies()
-            self.set_widget(None)
-            self.approot = self.build_app(first=first)
-            self.set_widget(self.approot)
-            self.apply_state(self.state)
-        except Exception as exc:
-            import traceback
+        for path_to_kv_file in self.hotreload_config.kv_files:
+            path_to_kv_file = realpath(path_to_kv_file)
+            Builder.unload_file(path_to_kv_file)
 
-            logger.exception("{}: Error when building app".format(self.appname))
-            self.set_error(repr(exc), traceback.format_exc())
-            if not self.DEBUG and self.RAISE_ERROR:
-                raise
+        for name, module in self.hotreload_config.classes.items():
+            Factory.unregister(name)
 
-    def build_app(self, first=False) -> BaseScreen:
-        if not first:
-            self.app_screen.external_screen_manager.clear_widgets()
+        for path in self.hotreload_config.kv_dirs:
+            for path_to_dir, dirs, files in os.walk(path):
+                for name_file in files:
+                    if os.path.splitext(name_file)[1] == ".kv":
+                        path_to_kv_file = os.path.join(path_to_dir, name_file)
+                        Builder.unload_file(path_to_kv_file)
 
-        self._fill_external_screen_manager()
+    def load_app_dependencies(self):
+        """
+        Load all the application dependencies.
+        This is called before rebuild.
+        """
 
-        if not first:
-            self.on_start()
+        for path_to_kv_file in self.hotreload_config.kv_files:
+            path_to_kv_file = realpath(path_to_kv_file)
+            Builder.load_file(path_to_kv_file)
 
-        return self.app_screen
+        for name, module in self.hotreload_config.classes.items():
+            Factory.register(name, module=module)
 
-    def build(self):
-        if not self.debug_mode:
-            return self.build_app(first=True)
+        for path in self.hotreload_config.kv_dirs:
+            for path_to_dir, dirs, files in os.walk(path):
+                for name_file in files:
+                    if os.path.splitext(name_file)[1] == ".kv":
+                        path_to_kv_file = os.path.join(path_to_dir, name_file)
+                        Builder.load_file(path_to_kv_file)
 
-        self._set_reload_params()
-        self.DEBUG = True
-        self.fps_monitor_start()
-        super().build()  # hotreload.MDApp calls build_app
-
-    async def async_run(self, async_lib="trio"):
-        async with trio.open_nursery() as nursery:
-            logger.info("Reloader: Starting Async Kivy app")
-            self.nursery = nursery
-            self._run_prepare()
-            await async_runTouchApp(async_lib=async_lib)
-            self._stop()
-            nursery.cancel_scope.cancel()
-
-    # End build block
+    def fill_root(self, first=False) -> Iterable[Widget]:
+        if first:
+            for name in self.hotreload_config.screen_names:
+                for info in self._registrator.create_screen(name):
+                    self.log_screen_register_progress(info)
+                    yield info.get("instance")
+        else:
+            for name in self.hotreload_config.screen_names:
+                for info in self._registrator.recreate_screen(name):
+                    self.log_screen_register_progress(info)
+                    yield info.get("instance")
 
 
 if __name__ == "__main__":
-    from kivy.app import async_runTouchApp
 
-    async_runTouchApp(MVCApp().run(), async_lib="trio")
+    class DemoApp(MVCDebugApp):
+        def register_screen_dirs(self) -> dict[str, PathItem]:
+            from mvckivy.project_management import PathItem
+
+            return {
+                "main": PathItem(Path(__file__).parent / "screens" / "main"),
+            }
+
+        def create_screen_registrator(self) -> ScreenRegistrator:
+            from mvckivy.project_management import ProjectScreenRegistrator
+
+            return ProjectScreenRegistrator(self)
+
+        def fill_hotreload_config(
+            self, hotreload_config: HotReloadConfig
+        ) -> HotReloadConfig:
+            from mvckivy.project_management import PathItem
+
+            hotreload_config.kv_dirs = [
+                Path(__file__).parent / "screens" / "main",
+            ]
+            hotreload_config.kv_files = [
+                Path(__file__).parent / "app.kv",
+            ]
+            hotreload_config.autoreloader_paths = [
+                Path(__file__).parent / "screens" / "main",
+                Path(__file__).parent / "models",
+                Path(__file__).parent / "controllers",
+                (Path(__file__).parent / "app.py", {"recursive": False}),
+            ]
+            hotreload_config.autoreloader_ignore_patterns = [
+                "*.pyc",
+                "__pycache__",
+                ".git",
+                ".idea",
+                ".vscode",
+                "*.swp",
+                "*~",
+            ]
+            hotreload_config.classes = {
+                "MainScreen": "screens.main.main_screen.MainScreen",
+                "MainModel": "models.main_model.MainModel",
+                "MainController": "controllers.main_controller.MainController",
+            }
+            hotreload_config.screen_names = [
+                "MainScreen",
+            ]
+            return hotreload_config
+
+    trio.run(DemoApp().async_run, "trio")

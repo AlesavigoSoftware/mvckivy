@@ -11,6 +11,7 @@ from typing import (
     ParamSpec,
     TypeVar,
     TYPE_CHECKING,
+    Iterable,
 )
 
 from mvckivy.base_mvc.base_app_controller import BaseAppController
@@ -172,6 +173,24 @@ class ScreenRegistrator:
         t = self.trios.get(name)
         return t.get_screen() if t else None
 
+    def get_models(self) -> Iterable[BaseModel] | None:
+        for t in self.trios.values():
+            m = t.get_model()
+            if m:
+                yield m
+
+    def get_controllers(self) -> Iterable[BaseController] | None:
+        for t in self.trios.values():
+            c = t.get_controller()
+            if c:
+                yield c
+
+    def get_screens(self) -> Iterable[BaseScreen] | None:
+        for t in self.trios.values():
+            s = t.get_screen()
+            if s:
+                yield s
+
     def create_models_and_controllers(self) -> None:
         for trio in self.trios.values():
             trio.clear_controller()
@@ -202,7 +221,12 @@ class ScreenRegistrator:
         total = len(plan)
         for i, name in enumerate(plan, 1):
             self._create_and_attach(name)
-            yield {"name": name, "current": i, "total": total}
+            yield {
+                "name": name,
+                "current": i,
+                "total": total,
+                "instance": self.get_screen(name),
+            }
 
     def create_all_screens(self) -> Generator[dict[str, int | str], None, None]:
         created = {n for n, t in self.trios.items() if t.get_screen() is not None}
@@ -210,7 +234,36 @@ class ScreenRegistrator:
         total = len(pending)
         for i, name in enumerate(pending, 1):
             self._create_and_attach(name)
-            yield {"name": name, "current": i, "total": total}
+            yield {
+                "name": name,
+                "current": i,
+                "total": total,
+                "instance": self.get_screen(name),
+            }
+
+    def create_screen(
+        self, name: str, *, create_children=False
+    ) -> Generator[dict[str, int | str], None, None]:
+        if name not in self.trios:
+            raise ValueError(f"Screen '{name}' is not registered")
+        self._create_and_attach(name)
+        yield {
+            "name": name,
+            "current": 1,
+            "total": 1,
+            "instance": self.get_screen(name),
+        }
+        if create_children:
+            children_names = self.trios[name].children
+            total = len(children_names)
+            for i, child in enumerate(children_names, 1):
+                self._create_and_attach(child)
+                yield {
+                    "name": child,
+                    "current": i,
+                    "total": total,
+                    "instance": self.get_screen(child),
+                }
 
     def recreate_screen(
         self, name: str, *, recreate_children: bool = False
@@ -230,7 +283,12 @@ class ScreenRegistrator:
                 for _ in self.recreate_screen(child, recreate_children=True):
                     pass
                 step += 1
-                yield {"name": child, "current": step, "total": total}
+                yield {
+                    "name": child,
+                    "current": step,
+                    "total": total,
+                    "instance": self.get_screen(child),
+                }
 
             # Transfer children from old parent to new parent
             old_screen = trio.get_screen()
@@ -260,7 +318,12 @@ class ScreenRegistrator:
                 new_screen.add_widget(cs)
 
             step += 1
-            yield {"name": name, "current": step, "total": total}
+            yield {
+                "name": name,
+                "current": step,
+                "total": total,
+                "instance": self.get_screen(name),
+            }
             return
 
         # --- preserve children (do not recreate them) ---
@@ -293,4 +356,9 @@ class ScreenRegistrator:
             cs = child_trio.get_screen() or child_trio.ensure_screen()
             new_screen.add_widget(cs)
 
-        yield {"name": name, "current": 1, "total": 1}
+        yield {
+            "name": name,
+            "current": 1,
+            "total": 1,
+            "instance": self.get_screen(name),
+        }

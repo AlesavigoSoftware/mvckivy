@@ -9,7 +9,6 @@ from kivy.core.window import Window
 
 BASE_DIR = Path(__file__).parent
 CACHE_DIR = BASE_DIR / ".cache"
-TEMP_DIR = BASE_DIR / "temp"
 
 
 def _clear_cache_dir():
@@ -48,6 +47,8 @@ def run_case(window_size: tuple[int, int], tag: str) -> Path:
         root = app.root
         if root is None:
             root = app.build()
+        # гарантируем целевой размер окна после сборки интерфейса
+        Window.size = window_size
         try:
             root.animate_to(0.0)
         except Exception:
@@ -77,9 +78,16 @@ def main():
     # очистка .cache перед запуском
     _clear_cache_dir()
 
-    # Мобильный режим (портрет) — единственный тестовый прогон
-    img = run_case((420, 820), tag="mobile")
-    print("MOBILE:", img, "exists=", img.exists(), "size=", img.stat().st_size if img.exists() else -1)
+    # Мобильный режим (горизонтальная ориентация) — единственный тестовый прогон
+    img = run_case((820, 420), tag="mobile_landscape")
+    print(
+        "MOBILE-LANDSCAPE:",
+        img,
+        "exists=",
+        img.exists(),
+        "size=",
+        img.stat().st_size if img.exists() else -1,
+    )
 
 
 if __name__ == "__main__":

@@ -2,6 +2,14 @@
 #:import dp kivy.metrics.dp
 #:import get_color_from_hex kivy.utils.get_color_from_hex
 
+<SmartSegmentItem>:
+    # Визуальная часть сегмента: иконка + подпись
+    MDSegmentButtonIcon:
+        icon: root.icon_name
+    MDSegmentButtonLabel:
+        text: root.display_text
+        padding: root.display_padding
+
 # Клиппер: скрывает всё, что выходит за его рамки (исправляет «мигание» при сворачивании)
 <ClippedBox@StencilView+MDBoxLayout>:
     size_hint_y: None
@@ -27,47 +35,50 @@
 <Header@BoxLayout>:
     controller: None
     size_hint_y: None
-    height: dp(60)
-    padding: dp(16), dp(10)
-    spacing: dp(12)
+    height: root.controller.header_h if root.controller else dp(60)
+    padding: dp(16), (root.controller.header_pad_v if root.controller else dp(10))
+    spacing: root.controller.header_spacing if root.controller else dp(12)
     md_bg_color: get_color_from_hex("#2B2D31")
 
     MDLabel:
-        text: root.controller.title if root.controller else ""
+        text: root.controller.header_title_text if root.controller else ""
         shorten: True
         shorten_from: "right"
         bold: True
         max_lines: 1
         valign: "middle"
         halign: "left"
+        size_hint_x: None
+        width: self.texture_size[0]
+        
 
-    # Выбор текущего транспорта (MD3 drop-down)
+    # Выбор текущего транспорта: компактная кнопка (без подчёркиваний)
     MDBoxLayout:
         adaptive_height: True
         size_hint_x: None
         width: self.minimum_width
         spacing: dp(6)
-        padding: dp(10), dp(6)
+        padding: dp(8), dp(4)
         md_bg_color: get_color_from_hex("#23262A")
         radius: dp(12)
 
-        MDIcon:
+        MDIconButton:
             icon: root.controller.transport_icon if root.controller else "airplane"
-            theme_text_color: "Custom"
-            text_color: 1, 1, 1, 1
-            size_hint: None, None
-            size: dp(18), dp(18)
+            on_release: root.controller.open_transport_menu(self) if root.controller else None
+            theme_icon_color: "Custom"
+            icon_color: 1,1,1,1
+            theme_font_size: "Custom"
+            font_size: root.controller.icon_size if root.controller else dp(18)
             pos_hint: {"center_y": .5}
 
-        MDDropDownItem:
-            id: transport_drop
-            size_hint: None, None
-            height: dp(24)
-            width: self.minimum_width
-            on_release: root.controller.open_transport_menu(self) if root.controller else None
-
-            MDDropDownItemText:
-                text: root.controller.current_transport if root.controller else "—"
+        MDLabel:
+            text: root.controller.current_transport if (root.controller and root.controller.show_header_title) else ""
+            adaptive_height: True
+            size_hint_x: None
+            width: self.texture_size[0]
+            text_size: None, None
+            valign: "middle"
+            halign: "left"
 
     MDBoxLayout:
         adaptive_size: True
@@ -79,9 +90,10 @@
             text_color: 1, 1, 1, 1
             md_bg_color: get_color_from_hex("#22c55e")
             radius: dp(12)
-            padding: dp(6)
+            padding: dp(4)
             size_hint: None, None
-            size: dp(24), dp(24)
+            theme_font_size: "Custom"
+            font_size: root.controller.icon_size if root.controller else dp(18)
 
         MDIcon:
             icon: "signal-cellular-3"
@@ -89,9 +101,10 @@
             text_color: 1, 1, 1, 1
             md_bg_color: get_color_from_hex("#3b82f6")
             radius: dp(12)
-            padding: dp(6)
+            padding: dp(4)
             size_hint: None, None
-            size: dp(24), dp(24)
+            theme_font_size: "Custom"
+            font_size: root.controller.icon_size if root.controller else dp(18)
 
         MDIcon:
             icon: "battery-medium"
@@ -99,16 +112,244 @@
             text_color: 0.1, 0.1, 0.1, 1
             md_bg_color: get_color_from_hex("#eab308")
             radius: dp(12)
-            padding: dp(6)
+            padding: dp(4)
             size_hint: None, None
-            size: dp(24), dp(24)
+            theme_font_size: "Custom"
+            font_size: root.controller.icon_size if root.controller else dp(18)
 
     MDIconButton:
         icon: "close"
         on_release: root.controller.collapse() if root.controller else None
         pos_hint: {"center_y": .5}
 
+<AdaptiveGrid@GridLayout>:
+    cols_g: 1
+    spacing_g: dp(8)
+    item_h: dp(84)
+    size_hint_y: None
+    height: self.minimum_height
+    cols: root.cols_g
+    spacing: root.spacing_g
+
+<Body@MDBoxLayout>:
+    # Независимый контейнер body, управляет только своим внутренним отступом
+    orientation: "vertical"
+    padding: dp(12), dp(8)
+    spacing: dp(8)
+
+<TabMain@MDBoxLayout>:
+    title: "Главная"
+    orientation: "vertical"
+    sections_spacing: dp(12)
+    section_label_extra: dp(6)
+    divider_pad: dp(12)
+    cols_g: 1
+    list_grid_spacing: dp(8)
+    list_item_h: dp(84)
+    MDScrollView:
+        id: scroll
+        bar_width: 0
+        do_scroll_x: False
+        MDBoxLayout:
+            id: sections
+            orientation: "vertical"
+            size_hint_y: None
+            height: self.minimum_height
+            spacing: root.sections_spacing
+
+            MDLabel:
+                text: "Проектирование"
+                bold: True
+                theme_text_color: "Custom"
+                text_color: 1, 1, 1, .92
+                size_hint_y: None
+                height: self.texture_size[1] + root.section_label_extra
+                padding: dp(6), dp(0)
+
+            MDDivider:
+                padding: root.divider_pad
+                color: 1, 1, 1, .08
+
+            AdaptiveGrid:
+                cols_g: root.cols_g
+                spacing_g: root.list_grid_spacing
+
+                MDListItem:
+                    size_hint_y: None
+                    height: root.list_item_h
+                    radius: dp(12)
+                    md_bg_color: get_color_from_hex("#24262B")
+                    MDListItemLeadingIcon:
+                        icon: "pentagon-outline"
+                    MDListItemHeadlineText:
+                        text: "Вставить фигуру"
+                    MDListItemSupportingText:
+                        text: "Пентагон, круг, произвольный полигон"
+                    MDListItemTrailingIcon:
+                        icon: "chevron-right"
+
+                MDListItem:
+                    size_hint_y: None
+                    height: root.list_item_h
+                    radius: dp(12)
+                    md_bg_color: get_color_from_hex("#24262B")
+                    MDListItemLeadingIcon:
+                        icon: "pencil-outline"
+                    MDListItemHeadlineText:
+                        text: "Редактировать"
+                    MDListItemSupportingText:
+                        text: "Правка узлов и контуров"
+                    MDListItemTrailingIcon:
+                        icon: "gesture"
+
+            MDLabel:
+                text: "Данные и сохранение"
+                bold: True
+                theme_text_color: "Custom"
+                text_color: 1, 1, 1, .92
+                size_hint_y: None
+                height: self.texture_size[1] + root.section_label_extra
+                padding: dp(6), dp(0)
+
+            MDDivider:
+                padding: root.divider_pad
+                color: 1, 1, 1, .08
+
+            AdaptiveGrid:
+                cols_g: root.cols_g
+                spacing_g: root.list_grid_spacing
+
+                MDListItem:
+                    size_hint_y: None
+                    height: root.list_item_h
+                    radius: dp(12)
+                    md_bg_color: get_color_from_hex("#23262A")
+                    MDListItemLeadingIcon:
+                        icon: "content-save-outline"
+                    MDListItemHeadlineText:
+                        text: "Сохранить"
+                    MDListItemSupportingText:
+                        text: "Локально на устройство"
+                    MDListItemTrailingCheckbox:
+
+                MDListItem:
+                    size_hint_y: None
+                    height: root.list_item_h
+                    radius: dp(12)
+                    md_bg_color: get_color_from_hex("#23262A")
+                    MDListItemLeadingIcon:
+                        icon: "cloud-upload-outline"
+                    MDListItemHeadlineText:
+                        text: "Загрузить в облако"
+                    MDListItemSupportingText:
+                        text: "Синхронизировать с сервером"
+                    MDListItemTrailingIcon:
+                        icon: "cloud-outline"
+
+            MDLabel:
+                text: "Миссия"
+                bold: True
+                theme_text_color: "Custom"
+                text_color: 1, 1, 1, .92
+                size_hint_y: None
+                height: self.texture_size[1] + root.section_label_extra
+                padding: dp(6), dp(0)
+
+            MDDivider:
+                padding: root.divider_pad
+                color: 1, 1, 1, .08
+
+            AdaptiveGrid:
+                cols_g: root.cols_g
+                spacing_g: root.list_grid_spacing
+
+                MDListItem:
+                    size_hint_y: None
+                    height: root.list_item_h
+                    radius: dp(12)
+                    md_bg_color: get_color_from_hex("#24262B")
+                    MDListItemLeadingIcon:
+                        icon: "map-marker-outline"
+                    MDListItemHeadlineText:
+                        text: "Выбрать полигон"
+                    MDListItemSupportingText:
+                        text: "Коснитесь полигона на карте"
+                    MDListItemTrailingIcon:
+                        icon: "crosshairs-gps"
+
+                MDListItem:
+                    size_hint_y: None
+                    height: root.list_item_h
+                    radius: dp(12)
+                    md_bg_color: get_color_from_hex("#24262B")
+                    MDListItemLeadingIcon:
+                        icon: "cog-outline"
+                    MDListItemHeadlineText:
+                        text: "Задать параметры"
+                    MDListItemSupportingText:
+                        text: "Высота, скорость, перекрытие"
+                    MDListItemTrailingIcon:
+                        icon: "tune-variant"
+
+                MDListItem:
+                    size_hint_y: None
+                    height: root.list_item_h
+                    radius: dp(12)
+                    md_bg_color: get_color_from_hex("#24262B")
+                    MDListItemLeadingIcon:
+                        icon: "wand"
+                    MDListItemHeadlineText:
+                        text: "Сгенерировать миссию"
+                    MDListItemSupportingText:
+                        text: "Автоштриховка и маршрут"
+                    MDListItemTrailingIcon:
+                        icon: "play"
+
+                MDListItem:
+                    size_hint_y: None
+                    height: dp(84)
+                    radius: dp(12)
+                    md_bg_color: get_color_from_hex("#24262B")
+                    MDListItemLeadingIcon:
+                        icon: "help-circle-outline"
+                    MDListItemHeadlineText:
+                        text: "О задании параметров"
+                    MDListItemSupportingText:
+                        text: "Краткая справка"
+                    MDListItemTrailingIcon:
+                        icon: "information-outline"
+
+<TabStatus@MDBoxLayout>:
+    title: "Состояние"
+    orientation: "vertical"
+    padding: dp(12), dp(8)
+    spacing: dp(8)
+    MDLabel:
+        text: "Состояние системы"
+        halign: "left"
+        valign: "top"
+    Widget:
+
+<TabHistory@MDBoxLayout>:
+    title: "История"
+    orientation: "vertical"
+    padding: dp(12), dp(8)
+    spacing: dp(8)
+    MDLabel:
+        text: "История действий"
+        halign: "left"
+        valign: "top"
+    Widget:
+
 <CollapsibleMenuController>:
+    # Пробрасываем ссылки на ключевые виджеты в Python (минимум .ids)
+    menu_card: menu_card
+    grip: grip
+    header: hdr
+    segbar: segbar
+    tabs: tabs
+    carousel: content_carousel
+    body_box: body_box
     MDCard:
         id: menu_card
         style: "filled"
@@ -136,255 +377,45 @@
                 id: hdr
                 controller: root
 
-            MDBoxLayout:
-                padding: dp(12), dp(8), dp(12), dp(8)
-
-                MDScrollView:
-                    id: scroll
-                    # скрываем скроллбар, чтобы не появлялась вертикальная линия
-                    bar_width: 0
-                    do_scroll_x: False
-
-                    MDBoxLayout:
-                        id: sections
-                        orientation: "vertical"
-                        size_hint_y: None
-                        height: self.minimum_height
-                        spacing: dp(12)
-
-                        MDLabel:
-                            text: "Проектирование"
-                            bold: True
-                            theme_text_color: "Custom"
-                            text_color: 1, 1, 1, .92
-                            size_hint_y: None
-                            height: self.texture_size[1] + dp(6)
-                            padding: dp(6), dp(0)
-
-                        MDDivider:
-                            padding: dp(12)
-                            color: 1, 1, 1, .08
-
-                        GridLayout:
-                            cols: root.cols
-                            spacing: dp(8)
-                            size_hint_y: None
-                            height: self.minimum_height
-
-                            MDListItem:
-                                size_hint_y: None
-                                height: dp(84)
-                                radius: dp(12)
-                                md_bg_color: get_color_from_hex("#24262B")
-                                MDListItemLeadingIcon:
-                                    icon: "pentagon-outline"
-                                MDListItemHeadlineText:
-                                    text: "Вставить фигуру"
-                                MDListItemSupportingText:
-                                    text: "Пентагон, круг, произвольный полигон"
-                                MDListItemTrailingIcon:
-                                    icon: "chevron-right"
-
-                            MDListItem:
-                                size_hint_y: None
-                                height: dp(84)
-                                radius: dp(12)
-                                md_bg_color: get_color_from_hex("#24262B")
-                                MDListItemLeadingIcon:
-                                    icon: "pencil-outline"
-                                MDListItemHeadlineText:
-                                    text: "Редактировать"
-                                MDListItemSupportingText:
-                                    text: "Правка узлов и контуров"
-                                MDListItemTrailingIcon:
-                                    icon: "gesture"
-
-                        MDLabel:
-                            text: "Данные и сохранение"
-                            bold: True
-                            theme_text_color: "Custom"
-                            text_color: 1, 1, 1, .92
-                            size_hint_y: None
-                            height: self.texture_size[1] + dp(6)
-                            padding: dp(6), dp(0)
-
-                        MDDivider:
-                            padding: dp(12)
-                            color: 1, 1, 1, .08
-
-                        GridLayout:
-                            cols: root.cols
-                            spacing: dp(8)
-                            size_hint_y: None
-                            height: self.minimum_height
-
-                            MDListItem:
-                                size_hint_y: None
-                                height: dp(84)
-                                radius: dp(12)
-                                md_bg_color: get_color_from_hex("#23262A")
-                                MDListItemLeadingIcon:
-                                    icon: "content-save-outline"
-                                MDListItemHeadlineText:
-                                    text: "Сохранить"
-                                MDListItemSupportingText:
-                                    text: "Локально на устройство"
-                                MDListItemTrailingCheckbox:
-
-                            MDListItem:
-                                size_hint_y: None
-                                height: dp(84)
-                                radius: dp(12)
-                                md_bg_color: get_color_from_hex("#23262A")
-                                MDListItemLeadingIcon:
-                                    icon: "cloud-upload-outline"
-                                MDListItemHeadlineText:
-                                    text: "Загрузить в облако"
-                                MDListItemSupportingText:
-                                    text: "Синхронизировать с сервером"
-                                MDListItemTrailingIcon:
-                                    icon: "cloud-outline"
-
-                        MDLabel:
-                            text: "Миссия"
-                            bold: True
-                            theme_text_color: "Custom"
-                            text_color: 1, 1, 1, .92
-                            size_hint_y: None
-                            height: self.texture_size[1] + dp(6)
-                            padding: dp(6), dp(0)
-
-                        MDDivider:
-                            padding: dp(12)
-                            color: 1, 1, 1, .08
-
-                        GridLayout:
-                            cols: root.cols
-                            spacing: dp(8)
-                            size_hint_y: None
-                            height: self.minimum_height
-
-                            MDListItem:
-                                size_hint_y: None
-                                height: dp(84)
-                                radius: dp(12)
-                                md_bg_color: get_color_from_hex("#24262B")
-                                MDListItemLeadingIcon:
-                                    icon: "map-marker-outline"
-                                MDListItemHeadlineText:
-                                    text: "Выбрать полигон"
-                                MDListItemSupportingText:
-                                    text: "Коснитесь полигона на карте"
-                                MDListItemTrailingIcon:
-                                    icon: "crosshairs-gps"
-
-                            MDListItem:
-                                size_hint_y: None
-                                height: dp(84)
-                                radius: dp(12)
-                                md_bg_color: get_color_from_hex("#24262B")
-                                MDListItemLeadingIcon:
-                                    icon: "cog-outline"
-                                MDListItemHeadlineText:
-                                    text: "Задать параметры"
-                                MDListItemSupportingText:
-                                    text: "Высота, скорость, перекрытие"
-                                MDListItemTrailingIcon:
-                                    icon: "tune-variant"
-
-                            MDListItem:
-                                size_hint_y: None
-                                height: dp(84)
-                                radius: dp(12)
-                                md_bg_color: get_color_from_hex("#24262B")
-                                MDListItemLeadingIcon:
-                                    icon: "wand"
-                                MDListItemHeadlineText:
-                                    text: "Сгенерировать миссию"
-                                MDListItemSupportingText:
-                                    text: "Автоштриховка и маршрут"
-                                MDListItemTrailingIcon:
-                                    icon: "play"
-
-                            MDListItem:
-                                size_hint_y: None
-                                height: dp(84)
-                                radius: dp(12)
-                                md_bg_color: get_color_from_hex("#24262B")
-                                MDListItemLeadingIcon:
-                                    icon: "send-variant-outline"
-                                MDListItemHeadlineText:
-                                    text: "Отправить на устройство"
-                                MDListItemSupportingText:
-                                    text: "Передача в автопилот"
-                                MDListItemTrailingIcon:
-                                    icon: "airplane"
-
-                            MDListItem:
-                                size_hint_y: None
-                                height: dp(84)
-                                radius: dp(12)
-                                md_bg_color: get_color_from_hex("#24262B")
-                                MDListItemLeadingIcon:
-                                    icon: "help-circle-outline"
-                                MDListItemHeadlineText:
-                                    text: "О задании параметров"
-                                MDListItemSupportingText:
-                                    text: "Краткая справка"
-                                MDListItemTrailingIcon:
-                                    icon: "information-outline"
-
-        # нижняя панель с сегментами — часть закрытого состояния
+            Body:
+                id: body_box
+                # Контейнер для переносимого MDTabsCarousel (из футера)
+        # нижняя панель с вкладками — часть закрытого состояния
         MDCard:
             id: segbar
             elevation: 0
             md_bg_color: get_color_from_hex("#26272B")
             radius: [0, 0, dp(16), dp(16)]
             size_hint_y: None
-            height: dp(56)
+            height: max(dp(56), tabs.minimum_height + dp(8)) if 'tabs' in self.ids else dp(56)
             padding: dp(12), dp(8)
 
-            StretchSegmentedButton:
-                id: seg_control
-                fit_to_parent: True
-                size_hint_x: 1
-                size_hint_y: None
-                height: dp(40)
-                type: "normal"
-                # убираем обводку у сегментов для MD3-«filled» вида
-                # (каждый item ниже получает прозрачную линию)
+            MDTabsPrimary:
+                id: tabs
+                # Вкладываем Carousel как ребёнка tabs для внутренней связки,
+                # затем перепривяжем его в body_box в on_kv_post контроллера
+                MDTabsCarousel:
+                    id: content_carousel
+                    TabMain:
+                    TabStatus:
+                    TabHistory:
 
-                MDSegmentedButtonItem:
-                    theme_line_color: "Custom"
-                    line_color: 0, 0, 0, 0
-                    on_active: root.on_segment_pressed("map")
-                    MDSegmentButtonIcon:
-                        icon: "map-outline"
-                    MDSegmentButtonLabel:
-                        # Показываем подписи у всех при ширине панели >= 420dp,
-                        # иначе только у активного сегмента
-                        text: "Карта" if (seg_control.width >= dp(420) or self.parent.parent.active) else ""
-                        padding: (dp(12), 0, dp(12), 0) if (seg_control.width >= dp(420) or self.parent.parent.active) else (0, 0, 0, 0)
-
-                MDSegmentedButtonItem:
-                    theme_line_color: "Custom"
-                    line_color: 0, 0, 0, 0
-                    on_active: root.on_segment_pressed("list")
-                    MDSegmentButtonIcon:
-                        icon: "format-list-bulleted"
-                    MDSegmentButtonLabel:
-                        text: "Список" if (seg_control.width >= dp(420) or self.parent.parent.active) else ""
-                        padding: (dp(12), 0, dp(12), 0) if (seg_control.width >= dp(420) or self.parent.parent.active) else (0, 0, 0, 0)
-
-                MDSegmentedButtonItem:
-                    theme_line_color: "Custom"
-                    line_color: 0, 0, 0, 0
-                    on_active: root.on_segment_pressed("nav")
-                    MDSegmentButtonIcon:
-                        icon: "navigation-variant-outline"
-                    MDSegmentButtonLabel:
-                        text: "Навигация" if (seg_control.width >= dp(420) or self.parent.parent.active) else ""
-                        padding: (dp(12), 0, dp(12), 0) if (seg_control.width >= dp(420) or self.parent.parent.active) else (0, 0, 0, 0)
+                # Элементы панели вкладок (иконка + текст) — строго по порядку
+                MDTabsItem:
+                    MDTabsItemIcon:
+                        icon: "folder"
+                    MDTabsItemText:
+                        text: "Главная"
+                MDTabsItem:
+                    MDTabsItemIcon:
+                        icon: "information-outline"
+                    MDTabsItemText:
+                        text: "Состояние"
+                MDTabsItem:
+                    MDTabsItemIcon:
+                        icon: "history"
+                    MDTabsItemText:
+                        text: "История"
 
 # корень
 CollapsibleMenuController:
