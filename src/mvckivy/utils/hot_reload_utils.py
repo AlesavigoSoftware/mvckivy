@@ -48,7 +48,7 @@ class HotReloadConfig:
         default_factory=lambda: ["*.pyc", "*__pycache__*"]
     )
     classes: dict[str, str] = field(default_factory=dict)
-    screen_names: list[str] = field(default_factory=list)
+    screens: list[dict] = field(default_factory=list)
 
     def from_manual(
         self,
@@ -57,7 +57,7 @@ class HotReloadConfig:
         autoreloader_paths: list[tuple[str, dict[str, bool | str]]] | None = None,
         autoreloader_ignore_patterns: list[str] | None = None,
         classes: dict[str, str] | None = None,
-        screen_names: list[str] | None = None,
+        screens: list[dict] | None = None,
     ) -> Self:
         if kv_files is not None:
             self.kv_files = kv_files
@@ -69,8 +69,8 @@ class HotReloadConfig:
             self.autoreloader_ignore_patterns = autoreloader_ignore_patterns
         if classes is not None:
             self.classes = classes
-        if screen_names is not None:
-            self.screen_names = screen_names
+        if screens is not None:
+            self.screens = screens
         return self
 
     def from_code(self, cfg: dict) -> Self:
@@ -80,7 +80,7 @@ class HotReloadConfig:
             autoreloader_paths=cfg.get("autoreloader_paths"),
             autoreloader_ignore_patterns=cfg.get("autoreloader_ignore_patterns"),
             classes=cfg.get("classes"),
-            screen_names=cfg.get("screen_names"),
+            screens=cfg.get("screens"),
         )
 
     def from_json(self, source: str, is_path: bool = True) -> Self:
@@ -134,7 +134,16 @@ class HotReloadConfig:
                 if name and mod:
                     classes[name] = mod
 
-        screen_names = get_list("screen_names")
+        # Parse screens as JSON list of dicts: [{"name": "...", "recreate_children": true}, ...]
+        raw_screens = cfg.get(section, "screens", fallback="").strip()
+        screens: list[dict] = []
+        if raw_screens:
+            try:
+                screens = json.loads(raw_screens)
+                if not isinstance(screens, list):
+                    raise ValueError("'screens' must be a JSON list")
+            except Exception as e:
+                raise ValueError("Invalid 'screens' format in INI; expected JSON list of dicts") from e
 
         return self.from_manual(
             kv_files=kv_files or None,
@@ -142,7 +151,7 @@ class HotReloadConfig:
             autoreloader_paths=autoreloader_paths or None,
             autoreloader_ignore_patterns=autoreloader_ignore_patterns or None,
             classes=classes or None,
-            screen_names=screen_names or None,
+            screens=screens or None,
         )
 
     def from_pyproject(self, path: str = "pyproject.toml", section: str = "tool.mvckivy") -> Self:

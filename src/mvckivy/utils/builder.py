@@ -3,7 +3,7 @@ from pathlib import Path
 from kivy.lang import BuilderBase, Builder
 from typing import Union, Iterable, Literal
 
-from mvckivy.project_management.path_manager import PathItem, MVCPathManager
+from mvckivy.project_management.path_manager import PathItem
 
 
 logger = logging.getLogger("mvckivy")
@@ -24,56 +24,78 @@ class MVCBuilder(BuilderBase):
     """
 
     @staticmethod
-    def _is_excluded(kv_path: Path, filters: set[str]) -> bool:
+    def _is_excluded(kv_path: Path, filters: set[str], root: Path) -> bool:
         """
-        Determines whether a given .kv file should be skipped based on
-        its path and provided filter set.
+        Determines whether a given .kv file should be skipped.
 
         Exclusion rules:
-          - Filename is exactly 'style.kv'.
+          - Filename is exactly `style.kv`.
           - Any path segment is in the built-in exclusion set: {'venv', '.buildozer', 'kivymd'}.
-          - Any path segment is in the provided filters set.
+          - Any *directory* segment under the provided `root` is in `filters`.
           - Path contains a segment matching '__MACOS' (case-insensitive).
 
         :param kv_path: Path to a .kv file.
         :param filters: Set of lowercase directory names to exclude.
+        :param root: The original root path supplied to the search routine.
         :returns: True if the file should be skipped, False otherwise.
         """
         name: str = kv_path.name.lower()
         if name == "style.kv":
             return True
 
-        parts: set[str] = set(p.lower() for p in kv_path.parts)
-        # Built-in exclusion rules
-        if parts & {"venv", ".buildozer", "kivymd"}:
+        parts_any: set[str] = set(p.lower() for p in kv_path.parts)
+        # Built-in exclusion rules (apply anywhere in the path)
+        if parts_any & {"venv", ".buildozer", "kivymd"}:
             return True
-        # User-provided filters
-        if parts & filters:
+
+        # User-provided filters: only consider directories that are nested under the original root.
+        try:
+            rel = kv_path.relative_to(root)
+        except Exception:
+            rel_dir_parts: set[str] = set()
+        else:
+            rel_parts = rel.parts
+            # drop the final part (the filename) so we only match directories
+            if len(rel_parts) > 1:
+                rel_dir_parts = set(p.lower() for p in rel_parts[:-1])
+            else:
+                rel_dir_parts = set()
+
+        if rel_dir_parts & filters:
             return True
-        # macOS artifact folders
+
+        # macOS artifact folders (apply anywhere)
         if "__macos" in str(kv_path).lower():
             return True
 
         return False
 
+
     @classmethod
     def _process_files(
         cls,
-        directory: Path,
+        path: Path,
         mode: Literal["load", "unload"],
         directory_filters: Iterable[str] | None = None,
     ) -> None:
         """
-        Core routine that locates all .kv files and performs the specified operation.
+        Core routine that locates .kv files and performs the specified operation.
 
-        :param directory: Root directory to search for .kv files.
+        :param path: Root file or directory to search for .kv files.
         :param mode: Operation mode ('load' or 'unload').
         :param directory_filters: Optional iterable of directory names to skip.
         """
         filters: set[str] = {f.lower() for f in (directory_filters or [])}
+        root = path
 
-        for kv_file in directory.rglob("*.kv"):
-            if cls._is_excluded(kv_file, filters):
+        # If a file was supplied, only consider that file (if it is a .kv).
+        if path.is_file():
+            candidates = [path] if path.suffix.lower() == ".kv" else []
+        else:
+            candidates = path.rglob("*.kv")
+
+        for kv_file in candidates:
+            if cls._is_excluded(kv_file, filters, root):
                 continue
 
             try:
@@ -81,11 +103,6 @@ class MVCBuilder(BuilderBase):
                     Builder.load_file(filename=str(kv_file))
                     logger.debug(f"Loaded KV file: {kv_file}")
                 else:
-                    if not hasattr(cls, "unload_file"):
-                        logger.error(
-                            "Builder.unload_file not available; cannot unload."
-                        )
-                        return
                     Builder.unload_file(filename=str(kv_file))
                     logger.debug(f"Unloaded KV file: {kv_file}")
             except Exception as exc:
@@ -94,16 +111,16 @@ class MVCBuilder(BuilderBase):
     @classmethod
     def load_all_kv_files(
         cls,
-        directory: Union[str, Path, PathItem],
+        path: Union[str, Path, PathItem],
         directory_filters: Iterable[str | Path | PathItem] | None = None,
     ) -> None:
         """
         Loads all .kv files under the specified directory, applying exclusions.
 
-        :param directory: Root directory to search.
+        :param path: Root directory to search.
         :param directory_filters: Optional list of directory names to ignore.
         """
-        path = directory.path() if isinstance(directory, PathItem) else Path(directory)
+        path = path.path() if isinstance(path, PathItem) else Path(path)
         dir_filters = (
                 d.str() if isinstance(d, PathItem) else str(d)
                 for d in directory_filters
@@ -117,17 +134,17 @@ class MVCBuilder(BuilderBase):
     @classmethod
     def unload_all_kv_files(
         cls,
-        directory: Union[str, Path, PathItem],
+        path: Union[str, Path, PathItem],
         directory_filters: Iterable[str | Path | PathItem] | None = None,
     ) -> None:
         """
         Unloads all previously loaded .kv files under the specified directory,
         applying the same exclusion rules.
 
-        :param directory: Root directory to search.
+        :param path: Root directory to search.
         :param directory_filters: Optional list of directory names to ignore.
         """
-        path = directory.path() if isinstance(directory, PathItem) else Path(directory)
+        path = path.path() if isinstance(path, PathItem) else Path(path)
         dir_filters = (
                 d.str() if isinstance(d, PathItem) else str(d)
                 for d in directory_filters
@@ -270,4 +287,4 @@ class MVCBuilder(BuilderBase):
         Register the MVCKivy files for the application.
         This function is called to ensure that all necessary MVCKivy files are loaded.
         """
-        cls.load_all_kv_files(MVCPathManager.proj_dir)
+        cls.load_all_kv_files(PathItem(Path(__file__).parents[1]))

@@ -13,6 +13,7 @@ from typing import (
     TYPE_CHECKING,
     Iterable,
 )
+from dataclasses import dataclass
 
 from mvckivy.base_mvc.base_app_controller import BaseAppController
 from mvckivy.base_mvc.base_app_model import BaseAppModel
@@ -140,63 +141,77 @@ class MVCTrio:
         self._model = None
 
 
+@dataclass(frozen=True)
+class ScreenRegistrationReport:
+    """
+    Unified payload for reporting screen registration progress.
+
+    Centralizes what we expose to callers, so extending the data later
+    requires changing only one factory method instead of all call sites.
+    """
+
+    name: str
+    current: int
+    total: int
+    instance: BaseScreen | None
+
+
 class ScreenRegistrator:
+    APP_SCREEN_NAME = "app_screen"
+
     def __init__(self, schema: list[ScreensSchema]):
         self.trios: dict[str, MVCTrio] = {t["name"]: MVCTrio(**t) for t in schema}
 
+    def _trio(self, name: str) -> MVCTrio | None:
+        return self.trios.get(name)
+
     def get_root(self):
-        return self.get_screen("app_screen")
+        return self.get_screen(self.APP_SCREEN_NAME)
 
     def get_app_model(self) -> BaseAppModel | None:
-        t = self.trios.get("app_screen")
-        m = t.get_model() if t else None
-        return m
+        return self._trio(self.APP_SCREEN_NAME).get_model()
 
     def get_app_controller(self) -> BaseAppController | None:
-        t = self.trios.get("app_screen")
-        c = t.get_controller() if t else None
-        return c
+        return self._trio(self.APP_SCREEN_NAME).get_controller()
 
     def get_app_screen(self) -> BaseAppScreen | None:
-        t = self.trios.get("app_screen")
-        return t.get_screen() if t else None
+        return self._trio(self.APP_SCREEN_NAME).get_screen()
 
     def get_model(self, name: str) -> BaseModel | None:
-        t = self.trios.get(name)
-        return t.get_model() if t else None
+        return self._trio(name).get_model()
 
     def get_controller(self, name: str) -> BaseController | None:
-        t = self.trios.get(name)
-        return t.get_controller() if t else None
+        return self._trio(name).get_controller()
 
     def get_screen(self, name: str) -> BaseScreen | None:
-        t = self.trios.get(name)
-        return t.get_screen() if t else None
+        return self._trio(name).get_screen()
 
-    def get_models(self) -> Iterable[BaseModel] | None:
-        for t in self.trios.values():
-            m = t.get_model()
-            if m:
-                yield m
+    def get_models(self) -> list[BaseModel]:
+        return [t.get_model() for t in self.trios.values() if t.get_model() is not None]
 
-    def get_controllers(self) -> Iterable[BaseController] | None:
-        for t in self.trios.values():
-            c = t.get_controller()
-            if c:
-                yield c
+    def get_controllers(self) -> list[BaseController]:
+        return [
+            t.get_controller()
+            for t in self.trios.values()
+            if t.get_controller() is not None
+        ]
 
-    def get_screens(self) -> Iterable[BaseScreen] | None:
-        for t in self.trios.values():
-            s = t.get_screen()
-            if s:
-                yield s
+    def get_screens(self) -> list[BaseScreen]:
+        return [
+            t.get_screen() for t in self.trios.values() if t.get_screen() is not None
+        ]
+
+    def get_kv_paths(self) -> dict[str, PathItem]:
+        return {
+            name: t.kv_path for name, t in self.trios.items() if t.kv_path is not None
+        }
 
     def create_models_and_controllers(self) -> None:
-        for trio in self.trios.values():
-            trio.clear_controller()
-            trio.clear_model()
-            trio.ensure_model()
-            trio.ensure_controller()
+        for t in self.trios.values():
+            t.clear_controller()
+            t.clear_model()
+            t.ensure_model()
+            t.ensure_controller()
 
     def _attach_to_parent(self, name: str, screen: BaseScreen) -> None:
         parent_name = self.trios[name].parent
@@ -214,60 +229,82 @@ class ScreenRegistrator:
             self._attach_to_parent(name, screen)
         return screen
 
-    def create_initial_screens(self) -> Generator[dict[str, int | str], None, None]:
-        root = "app_screen"
+    def _report(self, name: str, current: int, total: int) -> ScreenRegistrationReport:
+        """
+        Single construction point for progress reports.
+        """
+        return ScreenRegistrationReport(
+            name=name,
+            current=current,
+            total=total,
+            instance=self.get_screen(name),
+        )
+
+    def create_app_screen(self) -> Generator[ScreenRegistrationReport, None, None]:
+        name = self.APP_SCREEN_NAME
+        if name not in self.trios:
+            raise ValueError("'app_screen' is not registered")
+        if self.trios[name].get_screen() is not None:
+            raise ValueError("'app_screen' already exists")
+        self._create_and_attach(name)
+        yield self._report(name, 1, 1)
+
+    def create_initial_screens(self) -> Generator[ScreenRegistrationReport, None, None]:
         init = "initial_screen"
-        plan = [root, init] + self.trios[init].children
+        if init not in self.trios:
+            raise ValueError("'initial_screen' is not registered")
+        plan = [init] + self.trios[init].children
         total = len(plan)
         for i, name in enumerate(plan, 1):
+            if self.trios[name].get_screen() is not None:
+                raise ValueError(f"Screen '{name}' already exists")
             self._create_and_attach(name)
-            yield {
-                "name": name,
-                "current": i,
-                "total": total,
-                "instance": self.get_screen(name),
-            }
+            yield self._report(name, i, total)
 
-    def create_all_screens(self) -> Generator[dict[str, int | str], None, None]:
+    def create_all_screens(self) -> Generator[ScreenRegistrationReport, None, None]:
         created = {n for n, t in self.trios.items() if t.get_screen() is not None}
         pending = [n for n in self.trios.keys() if n not in created]
         total = len(pending)
         for i, name in enumerate(pending, 1):
             self._create_and_attach(name)
-            yield {
-                "name": name,
-                "current": i,
-                "total": total,
-                "instance": self.get_screen(name),
-            }
+            yield self._report(name, i, total)
 
     def create_screen(
         self, name: str, *, create_children=False
-    ) -> Generator[dict[str, int | str], None, None]:
+    ) -> Generator[ScreenRegistrationReport, None, None]:
+        """
+        Creates a screen by name, optionally creating its children as well. Uses in HotReload only.
+        :param name:
+        :param create_children:
+        :return:
+        """
         if name not in self.trios:
             raise ValueError(f"Screen '{name}' is not registered")
+        # Ensure the target screen does not already exist
+        if self.trios[name].get_screen() is not None:
+            raise ValueError(f"Screen '{name}' already exists")
+
         self._create_and_attach(name)
-        yield {
-            "name": name,
-            "current": 1,
-            "total": 1,
-            "instance": self.get_screen(name),
-        }
+        yield self._report(name, 1, 1)
         if create_children:
             children_names = self.trios[name].children
             total = len(children_names)
             for i, child in enumerate(children_names, 1):
+                # Ensure each child does not already exist before creation
+                if self.trios[child].get_screen() is not None:
+                    raise ValueError(f"Child screen '{child}' already exists")
                 self._create_and_attach(child)
-                yield {
-                    "name": child,
-                    "current": i,
-                    "total": total,
-                    "instance": self.get_screen(child),
-                }
+                yield self._report(child, i, total)
 
     def recreate_screen(
         self, name: str, *, recreate_children: bool = False
-    ) -> Generator[dict[str, int | str], None, None]:
+    ) -> Generator[ScreenRegistrationReport, None, None]:
+        """
+        Recreates a screen by name, optionally recreating its children as well. Uses in HotReload only.
+        :param name:
+        :param recreate_children:
+        :return:
+        """
         if name not in self.trios:
             raise ValueError(f"Screen '{name}' is not registered")
 
@@ -283,12 +320,7 @@ class ScreenRegistrator:
                 for _ in self.recreate_screen(child, recreate_children=True):
                     pass
                 step += 1
-                yield {
-                    "name": child,
-                    "current": step,
-                    "total": total,
-                    "instance": self.get_screen(child),
-                }
+                yield self._report(child, step, total)
 
             # Transfer children from old parent to new parent
             old_screen = trio.get_screen()
@@ -318,12 +350,7 @@ class ScreenRegistrator:
                 new_screen.add_widget(cs)
 
             step += 1
-            yield {
-                "name": name,
-                "current": step,
-                "total": total,
-                "instance": self.get_screen(name),
-            }
+            yield self._report(name, step, total)
             return
 
         # --- preserve children (do not recreate them) ---
@@ -356,9 +383,4 @@ class ScreenRegistrator:
             cs = child_trio.get_screen() or child_trio.ensure_screen()
             new_screen.add_widget(cs)
 
-        yield {
-            "name": name,
-            "current": 1,
-            "total": 1,
-            "instance": self.get_screen(name),
-        }
+        yield self._report(name, 1, 1)

@@ -1,10 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Union, TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from mvckivy.app import ScreensSchema
+from typing import Union
 
 
 class PathItem:
@@ -30,65 +27,44 @@ class PathItem:
 
 
 class MVCPathManager:
-    proj_dir = PathItem(Path(__file__).parents[1])
+    """
+    Instance-based path manager for an MVC app.
+
+    Provide the project root at construction time. All other directories are
+    derived as properties relative to that root, preserving the original
+    folder structure names.
+    """
+
+    def __init__(self, proj_root: Union[str, Path, PathItem]):
+        self._proj_dir: PathItem = (
+            proj_root if isinstance(proj_root, PathItem) else PathItem(proj_root)
+        )
 
     @classmethod
     def join_paths(cls, *args: Union[Path, str, PathItem]) -> PathItem:
         args = [arg.path() if isinstance(arg, PathItem) else Path(arg) for arg in args]
         return PathItem(Path().joinpath(*args))
 
+    @property
+    def proj_dir(self) -> PathItem:
+        return self._proj_dir
 
-class MVCAppPathManager(MVCPathManager):
-    proj_dir = PathItem(Path(__file__).parents[1])
-    views_dir = PathItem(proj_dir.join("views"))
-    models_dir = PathItem(proj_dir.join("models"))
-    controllers_dir = PathItem(proj_dir.join("controllers"))
-    logs_dir = PathItem(proj_dir.join("logs"))
-    cache_dir = PathItem(proj_dir.join("cache"))
-    screen_dirs: dict[str, PathItem] = {}
+    @property
+    def views_dir(self) -> PathItem:
+        return self._proj_dir.join("views")
 
-    @classmethod
-    def register_screen_dirs(cls, schemas: list[ScreensSchema]) -> dict[str, PathItem]:
-        cls.screen_dirs.clear()
+    @property
+    def models_dir(self) -> PathItem:
+        return self._proj_dir.join("models")
 
-        schema_by_name = {s["name"]: s for s in schemas}
+    @property
+    def controllers_dir(self) -> PathItem:
+        return self._proj_dir.join("controllers")
 
-        def resolve_path(name: str) -> PathItem:
-            if name in cls.screen_dirs:
-                return cls.screen_dirs[name]
+    @property
+    def logs_dir(self) -> PathItem:
+        return self._proj_dir.join("logs")
 
-            # If kv_path is specified, use it directly
-            path_item: PathItem = schema_by_name[name]["kv_path"]
-            if path_item:
-                cls.register_screen_dir(name, path_item)
-                return path_item
-
-            parent: str | None = schema_by_name[name]["parent"]
-            if parent:
-                # parent path goes first
-                parent_path = resolve_path(parent)
-                path_item = parent_path.join("children", name)
-            else:
-                # root screen goes directly to views/<screen_name>
-                path_item = cls.views_dir.join(name)
-
-            cls.register_screen_dir(name, path_item)
-            return path_item
-
-        for screen_name in schema_by_name:
-            resolve_path(screen_name)
-
-        return cls.screen_dirs
-
-    @classmethod
-    def register_screen_dir(
-        cls, screen_name: str, path: Union[str, Path, PathItem]
-    ) -> None:
-        p = PathItem(path)
-
-        if not p.path().exists():
-            raise FileNotFoundError(
-                f"Directory for screen '{screen_name}' not found: {p}"
-            )
-
-        cls.screen_dirs[screen_name] = p
+    @property
+    def cache_dir(self) -> PathItem:
+        return self._proj_dir.join("cache")

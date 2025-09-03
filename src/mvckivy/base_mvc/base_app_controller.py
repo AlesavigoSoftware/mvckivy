@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from kivy.core.window import Window
-from kivy.properties import ObjectProperty
+from kivy.properties import ObjectProperty, Clock
 from mvckivy.base_mvc import BaseController
 
 if TYPE_CHECKING:
@@ -15,7 +15,7 @@ class BaseAppController(BaseController):
 
     def on_app_start(self):
         super().on_app_start()
-        self.screen.on_size(self, Window.size)  # init app size
+        Clock.schedule_once(lambda dt: self.screen.on_size(self, Window.size))
 
     def dispatch_theme_style(
         self, theme_style: str = "Light", toggle=False, force_dispatch=False

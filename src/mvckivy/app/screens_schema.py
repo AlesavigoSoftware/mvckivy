@@ -7,6 +7,7 @@ from mvckivy.project_management import PathItem
 
 if TYPE_CHECKING:
     from mvckivy.base_mvc import BaseModel, BaseController, BaseScreen
+    from mvckivy.app import MVCApp
 
 
 class ScreensSchema(TypedDict):
@@ -63,28 +64,140 @@ class AppSchema:
 
     @classmethod
     def _format_schema(cls) -> None:
-        schema = cls._schema
-        lookup: dict[str, ScreensSchema] = {entry["name"]: entry for entry in schema}
+        """
+        Orchestrate schema normalization, relationship propagation and ordering.
 
+        Steps order follows their invocation sequence for clarity:
+        1) Ensure defaults for optional keys that are safe to auto-fill.
+        2) Propagate parent relationships from children's declarations.
+        3) Ensure parent/children consistency in both directions.
+        4) Normalize kv_path: resolve explicit values, compute defaults, validate existence.
+        5) Compute stable linear ordering for later validation checks.
+        """
+        schema = cls._schema
+        if not schema:
+            return
+
+        cls._ensure_defaults(schema)
+        cls._propagate_parents_to_children(schema)
+        cls._ensure_parent_children_bidirectional(schema)
+        cls._normalize_kv_paths(schema)
+        cls._ordered_schema, cls._schema = cls._compute_linear_ordering(schema)
+
+    @staticmethod
+    def _ensure_defaults(schema: list[ScreensSchema]) -> None:
+        """
+        Ensure each schema entry contains default values for optional keys.
+
+        Applied defaults:
+        - "children" defaults to an empty list if not present.
+        - "parent" defaults to None if not present.
+
+        Intentionally NOT defaulting "kv_path":
+        We keep absence of the key distinguishable from an explicit None.
+        This is required by kv_path normalization rules.
+        """
         for entry in schema:
             entry.setdefault("children", [])
             entry.setdefault("parent", None)
-            entry.setdefault("kv_path", None)
+            # Do not set default for "kv_path" to preserve intent
 
-        for entry in schema:
-            if entry["kv_path"] is not None:
-                entry["kv_path"] = (
-                    PathItem(entry["kv_path"])
-                    if not isinstance(entry["kv_path"], PathItem)
-                    else entry["kv_path"]
+    @staticmethod
+    def _normalize_kv_paths(schema: list[ScreensSchema]) -> None:
+        """
+        Normalize and validate the `kv_path` field for each entry.
+
+        Rules:
+        - If the user did not provide `kv_path` (key absent), compute a default
+          directory path according to the project structure and validate it exists.
+            - Root screen: `views/<screen_name>`
+            - Child screen: `<parent_dir>/children/<screen_name>`
+        - If the user explicitly set `kv_path` to None, keep it as None.
+        - Otherwise, wrap the provided path into `PathItem`, validate existence,
+          and persist it.
+
+        The function resolves parent chains recursively to build child paths.
+        """
+        from kivy.app import App
+
+        app: MVCApp = App.get_running_app()
+        if app:
+            proj_dir: PathItem = app.path_manager.proj_dir
+        else:
+            proj_dir: PathItem = PathItem(Path("."))
+
+        by_name: dict[str, ScreensSchema] = {e["name"]: e for e in schema}
+        cache: dict[str, PathItem | None] = {}
+
+        def assert_exists(screen_name: str, p: PathItem | None) -> None:
+            if p is not None and not p.path().exists():
+                raise FileNotFoundError(
+                    f"Directory for screen '{screen_name}' not found: {p}"
                 )
 
+        def resolve(name: str) -> PathItem | None:
+            if name in cache:
+                return cache[name]
+
+            entry = by_name[name]
+            if "kv_path" not in entry:
+                parent_name = entry.get("parent")
+                if parent_name:
+                    parent_path = resolve(parent_name)
+                    if parent_path is None:
+                        cache[name] = None
+                        entry["kv_path"] = None
+                        return None
+                    default_path = parent_path.join("children", name)
+                else:
+                    default_path = proj_dir.join("views", name)
+
+                assert_exists(name, default_path)
+                cache[name] = default_path
+                entry["kv_path"] = default_path
+                return default_path
+
+            provided = entry["kv_path"]
+            if provided is None:
+                cache[name] = None
+                return None
+
+            path_item = (
+                provided if isinstance(provided, PathItem) else PathItem(provided)
+            )
+            assert_exists(name, path_item)
+            entry["kv_path"] = path_item
+            cache[name] = path_item
+            return path_item
+
+        for name in by_name.keys():
+            resolve(name)
+
+    @staticmethod
+    def _propagate_parents_to_children(schema: list[ScreensSchema]) -> None:
+        """
+        Populate child entries' `parent` field based on their parent's `children` list.
+
+        For each declared child name present in the schema, set that child's `parent`
+        to the enclosing entry's name. This helps keep parent links consistent when
+        only children are declared.
+        """
+        lookup: dict[str, ScreensSchema] = {entry["name"]: entry for entry in schema}
         for entry in schema:
             for child_name in entry["children"]:
                 child = lookup.get(child_name)
                 if child:
                     child["parent"] = entry["name"]
 
+    @staticmethod
+    def _ensure_parent_children_bidirectional(schema: list[ScreensSchema]) -> None:
+        """
+        Ensure parent/child relationships are bidirectional.
+
+        If an entry specifies a `parent`, append the entry's name to that parent's
+        `children` list when missing. This makes the relationship consistent both ways.
+        """
+        lookup: dict[str, ScreensSchema] = {entry["name"]: entry for entry in schema}
         for entry in schema:
             parent_name = entry.get("parent")
             if parent_name:
@@ -92,6 +205,22 @@ class AppSchema:
                 if parent and entry["name"] not in parent["children"]:
                     parent["children"].append(entry["name"])
 
+    @classmethod
+    def _compute_linear_ordering(
+        cls, schema: list[ScreensSchema]
+    ) -> tuple[dict[str, int], list[ScreensSchema]]:
+        """
+        Compute a deterministic linear ordering of screens and update class state.
+
+        Ordering rules:
+        - If `app_screen` exists, perform DFS from it preserving declared child order.
+        - Then append any remaining nodes in the original declaration order.
+        - Populate `cls._ordered_schema` mapping names to indices.
+        - Reorder `cls._schema` according to the computed ordering.
+
+        This ordering is used by later validation checks that expect a stable index map.
+        """
+        lookup: dict[str, ScreensSchema] = {entry["name"]: entry for entry in schema}
         original_index: dict[str, int] = {
             entry["name"]: i for i, entry in enumerate(schema)
         }
@@ -99,12 +228,11 @@ class AppSchema:
         visited: set[str] = set()
         linear_order: list[str] = []
 
-        def dfs(node_name: str):
+        def dfs(node_name: str) -> None:
             if node_name in visited or node_name not in lookup:
                 return
             visited.add(node_name)
             linear_order.append(node_name)
-            # Preserve exact declared order of children; no additional sorting
             for child_name in lookup[node_name].get("children", []):
                 if child_name in lookup:
                     dfs(child_name)
@@ -116,10 +244,15 @@ class AppSchema:
             if name not in visited:
                 dfs(name)
 
-        cls._ordered_schema = {name: i for i, name in enumerate(linear_order)}
-        cls._schema = list(
-            sorted(schema, key=lambda s: cls._ordered_schema.get(s["name"], 10**9))
+        index_map = {name: i for i, name in enumerate(linear_order)}
+        ordered_schema = list(
+            sorted(schema, key=lambda s: index_map.get(s["name"], 10**9))
         )
+        return index_map, ordered_schema
+
+    # register_screen_dirs and register_screen_dir were removed. Their logic
+    # is now part of `_normalize_kv_paths`, which computes defaults and validates
+    # existence directly into the `kv_path` field of each schema entry.
 
     @classmethod
     def _check_schema(cls) -> None:

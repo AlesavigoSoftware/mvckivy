@@ -30,6 +30,7 @@ from kivymd.theming import ThemeManager
 from kivymd.utils.fpsmonitor import FpsMonitor
 
 from mvckivy.app import ScreenRegistrator
+from mvckivy.project_management.path_manager import MVCPathManager
 from mvckivy.utils.builder import MVCBuilder
 from mvckivy.utils.constants import Scheme, Palette
 from mvckivy.utils.error_handlers import ClockHandler, AppExceptionNotifyHandler
@@ -43,7 +44,6 @@ except ImportError:
 
 
 if TYPE_CHECKING:
-    from mvckivy.project_management import PathItem
     from mvckivy.base_mvc import BaseModel, BaseController, BaseScreen
     from mvckivy.base_mvc.base_app_controller import BaseAppController
     from mvckivy.base_mvc.base_app_model import BaseAppModel
@@ -72,6 +72,9 @@ class MVCApp(App):
         super().__init__(**kwargs)
         self.nursery: Nursery | None = None
         self.idle_timer: monotonic = None
+        self.path_manager = self.create_path_manager()
+        self._registrator: ScreenRegistrator = self.create_screen_registrator()
+
         self.theme_cls: ThemeManager = ThemeManager()
         self.theme_cls.bind(
             theme_style=self.theme_cls.update_theme_colors,
@@ -83,18 +86,14 @@ class MVCApp(App):
             self.load_config()  # AppModel contains ConfigParserProperties so utils must be loaded first
 
         MVCBuilder.load_libs_kv_files()
-        self._screen_dirs = self.register_screen_dirs()
-        self.load_all_screens_kv_files(self._screen_dirs.values())
+        self.load_all_screens_kv_files()
 
-        self._registrator: ScreenRegistrator = self.create_screen_registrator()
         self._registrator.create_models_and_controllers()
         self.model: BaseAppModel = self._registrator.get_app_model()
         self.controller: BaseAppController = self._registrator.get_app_controller()
-
-        for _registration_report in self._registrator.create_initial_screens():
-            self.log_screen_register_progress(_registration_report)
-
+        self.create_app_screen()
         self.screen: BaseAppScreen = self._registrator.get_app_screen()
+        self.root = self.get_root()
 
         self._configure_window_behavior()
         self._configure_clock_behavior()
@@ -102,16 +101,27 @@ class MVCApp(App):
 
         self._bind_and_init_theme_settings()
 
-    def log_screen_register_progress(self, load_info: dict) -> None:
+    def log_screen_register_progress(self, load_info) -> None:
+        """
+        Log a single screen registration progress event.
+
+        Accepts either a dict with keys ('name', 'current', 'total') or
+        a ScreenRegistrationReport dataclass.
+        """
+        # Lazy import for typing-only dependency safety
+        name = getattr(load_info, "name", "unknown")
+
         logger.debug(
             "mvckivy: Screen '%s' registered. Progress: %.2f%%",
-            load_info.get("name", "unknown"),
+            name,
             self._calc_screen_loading_progress(load_info, percent=True),
         )
 
     @staticmethod
-    def _calc_screen_loading_progress(load_info: dict, percent=False) -> float:
-        res = round(load_info.get("current", 1.0) / load_info.get("total", 1.0), 1)
+    def _calc_screen_loading_progress(load_info, percent=False) -> float:
+        current: float = getattr(load_info, "current", 1.0)
+        total: float = getattr(load_info, "total", 1.0)
+        res = round(current / total, 1)
         return res * 100.0 if percent else res
 
     @classmethod
@@ -160,11 +170,57 @@ class MVCApp(App):
     def get_screens(self) -> Iterable[BaseScreen] | None:
         return self._registrator.get_screens()
 
-    def register_screen_dirs(self) -> dict[str, PathItem]:
-        raise NotImplementedError()
+    def get_root_path(self) -> Path:
+        """
+        Determines the absolute path to the module file where the concrete
+        subclass of MVCApp is defined (accessible via `self.__class__`), then
+        uses its parent directory as the project root for MVCPathManager.
+        """
+        try:
+            module_name = self.__class__.__module__
+            module = sys.modules.get(module_name)
+            module_file = getattr(module, "__file__", None)
+            if module_file:
+                proj_root = Path(module_file).resolve().parent
+            else:
+                proj_root = Path.cwd().resolve()
+        except Exception:
+            proj_root = Path.cwd().resolve()
+
+        return proj_root
+
+    def create_path_manager(self) -> MVCPathManager:
+        """
+        Create a path manager rooted at the directory of the user's MVCApp subclass.
+        """
+        return MVCPathManager(self.get_root_path())
 
     def create_screen_registrator(self) -> ScreenRegistrator:
         raise NotImplementedError()
+
+    # --- Adapters over ScreenRegistrator with built-in logging ---
+    def _consume_and_log(self, generator: Iterable) -> None:
+        for report in generator:
+            self.log_screen_register_progress(report)
+
+    def create_app_screen(self) -> None:
+        self._consume_and_log(self._registrator.create_app_screen())
+
+    def create_initial_screens(self) -> None:
+        self._consume_and_log(self._registrator.create_initial_screens())
+
+    def create_all_screens(self) -> None:
+        self._consume_and_log(self._registrator.create_all_screens())
+
+    def create_screen(self, name: str, *, create_children: bool = False) -> None:
+        self._consume_and_log(
+            self._registrator.create_screen(name, create_children=create_children)
+        )
+
+    def recreate_screen(self, name: str, *, recreate_children: bool = False) -> None:
+        self._consume_and_log(
+            self._registrator.recreate_screen(name, recreate_children=recreate_children)
+        )
 
     def _bind_and_init_theme_settings(self) -> None:
         self.theme_cls.dynamic_color = True
@@ -179,15 +235,14 @@ class MVCApp(App):
         self.switch_palette(None, self.model.primary_palette)
         self.switch_scheme(None, self.model.scheme_name)
 
-    @staticmethod
-    def load_all_screens_kv_files(dirs: Iterable[str | Path | PathItem]) -> None:
+    def load_all_screens_kv_files(self) -> None:
         """
         Load all KV files from the screen directories.
         This method is called in the constructor of the application class.
         Children excluded from loading, as they are not part of the parent screen and load on them own separately.
         """
-        for screen_dir in dirs:
-            MVCBuilder.load_all_kv_files(screen_dir, directory_filters=["children"])
+        for p in self._registrator.get_kv_paths().values():
+            MVCBuilder.load_all_kv_files(p, directory_filters=["children"])
 
     def switch_theme(self, _, theme_style: Literal["Dark", "Light"]):
         self.theme_cls.theme_style = theme_style
@@ -320,7 +375,8 @@ class MVCApp(App):
         """Event fired when the application leaves idle mode."""
 
     def build(self):
-        self.root = self.get_root()
+        if not self.debug_mode:
+            self.create_initial_screens()
 
         if self.idle_detection:
             self.install_idle(timeout=self.idle_timeout)
@@ -381,7 +437,9 @@ class MVCDebugApp(MVCApp):
         self.enable_manual_reload()
         self.enable_autoreload()
 
+        self.root = self.get_root()
         self.rebuild(first=True)
+        self.screen: BaseAppScreen = self._registrator.get_app_screen()
 
         return super().build()
 
@@ -551,7 +609,7 @@ class MVCDebugApp(MVCApp):
 
     def _filename_to_module(self, filename: str):
         orig_filename = filename
-        rootpath = self._get_root_path()
+        rootpath = self.get_root_path()
         if filename.startswith(rootpath):
             filename = filename[len(rootpath) :]
         if filename.startswith("/"):
@@ -561,10 +619,6 @@ class MVCDebugApp(MVCApp):
             "{}: Translated {} to {}".format(self.appname, orig_filename, module)
         )
         return module
-
-    @classmethod
-    def _get_root_path(cls):
-        return realpath(os.getcwd())
 
     def _unregister_factory_from_module(self, module):
         # Check module directly.
@@ -582,12 +636,13 @@ class MVCDebugApp(MVCApp):
         for name in set(to_remove):
             del Factory.classes[name]
 
-    def rebuild(self, *args, first: bool = False, **kwargs):
-        logger.info("%s: Rebuilding the application", self.appname)
-        self.unload_app_dependencies()
-        Builder.rulectx = {}
-        self.load_app_dependencies()
-        self.root.clear_widgets()
+    def rebuild(self, *args, first=False, **kwargs):
+        if not first:
+            logger.info("%s: Rebuilding the application", self.appname)
+            self.unload_app_dependencies()
+            Builder.rulectx = {}
+            self.load_app_dependencies()
+            self.root.clear_widgets()
         for widget in self.fill_root(first=first):
             self.root.add_widget(widget)
 
@@ -631,68 +686,16 @@ class MVCDebugApp(MVCApp):
                         path_to_kv_file = os.path.join(path_to_dir, name_file)
                         Builder.load_file(path_to_kv_file)
 
-    def fill_root(self, first=False) -> Iterable[Widget]:
+    def fill_root(self, first: bool) -> Iterable[Widget]:
         if first:
-            for name in self.hotreload_config.screen_names:
-                for info in self._registrator.create_screen(name):
-                    self.log_screen_register_progress(info)
-                    yield info.get("instance")
+            for spec in self.hotreload_config.screens:
+                self.create_screen(
+                    spec["name"], create_children=spec["recreate_children"]
+                )
+                yield self._registrator.get_screen(spec["name"])
         else:
-            for name in self.hotreload_config.screen_names:
-                for info in self._registrator.recreate_screen(name):
-                    self.log_screen_register_progress(info)
-                    yield info.get("instance")
-
-
-if __name__ == "__main__":
-
-    class DemoApp(MVCDebugApp):
-        def register_screen_dirs(self) -> dict[str, PathItem]:
-            from mvckivy.project_management import PathItem
-
-            return {
-                "main": PathItem(Path(__file__).parent / "screens" / "main"),
-            }
-
-        def create_screen_registrator(self) -> ScreenRegistrator:
-            from mvckivy.project_management import ProjectScreenRegistrator
-
-            return ProjectScreenRegistrator(self)
-
-        def fill_hotreload_config(
-            self, hotreload_config: HotReloadConfig
-        ) -> HotReloadConfig:
-            from mvckivy.project_management import PathItem
-
-            hotreload_config.kv_dirs = [
-                Path(__file__).parent / "screens" / "main",
-            ]
-            hotreload_config.kv_files = [
-                Path(__file__).parent / "app.kv",
-            ]
-            hotreload_config.autoreloader_paths = [
-                Path(__file__).parent / "screens" / "main",
-                Path(__file__).parent / "models",
-                Path(__file__).parent / "controllers",
-                (Path(__file__).parent / "app.py", {"recursive": False}),
-            ]
-            hotreload_config.autoreloader_ignore_patterns = [
-                "*.pyc",
-                "__pycache__",
-                ".git",
-                ".idea",
-                ".vscode",
-                "*.swp",
-                "*~",
-            ]
-            hotreload_config.classes = {
-                "MainScreen": "screens.main.main_screen.MainScreen",
-                "MainModel": "models.main_model.MainModel",
-                "MainController": "controllers.main_controller.MainController",
-            }
-            hotreload_config.screen_names = [
-                "MainScreen",
-            ]
-            return hotreload_config
-
-    trio.run(DemoApp().async_run, "trio")
+            for spec in self.hotreload_config.screens:
+                self.recreate_screen(
+                    spec["name"], recreate_children=spec["recreate_children"]
+                )
+                yield self._registrator.get_screen(spec["name"])
