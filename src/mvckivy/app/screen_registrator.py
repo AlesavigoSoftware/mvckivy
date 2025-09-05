@@ -253,7 +253,7 @@ class ScreenRegistrator:
         init = "initial_screen"
         if init not in self.trios:
             raise ValueError("'initial_screen' is not registered")
-        plan = [init] + self.trios[init].children
+        plan = self.trios[init].children + [init]
         total = len(plan)
         for i, name in enumerate(plan, 1):
             if self.trios[name].get_screen() is not None:

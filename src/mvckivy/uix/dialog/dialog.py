@@ -11,34 +11,47 @@ from kivy.properties import (
 )
 from kivy.uix.widget import Widget
 from kivymd.uix.boxlayout import MDBoxLayout
+from kivymd.uix.anchorlayout import MDAnchorLayout
 
 from kivymd.uix.behaviors import MotionDialogBehavior
 from kivymd.uix.card import MDCard
 from kivymd.uix.label import MDIcon, MDLabel
 
-from mvckivy.uix.behaviors import MVCBehavior, MTDBehavior
+from mvckivy.uix.behaviors import MTDBehavior
 
 
-class MDAdaptiveDialog(MDCard, MotionDialogBehavior, MVCBehavior, MTDBehavior):
+class MKVDialog(MDCard, MotionDialogBehavior, MTDBehavior):
     __events__ = ("on_pre_open", "on_open", "on_pre_dismiss", "on_dismiss")
 
     width_offset = NumericProperty(dp(48))
 
-    radius = VariableListProperty(dp(28), lenght=4)
-    scrim_color = ColorProperty([0, 0, 0, 0.3])
+    radius: VariableListProperty[list[float]] = VariableListProperty(dp(28), lenght=4)
+    scrim_color: ColorProperty = ColorProperty([0, 0, 0, 0.3])
     auto_dismiss = BooleanProperty(True)
+    opacity: NumericProperty[float] = NumericProperty(0)  # creates invisible
     dismiss_on_device_type = BooleanProperty(True)
 
-    _scrim: ObjectProperty[MDAdaptiveDialogScrim] = ObjectProperty()
+    _scrim: ObjectProperty[MKVDialogScrim | None] = ObjectProperty(None, allownone=True)
     _is_open = False
+
+    icon_container: ObjectProperty[MDAnchorLayout | None] = ObjectProperty(
+        None, allownone=True
+    )
+    headline_container: ObjectProperty[MDBoxLayout | None] = ObjectProperty(
+        None, allownone=True
+    )
+    supporting_text_container: ObjectProperty[MDBoxLayout | None] = ObjectProperty(
+        None, allownone=True
+    )
+    content_container: ObjectProperty[MDBoxLayout | None] = ObjectProperty(
+        None, allownone=True
+    )
+    button_container: ObjectProperty[MDBoxLayout | None] = ObjectProperty(
+        None, allownone=True
+    )
 
     def __init__(self, *args, ignore_parent_mvc=True, **kwargs):
         super().__init__(*args, ignore_parent_mvc=ignore_parent_mvc, **kwargs)
-        self.register_event_type("on_open")
-        self.register_event_type("on_pre_open")
-        self.register_event_type("on_dismiss")
-        self.register_event_type("on_pre_dismiss")
-        self.opacity = 0
         Window.bind(on_resize=self.update_size)
 
     def on_device_type(self, widget, device_type: str):
@@ -59,16 +72,21 @@ class MDAdaptiveDialog(MDCard, MotionDialogBehavior, MVCBehavior, MTDBehavior):
         )
 
     def add_widget(self, widget, *args, **kwargs):
-        if isinstance(widget, MDAdaptiveDialogIcon):
-            self.ids.icon_container.add_widget(widget)
-        elif isinstance(widget, MDAdaptiveDialogHeadlineText):
-            self.ids.headline_container.add_widget(widget)
-        elif isinstance(widget, MDAdaptiveDialogSupportingText):
-            self.ids.supporting_text_container.add_widget(widget)
-        elif isinstance(widget, MDAdaptiveDialogContentContainer):
-            self.ids.content_container.add_widget(widget)
-        elif isinstance(widget, MDAdaptiveDialogButtonContainer):
-            self.ids.button_container.add_widget(widget)
+        if isinstance(widget, MKVDialogIcon):
+            if self.icon_container:
+                self.icon_container.add_widget(widget)
+        elif isinstance(widget, MKVDialogHeadlineText):
+            if self.headline_container:
+                self.headline_container.add_widget(widget)
+        elif isinstance(widget, MKVDialogSupportingText):
+            if self.supporting_text_container:
+                self.supporting_text_container.add_widget(widget)
+        elif isinstance(widget, MKVDialogContentContainer):
+            if self.content_container:
+                self.content_container.add_widget(widget)
+        elif isinstance(widget, MKVDialogButtonContainer):
+            if self.button_container:
+                self.button_container.add_widget(widget)
         else:
             return super().add_widget(widget)
 
@@ -82,7 +100,7 @@ class MDAdaptiveDialog(MDCard, MotionDialogBehavior, MVCBehavior, MTDBehavior):
         self._is_open = True
 
         if not self._scrim:
-            self._scrim = MDAdaptiveDialogScrim(color=self.scrim_color)
+            self._scrim = MKVDialogScrim(color=self.scrim_color)
 
         Window.add_widget(self._scrim)
         Window.add_widget(self)
@@ -90,9 +108,10 @@ class MDAdaptiveDialog(MDCard, MotionDialogBehavior, MVCBehavior, MTDBehavior):
         self.dispatch("on_open")
 
     def on_pre_open(self, *args) -> None:
-        self.ids.icon_container.height = self.ids.icon_container.children[
-            0
-        ].height  # bugfix
+        if self.icon_container:
+            self.icon_container.height = self.icon_container.children[
+                0
+            ].height  # bugfix
 
     def on_open(self, *args) -> None:
         pass
@@ -122,26 +141,26 @@ class MDAdaptiveDialog(MDCard, MotionDialogBehavior, MVCBehavior, MTDBehavior):
         self.dispatch("on_dismiss")
 
 
-class MDAdaptiveDialogIcon(MDIcon):
+class MKVDialogIcon(MDIcon):
     pass
 
 
-class MDAdaptiveDialogHeadlineText(MDLabel):
+class MKVDialogHeadlineText(MDLabel):
     pass
 
 
-class MDAdaptiveDialogSupportingText(MDLabel):
+class MKVDialogSupportingText(MDLabel):
     pass
 
 
-class MDAdaptiveDialogContentContainer(MDBoxLayout):
+class MKVDialogContentContainer(MDBoxLayout):
     pass
 
 
-class MDAdaptiveDialogButtonContainer(MDBoxLayout):
+class MKVDialogButtonContainer(MDBoxLayout):
     pass
 
 
-class MDAdaptiveDialogScrim(Widget):
+class MKVDialogScrim(Widget):
     color = ColorProperty(None)
     alpha = NumericProperty(0)

@@ -30,6 +30,7 @@ from kivymd.theming import ThemeManager
 from kivymd.utils.fpsmonitor import FpsMonitor
 
 from mvckivy.app import ScreenRegistrator
+from mvckivy.project_management import PathItem
 from mvckivy.project_management.path_manager import MVCPathManager
 from mvckivy.utils.builder import MVCBuilder
 from mvckivy.utils.constants import Scheme, Palette
@@ -54,7 +55,208 @@ original_argv = sys.argv
 logger = logging.getLogger("mvckivy")
 
 
-class MVCApp(App):
+class PathManagerBehavior:
+    def get_root_path(self) -> PathItem:
+        try:
+            module_name = self.__class__.__module__
+            module = sys.modules.get(module_name)
+            module_file = getattr(module, "__file__", None)
+            if module_file:
+                proj_root = Path(module_file).resolve().parent
+            else:
+                proj_root = Path.cwd().resolve()
+        except Exception:
+            proj_root = Path.cwd().resolve()
+        return PathItem(proj_root)
+
+    def create_path_manager(self) -> MVCPathManager:
+        return MVCPathManager(self.get_root_path())
+
+
+class ScreenRegistrationBehavior:
+    def create_screen_registrator(self) -> ScreenRegistrator:
+        raise NotImplementedError()
+
+    def log_screen_register_progress(self, load_info) -> None:
+        try:
+            name = getattr(load_info, "name")
+        except Exception:
+            name = None
+        if not name and isinstance(load_info, dict):
+            name = load_info.get("name", "unknown")
+        name = name or "unknown"
+        logger.debug(
+            "mvckivy: Screen '%s' registered. Progress: %.2f%%",
+            name,
+            self._calc_screen_loading_progress(load_info, percent=True),
+        )
+
+    @staticmethod
+    def _calc_screen_loading_progress(load_info, percent=False) -> float:
+        try:
+            current = getattr(load_info, "current")
+            total = getattr(load_info, "total")
+        except Exception:
+            current = (
+                load_info.get("current", 1.0) if isinstance(load_info, dict) else 1.0
+            )
+            total = load_info.get("total", 1.0) if isinstance(load_info, dict) else 1.0
+        total = total or 1.0
+        res = round(float(current) / float(total), 1)
+        return res * 100.0 if percent else res
+
+    def _consume_and_log(self, generator: Iterable) -> None:
+        for report in generator:
+            self.log_screen_register_progress(report)
+
+    # Adapters to ScreenRegistrator
+    def create_app_screen(self) -> None:
+        self._consume_and_log(self._registrator.create_app_screen())
+
+    def create_initial_screens(self) -> None:
+        self._consume_and_log(self._registrator.create_initial_screens())
+
+    def create_all_screens(self) -> None:
+        self._consume_and_log(self._registrator.create_all_screens())
+
+    def create_screen(self, name: str, *, create_children: bool = False) -> None:
+        self._consume_and_log(
+            self._registrator.create_screen(name, create_children=create_children)
+        )
+
+    def recreate_screen(self, name: str, *, recreate_children: bool = False) -> None:
+        self._consume_and_log(
+            self._registrator.recreate_screen(name, recreate_children=recreate_children)
+        )
+
+    # Accessors
+    def get_root(self):
+        return self.screen
+
+    def get_model(self, name: str):
+        return self._registrator.get_model(name)
+
+    def get_controller(self, name: str):
+        return self._registrator.get_controller(name)
+
+    def get_screen(self, name: str):
+        return self._registrator.get_screen(name)
+
+    def get_models(self) -> Iterable:
+        return self._registrator.get_models()
+
+    def get_controllers(self) -> Iterable:
+        return self._registrator.get_controllers()
+
+    def get_screens(self) -> Iterable:
+        return self._registrator.get_screens()
+
+    def load_all_screens_kv_files(self) -> None:
+        for p in self._registrator.get_kv_paths().values():
+            MVCBuilder.load_all_kv_files(p, directory_filters=["children"])
+
+
+class ThemeBehavior:
+    def _bind_and_init_theme_settings(self) -> None:
+        self.theme_cls.dynamic_color = True
+        self.theme_cls.theme_style_switch_animation = True
+        self.theme_cls.theme_style_switch_animation_duration = 0.3
+        self.model.bind(theme_style=self.switch_theme)
+        self.model.bind(primary_palette=self.switch_palette)
+        self.model.bind(scheme_name=self.switch_scheme)
+        self.switch_theme(None, self.model.theme_style)
+        self.switch_palette(None, self.model.primary_palette)
+        self.switch_scheme(None, self.model.scheme_name)
+
+    def switch_theme(self, _, theme_style: Literal["Dark", "Light"]):
+        self.theme_cls.theme_style = theme_style
+        self.theme_cls._set_application_scheme(self.theme_cls.primary_palette)
+
+    def switch_palette(self, _, primary_palette: Palette):
+        self.theme_cls.primary_palette = primary_palette
+        self.theme_cls._set_application_scheme(self.theme_cls.primary_palette)
+
+    def switch_scheme(self, _, scheme_name: Scheme):
+        self.theme_cls.dynamic_scheme_name = scheme_name
+        self.theme_cls._set_application_scheme(self.theme_cls.primary_palette)
+
+
+class WindowClockBehavior:
+    def config_loggers(self):
+        import logging as _logging
+
+        for name, _logger in _logging.root.manager.loggerDict.items():
+            logger.debug(f"{name}: {_logger}")
+        urllib_loggers = (
+            _logging.getLogger("urllib3.connectionpool"),
+            _logging.getLogger("urllib3.connection"),
+            _logging.getLogger("urllib3.response"),
+        )
+        for _logger in urllib_loggers:
+            _logger.setLevel(_logging.INFO if self.debug_mode else _logging.WARNING)
+
+    def _configure_window_behavior(self) -> None:
+        if self.model.input_mode == "touch":
+            Window.softinput_mode = "pan"
+
+    @staticmethod
+    def _configure_clock_behavior() -> None:
+        Clock.max_iteration = 30
+
+
+class IdleBehavior:
+    def _check_idle(self, *args):
+        if not hasattr(self, "idle_timer"):
+            return
+        if self.idle_timer is None:
+            return
+        if monotonic() and monotonic() - self.idle_timer > self.idle_timeout:
+            self.idle_timer = None
+            self.dispatch("on_idle")
+
+    def install_idle(self, timeout=60):
+        if monotonic is None:
+            logger.exception(
+                f"{self.appname}: Cannot use idle detector, monotonic is missing"
+            )
+        self.idle_timer = None
+        self.idle_timeout = timeout
+        logger.info(f"{self.appname}: Install idle detector, {timeout} seconds")
+        Clock.schedule_interval(self._check_idle, 1)
+        self.root.bind(on_touch_down=self.rearm_idle, on_touch_up=self.rearm_idle)
+
+    def rearm_idle(self, *args):
+        if not hasattr(self, "idle_timer"):
+            return
+        if self.idle_timer is None:
+            self.dispatch("on_wakeup")
+        if monotonic:
+            self.idle_timer = monotonic()
+
+    def on_idle(self, *args):
+        pass
+
+    def on_wakeup(self, *args):
+        pass
+
+
+class UIShortcutsBehavior:
+    def create_and_open_dialog(self, *args, **kwargs) -> None:
+        return self.screen.create_and_open_dialog(*args, **kwargs)
+
+    def create_and_open_notification(self, *args, **kwargs) -> None:
+        return self.screen.create_and_open_notification(*args, **kwargs)
+
+
+class MVCApp(
+    PathManagerBehavior,
+    ScreenRegistrationBehavior,
+    ThemeBehavior,
+    WindowClockBehavior,
+    IdleBehavior,
+    UIShortcutsBehavior,
+    App,
+):
     __events__ = ["on_idle", "on_wakeup"]
 
     idle_detection = BooleanProperty(False)
@@ -101,168 +303,11 @@ class MVCApp(App):
 
         self._bind_and_init_theme_settings()
 
-    def log_screen_register_progress(self, load_info) -> None:
-        """
-        Log a single screen registration progress event.
-
-        Accepts either a dict with keys ('name', 'current', 'total') or
-        a ScreenRegistrationReport dataclass.
-        """
-        # Lazy import for typing-only dependency safety
-        name = getattr(load_info, "name", "unknown")
-
-        logger.debug(
-            "mvckivy: Screen '%s' registered. Progress: %.2f%%",
-            name,
-            self._calc_screen_loading_progress(load_info, percent=True),
-        )
-
-    @staticmethod
-    def _calc_screen_loading_progress(load_info, percent=False) -> float:
-        current: float = getattr(load_info, "current", 1.0)
-        total: float = getattr(load_info, "total", 1.0)
-        res = round(current / total, 1)
-        return res * 100.0 if percent else res
-
     @classmethod
     def get_exception_handlers(cls) -> list[ExceptionHandler]:
         return [
             ClockHandler(),
         ]
-
-    def get_root(self) -> BaseAppScreen | None:
-        """
-        Get the root screen of the application.
-        :return: Root screen instance.
-        """
-        return self._registrator.get_root()
-
-    def get_model(self, name: str) -> BaseModel | None:
-        """
-        Get the model by its name.
-        :param name: Name of the model.
-        :return: Model instance.
-        """
-        return self._registrator.get_model(name)
-
-    def get_controller(self, name: str) -> BaseController | None:
-        """
-        Get the controller by its name.
-        :param name: Name of the controller.
-        :return: Controller instance.
-        """
-        return self._registrator.get_controller(name)
-
-    def get_screen(self, name: str) -> BaseScreen | None:
-        """
-        Get the screen by its name.
-        :param name: Name of the screen.
-        :return: Screen instance.
-        """
-        return self._registrator.get_screen(name)
-
-    def get_models(self) -> Iterable[BaseModel] | None:
-        return self._registrator.get_models()
-
-    def get_controllers(self) -> Iterable[BaseController] | None:
-        return self._registrator.get_controllers()
-
-    def get_screens(self) -> Iterable[BaseScreen] | None:
-        return self._registrator.get_screens()
-
-    def get_root_path(self) -> Path:
-        """
-        Determines the absolute path to the module file where the concrete
-        subclass of MVCApp is defined (accessible via `self.__class__`), then
-        uses its parent directory as the project root for MVCPathManager.
-        """
-        try:
-            module_name = self.__class__.__module__
-            module = sys.modules.get(module_name)
-            module_file = getattr(module, "__file__", None)
-            if module_file:
-                proj_root = Path(module_file).resolve().parent
-            else:
-                proj_root = Path.cwd().resolve()
-        except Exception:
-            proj_root = Path.cwd().resolve()
-
-        return proj_root
-
-    def create_path_manager(self) -> MVCPathManager:
-        """
-        Create a path manager rooted at the directory of the user's MVCApp subclass.
-        """
-        return MVCPathManager(self.get_root_path())
-
-    def create_screen_registrator(self) -> ScreenRegistrator:
-        raise NotImplementedError()
-
-    # --- Adapters over ScreenRegistrator with built-in logging ---
-    def _consume_and_log(self, generator: Iterable) -> None:
-        for report in generator:
-            self.log_screen_register_progress(report)
-
-    def create_app_screen(self) -> None:
-        self._consume_and_log(self._registrator.create_app_screen())
-
-    def create_initial_screens(self) -> None:
-        self._consume_and_log(self._registrator.create_initial_screens())
-
-    def create_all_screens(self) -> None:
-        self._consume_and_log(self._registrator.create_all_screens())
-
-    def create_screen(self, name: str, *, create_children: bool = False) -> None:
-        self._consume_and_log(
-            self._registrator.create_screen(name, create_children=create_children)
-        )
-
-    def recreate_screen(self, name: str, *, recreate_children: bool = False) -> None:
-        self._consume_and_log(
-            self._registrator.recreate_screen(name, recreate_children=recreate_children)
-        )
-
-    def _bind_and_init_theme_settings(self) -> None:
-        self.theme_cls.dynamic_color = True
-        self.theme_cls.theme_style_switch_animation = True
-        self.theme_cls.theme_style_switch_animation_duration = 0.3
-
-        self.model.bind(theme_style=self.switch_theme)
-        self.model.bind(primary_palette=self.switch_palette)
-        self.model.bind(scheme_name=self.switch_scheme)
-
-        self.switch_theme(None, self.model.theme_style)
-        self.switch_palette(None, self.model.primary_palette)
-        self.switch_scheme(None, self.model.scheme_name)
-
-    def load_all_screens_kv_files(self) -> None:
-        """
-        Load all KV files from the screen directories.
-        This method is called in the constructor of the application class.
-        Children excluded from loading, as they are not part of the parent screen and load on them own separately.
-        """
-        for p in self._registrator.get_kv_paths().values():
-            MVCBuilder.load_all_kv_files(p, directory_filters=["children"])
-
-    def switch_theme(self, _, theme_style: Literal["Dark", "Light"]):
-        self.theme_cls.theme_style = theme_style
-        self.theme_cls._set_application_scheme(self.theme_cls.primary_palette)  # Bugfix
-
-    def switch_palette(
-        self,
-        _,
-        primary_palette: Palette,
-    ):
-        self.theme_cls.primary_palette = primary_palette
-        self.theme_cls._set_application_scheme(self.theme_cls.primary_palette)  # Bugfix
-
-    def switch_scheme(
-        self,
-        _,
-        scheme_name: Scheme,
-    ):
-        self.theme_cls.dynamic_scheme_name = scheme_name
-        self.theme_cls._set_application_scheme(self.theme_cls.primary_palette)  # Bugfix
 
     def build_config(self, config) -> None:
         Config.setdefaults(
@@ -275,44 +320,13 @@ class MVCApp(App):
             },
         )
 
-    def config_loggers(self):
-        import logging
-
-        for name, _logger in logging.root.manager.loggerDict.items():
-            logger.debug(f"{name}: {_logger}")
-
-        urllib_loggers = (
-            logging.getLogger("urllib3.connectionpool"),
-            logging.getLogger("urllib3.connection"),
-            logging.getLogger("urllib3.response"),
-        )
-
-        for _logger in urllib_loggers:
-            _logger.setLevel(logging.INFO if self.debug_mode else logging.WARNING)
-
     def _register_error_handlers(self) -> None:
         for handler in self.get_exception_handlers():
             ExceptionManager.add_handler(handler)
 
-    def _configure_window_behavior(self) -> None:
-        if self.model.input_mode == "touch":
-            Window.softinput_mode = (
-                "pan"  # Moves Window content up when keyboard is called
-            )
-
-    @staticmethod
-    def _configure_clock_behavior() -> None:
-        Clock.max_iteration = 30
-
     def dispatch_to_all_controllers(self, event_type: str):
         for c in self.get_controllers():
             c.dispatch(event_type)
-
-    def create_and_open_dialog(self, *args, **kwargs) -> None:
-        return self.screen.create_and_open_dialog(*args, **kwargs)
-
-    def create_and_open_notification(self, *args, **kwargs) -> None:
-        return self.screen.create_and_open_notification(*args, **kwargs)
 
     def switch_screen(self):
         pass
@@ -328,51 +342,6 @@ class MVCApp(App):
     def appname(self):
         """Return the name of the application class."""
         return self.__class__.__name__
-
-    def _check_idle(self, *args):
-        if not hasattr(self, "idle_timer"):
-            return
-        if self.idle_timer is None:
-            return
-        if monotonic() - self.idle_timer > self.idle_timeout:
-            self.idle_timer = None
-            self.dispatch("on_idle")
-
-    def install_idle(self, timeout=60):
-        """
-        Install the idle detector. Default timeout is 60s.
-        Once installed, it will check every second if the idle timer
-        expired. The timer can be rearmed using :func:`rearm_idle`.
-        """
-
-        if monotonic is None:
-            logger.exception(
-                "{}: Cannot use idle detector, monotonic is missing".format(
-                    self.appname
-                )
-            )
-        self.idle_timer = None
-        self.idle_timeout = timeout
-        logger.info(
-            "{}: Install idle detector, {} seconds".format(self.appname, timeout)
-        )
-        Clock.schedule_interval(self._check_idle, 1)
-        self.root.bind(on_touch_down=self.rearm_idle, on_touch_up=self.rearm_idle)
-
-    def rearm_idle(self, *args):
-        """Rearm the idle timer."""
-
-        if not hasattr(self, "idle_timer"):
-            return
-        if self.idle_timer is None:
-            self.dispatch("on_wakeup")
-        self.idle_timer = monotonic()
-
-    def on_idle(self, *args):
-        """Event fired when the application enter the idle mode."""
-
-    def on_wakeup(self, *args):
-        """Event fired when the application leaves idle mode."""
 
     def build(self):
         if not self.debug_mode:
@@ -437,9 +406,7 @@ class MVCDebugApp(MVCApp):
         self.enable_manual_reload()
         self.enable_autoreload()
 
-        self.root = self.get_root()
         self.rebuild(first=True)
-        self.screen: BaseAppScreen = self._registrator.get_app_screen()
 
         return super().build()
 
@@ -572,7 +539,7 @@ class MVCDebugApp(MVCApp):
         # We don't have dependency graph yet, so if the module actually exists
         # reload it.
 
-        filename = realpath(filename)
+        filename = PathItem(realpath(filename))
         # Check if it's our own application file.
         try:
             mod = sys.modules[self.__class__.__module__]
@@ -582,7 +549,7 @@ class MVCDebugApp(MVCApp):
             mod_filename = None
 
         # Detect if it's the application class // main.
-        if mod_filename == filename:
+        if mod_filename == filename.str():
             return self._restart_app(mod)
 
         module = self._filename_to_module(filename)
@@ -605,20 +572,88 @@ class MVCDebugApp(MVCApp):
                 os.execv(sys.executable, cmd)
             except OSError:
                 os.spawnv(os.P_NOWAIT, sys.executable, cmd)
+            finally:
                 os._exit(0)
 
-    def _filename_to_module(self, filename: str):
-        orig_filename = filename
-        rootpath = self.get_root_path()
-        if filename.startswith(rootpath):
-            filename = filename[len(rootpath) :]
-        if filename.startswith("/"):
-            filename = filename[1:]
-        module = filename[:-3].replace("/", ".")
+    def _filename_to_module(self, filename: PathItem):
+        """Translate a file path to a Python module name in a
+        platform‑independent way.
+
+        Strategy:
+        1) If the file is already imported, pick its module name from
+           ``sys.modules`` by matching ``__file__``.
+        2) Else, compute a dotted path relative to the project root from
+           ``get_root_path``. If that fails (file outside project), try to
+           make it relative to any entry in ``sys.path``.
+        3) Normalize ``__init__.py`` to the package name (drop the filename).
+        """
+
+        # Normalize to Path (accept PathItem/str/Path)
+        p = filename.path() if isinstance(filename, PathItem) else Path(filename)
+        try:
+            file_real = p.resolve()
+        except Exception:
+            file_real = Path(realpath(str(p)))
+
+        # 1) Try to find an already-loaded module with matching __file__
+        module_name = None
+        for name, mod in list(sys.modules.items()):
+            try:
+                mod_file = getattr(mod, "__file__", None)
+                if not mod_file:
+                    continue
+                if Path(mod_file).resolve() == file_real:
+                    module_name = name
+                    break
+            except Exception:
+                continue
+
+        def to_module_from_relative(rel_path: Path) -> str:
+            # Drop extension and convert to dotted path. Handle __init__.py
+            if rel_path.name == "__init__.py":
+                rel_path = rel_path.parent
+            else:
+                rel_path = rel_path.with_suffix("")
+            parts = [part for part in rel_path.parts if part not in ("", os.sep)]
+            return ".".join(parts)
+
+        if module_name is None:
+            # 2a) Try relative to project root
+            try:
+                root = self.get_root_path().path().resolve()
+            except Exception:
+                root = Path.cwd().resolve()
+
+            try:
+                rel = file_real.relative_to(root)
+                module_name = to_module_from_relative(rel)
+            except Exception:
+                # 2b) Try to make path relative to any sys.path entry
+                for entry in map(Path, sys.path):
+                    try:
+                        base = entry.resolve()
+                    except Exception:
+                        continue
+                    try:
+                        rel = file_real.relative_to(base)
+                        module_name = to_module_from_relative(rel)
+                        break
+                    except Exception:
+                        continue
+
+        if module_name is None:
+            # 2c) Last-resort: build from absolute path without the anchor
+            rel = file_real.with_suffix("")
+            parts = list(rel.parts)
+            # remove anchor like 'C:\\' or '/' if present
+            if parts and (Path(parts[0]).anchor == parts[0] or parts[0] in ("/", "\\")):
+                parts = parts[1:]
+            module_name = ".".join(parts)
+
         logger.debug(
-            "{}: Translated {} to {}".format(self.appname, orig_filename, module)
+            "{}: Translated {} to {}".format(self.appname, str(filename), module_name)
         )
-        return module
+        return module_name
 
     def _unregister_factory_from_module(self, module):
         # Check module directly.
@@ -642,9 +677,9 @@ class MVCDebugApp(MVCApp):
             self.unload_app_dependencies()
             Builder.rulectx = {}
             self.load_app_dependencies()
-            self.root.clear_widgets()
-        for widget in self.fill_root(first=first):
-            self.root.add_widget(widget)
+            self.root.screen_manager.clear_widgets()
+
+        self.fill_root(first=first)
 
     def unload_app_dependencies(self):
         """
@@ -686,16 +721,14 @@ class MVCDebugApp(MVCApp):
                         path_to_kv_file = os.path.join(path_to_dir, name_file)
                         Builder.load_file(path_to_kv_file)
 
-    def fill_root(self, first: bool) -> Iterable[Widget]:
+    def fill_root(self, first: bool) -> None:
         if first:
             for spec in self.hotreload_config.screens:
                 self.create_screen(
                     spec["name"], create_children=spec["recreate_children"]
                 )
-                yield self._registrator.get_screen(spec["name"])
         else:
             for spec in self.hotreload_config.screens:
                 self.recreate_screen(
                     spec["name"], recreate_children=spec["recreate_children"]
                 )
-                yield self._registrator.get_screen(spec["name"])

@@ -2,38 +2,42 @@ import configparser
 import json
 from dataclasses import dataclass, field
 from typing import Self
+from pathlib import Path
 
 
 EXCEPTION_POPUP_KV = """
-#:import Window kivy.core.window.Window
-#:import get_color_from_hex kivy.utils.get_color_from_hex
-
-
 Popup:
     id: p
     title: "Exception caught!"
     size_hint: (0.9, 0.9)
     text: ""
-
-    MDScrollView:
+    ScrollView:
         id: scroll
+        do_scroll_x: False
         scroll_y: 0
-        md_bg_color: get_color_from_hex("#e50000")
-
-        MDBoxLayout:
+        
+        BoxLayout:
             orientation: "vertical"
-
+            size_hint_y: None
+            height: self.minimum_height
+        
             Label:
                 id: lbl
-                text_size: (Window.width - 100, None)
                 size_hint_y: None
+                height: self.texture_size[1]
+                text_size: self.width, None
+                padding: 10, 10
                 text: root.text
-                texture_size: self.size
-
+            
             MDButton:
-                text: "Закрыть"
-                style: "elevated"
-                on_release: p.dismiss()
+                on_release: root.dismiss()
+                style: "text"
+                
+                MDButtonText:
+                    text: "Close"
+                
+                MDButtonIcon:
+                    icon: "close"
 """
 
 
@@ -50,6 +54,71 @@ class HotReloadConfig:
     classes: dict[str, str] = field(default_factory=dict)
     screens: list[dict] = field(default_factory=list)
 
+    def _validate_paths(
+        self,
+        kv_files: list[str] | None = None,
+        kv_dirs: list[str] | None = None,
+        autoreloader_paths: list[tuple[str, dict[str, bool | str]]]
+        | list[str]
+        | None = None,
+    ) -> None:
+        invalid_files: list[str] = []
+        invalid_dirs: list[str] = []
+        invalid_autoreload: list[str] = []
+
+        if kv_files is not None:
+            for p in kv_files:
+                if not Path(p).is_file():
+                    invalid_files.append(p)
+
+        if kv_dirs is not None:
+            for p in kv_dirs:
+                if not Path(p).is_dir():
+                    invalid_dirs.append(p)
+
+        if autoreloader_paths is not None:
+            for entry in autoreloader_paths:
+                path_str: str | None = None
+                if isinstance(entry, (tuple, list)) and entry:
+                    path_str = str(entry[0])
+                elif isinstance(entry, str):
+                    path_str = entry
+                else:
+                    path_str = None
+
+                if not path_str or not Path(path_str).exists():
+                    invalid_autoreload.append(str(entry))
+
+        msgs: list[str] = []
+        if invalid_files:
+            msgs.append(
+                "kv_files not found or not files: " + ", ".join(invalid_files)
+            )
+        if invalid_dirs:
+            msgs.append(
+                "kv_dirs not found or not directories: " + ", ".join(invalid_dirs)
+            )
+        if invalid_autoreload:
+            msgs.append(
+                "autoreloader_paths contain missing paths: "
+                + ", ".join(invalid_autoreload)
+            )
+        if msgs:
+            raise ValueError("; ".join(msgs))
+
+    def _validate_screens(self, screens: list[dict] | None) -> None:
+        if screens is None:
+            return
+        for entry in screens:
+            try:
+                if entry.get("name") == "app_screen":
+                    raise ValueError(
+                        "'app_screen' is a reserved name and cannot appear in 'screens'"
+                    )
+            except AttributeError:
+                # Ignore non-dict entries here; other consumers may validate shape
+                pass
+
     def from_manual(
         self,
         kv_files: list[str] | None = None,
@@ -59,6 +128,9 @@ class HotReloadConfig:
         classes: dict[str, str] | None = None,
         screens: list[dict] | None = None,
     ) -> Self:
+        # Validate provided inputs before assignment
+        self._validate_paths(kv_files, kv_dirs, autoreloader_paths)
+        self._validate_screens(screens)
         if kv_files is not None:
             self.kv_files = kv_files
         if kv_dirs is not None:

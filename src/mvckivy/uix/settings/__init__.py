@@ -1,1 +1,1 @@
-from .settings import MDSettings
+from .settings import MKVSettings

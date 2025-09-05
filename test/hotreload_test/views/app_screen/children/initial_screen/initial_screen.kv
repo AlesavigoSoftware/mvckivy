@@ -1,0 +1,14 @@
+<InitialScreen>:
+    name: 'initial_screen'
+    BoxLayout:
+        orientation: 'vertical'
+        MDLabel:
+            text: 'Initial Screen'
+        Button:
+            text: 'Go to Second Screen'
+            on_release:
+                root.manager.current = 'second_screen'
+
+        Widget:
+            size_hint_y: None
+            height: dp(250)

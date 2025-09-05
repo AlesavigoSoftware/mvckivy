@@ -13,9 +13,8 @@ if TYPE_CHECKING:
 class BaseAppController(BaseController):
     model: ObjectProperty[BaseAppModel] = ObjectProperty()
 
-    def on_app_start(self):
-        super().on_app_start()
-        Clock.schedule_once(lambda dt: self.screen.on_size(self, Window.size))
+    def on_screen(self, instance, screen):
+        screen.on_size(self, Window.size)
 
     def dispatch_theme_style(
         self, theme_style: str = "Light", toggle=False, force_dispatch=False

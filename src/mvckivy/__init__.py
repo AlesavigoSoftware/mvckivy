@@ -8,17 +8,28 @@ logger.setLevel(logging.DEBUG if ConfigReader.get_debug_mode() else logging.INFO
 
 
 register = Factory.register
-register("MDAdaptiveDialog", module="mvckivy.uix.dialog")
-register("MDAdaptiveDialogScrim", module="mvckivy.uix.dialog")
-register("MDAdaptiveDialogIcon", module="mvckivy.uix.dialog")
-register("MDAdaptiveDialogHeadlineText", module="mvckivy.uix.dialog")
-register("MDAdaptiveDialogSupportingText", module="mvckivy.uix.dialog")
-register("MDAdaptiveDialogContentContainer", module="mvckivy.uix.dialog")
-register("MDAdaptiveDialogButtonContainer", module="mvckivy.uix.dialog")
-register("MDSettings", module="mvckivy.uix.settings")
 register("MVCGridLayout", module="mvckivy.uix.layouts")
 register("MVCRelativeLayout", module="mvckivy.uix.layouts")
 register("MVCBoxLayout", module="mvckivy.uix.layouts")
 register("MVCAnchorLayout", module="mvckivy.uix.layouts")
 register("MVCFloatLayout", module="mvckivy.uix.layouts")
 register("MVCStackLayout", module="mvckivy.uix.layouts")
+
+register("MKVSettings", module="mvckivy.uix.settings")
+
+register("MKVDialog", module="mvckivy.uix.dialog")
+register("MKVDialogScrim", module="mvckivy.uix.dialog")
+register("MKVDialogIcon", module="mvckivy.uix.dialog")
+register("MKVDialogHeadlineText", module="mvckivy.uix.dialog")
+register("MKVDialogSupportingText", module="mvckivy.uix.dialog")
+register("MKVDialogContentContainer", module="mvckivy.uix.dialog")
+register("MKVDialogButtonContainer", module="mvckivy.uix.dialog")
+
+register("MKVTabsPrimary", module="mvckivy.uix.tabs")
+register("MKVTabsSecondary", module="mvckivy.uix.tabs")
+register("MKVTabsItem", module="mvckivy.uix.tabs")
+register("MKVTabsItemSecondary", module="mvckivy.uix.tabs")
+register("MKVTabsItemIcon", module="mvckivy.uix.tabs")
+register("MKVTabsItemText", module="mvckivy.uix.tabs")
+register("MKVTabsCarousel", module="mvckivy.uix.tabs")
+register("MKVTabsBadge", module="mvckivy.uix.tabs")

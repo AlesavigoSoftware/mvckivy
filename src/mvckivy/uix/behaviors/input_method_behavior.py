@@ -1,5 +1,5 @@
 from kivy.event import EventDispatcher
-from kivymd.tools.hotreload.app import MDApp
+from kivymd.app import MDApp
 
 
 class InputModeBehavior(EventDispatcher):

@@ -26,17 +26,15 @@ from kivy.properties import (
     DictProperty,
 )
 from kivymd.uix.floatlayout import MDFloatLayout
-
 from kivymd.uix.gridlayout import MDGridLayout
-
 from kivymd.uix.boxlayout import MDBoxLayout
-
 from kivymd.uix.behaviors import CommonElevationBehavior
 from kivymd.uix.button import MDIconButton
 from kivymd.uix.label import MDLabel
 from kivymd.uix.list import MDListItem
-from mvckivy.uix.dialog import MDAdaptiveDialog
+from kivymd.uix.divider import MDDivider
 
+from mvckivy.uix.dialog import MKVDialog
 from mvckivy.uix.scroll_view import MVCScrollView
 
 
@@ -44,7 +42,7 @@ class AttributeIsUnset(ValueError):
     pass
 
 
-class MDSettingItem(MDListItem):
+class MKVSettingItem(MDListItem):
     """mvckivy class for individual settings (within a panel). This class cannot
     be used directly; it is used for implementing the other setting classes.
     It builds a row with a title/description (left) and a setting control
@@ -113,15 +111,15 @@ class MDSettingItem(MDListItem):
 
     def add_widget(self, *args, **kwargs):
         if self.content is None:
-            return super(MDSettingItem, self).add_widget(*args, **kwargs)
+            return super(MKVSettingItem, self).add_widget(*args, **kwargs)
         return self.content.add_widget(*args, **kwargs)
 
 
-class MDSettingBoolean(MDSettingItem):
+class MKVSettingBoolean(MKVSettingItem):
     values = ListProperty([0, 1])
 
 
-class MDSettingString(MDSettingItem):
+class MKVSettingString(MKVSettingItem):
     """Implementation of a string setting on top of a :class:`MDSettingItem`.
     It is visualized with a :class:`~kivy.uix.label.Label` widget that, when
     clicked, will open a :class:`~kivy.uix.popup.Popup` with a
@@ -182,7 +180,7 @@ class MDSettingString(MDSettingItem):
         content.add_widget(Widget())
         content.add_widget(textinput)
         content.add_widget(Widget())
-        content.add_widget(MDSettingSpacer())
+        content.add_widget(MDDivider())
 
         # 2 buttons are created for accept or cancel the current value
         btnlayout = BoxLayout(size_hint_y=None, height=dp(50), spacing=dp(5))
@@ -198,19 +196,19 @@ class MDSettingString(MDSettingItem):
         popup.open()
 
 
-class MDSettingInfo(MDSettingItem):
+class MKVSettingInfo(MKVSettingItem):
     pass
 
 
-class MDSettingButton(MDSettingItem):
+class MKVSettingButton(MKVSettingItem):
     def __init__(self, **kwargs):
-        super(MDSettingItem, self).__init__(**kwargs)
+        super(MKVSettingItem, self).__init__(**kwargs)
 
     def on_release(self, *args):
         pass
 
 
-class MDSettingPath(MDSettingItem):
+class MKVSettingPath(MKVSettingItem):
     """Implementation of a Path setting on top of a :class:`MDSettingItem`.
     It is visualized with a :class:`~kivy.uix.label.Label` widget that, when
     clicked, will open a :class:`~kivy.uix.popup.Popup` with a
@@ -295,7 +293,7 @@ class MDSettingPath(MDSettingItem):
 
         # construct the content
         content.add_widget(textinput)
-        content.add_widget(MDSettingSpacer())
+        content.add_widget(MDDivider())
 
         # 2 buttons are created for accept or cancel the current value
         btnlayout = BoxLayout(size_hint_y=None, height="50dp", spacing="5dp")
@@ -311,7 +309,7 @@ class MDSettingPath(MDSettingItem):
         popup.open()
 
 
-class MDSettingColor(MDSettingItem):
+class MKVSettingColor(MKVSettingItem):
     """Implementation of a color setting on top of a :class:`MDSettingItem`.
     It is visualized with a :class:`~kivy.uix.label.Label` widget and a
     colored canvas rectangle that, when clicked, will open a
@@ -358,7 +356,7 @@ class MDSettingColor(MDSettingItem):
 
         self.colorpicker = colorpicker
         content.add_widget(colorpicker)
-        content.add_widget(MDSettingSpacer())
+        content.add_widget(MDDivider())
 
         # 2 buttons are created for accept or cancel the current value
         btnlayout = BoxLayout(size_hint_y=None, height="50dp", spacing="5dp")
@@ -374,7 +372,7 @@ class MDSettingColor(MDSettingItem):
         popup.open()
 
 
-class MDSettingNumeric(MDSettingString):
+class MKVSettingNumeric(MKVSettingString):
     """Implementation of a numeric setting on top of a :class:`MDSettingString`.
     It is visualized with a :class:`~kivy.uix.label.Label` widget that, when
     clicked, will open a :class:`~kivy.uix.popup.Popup` with a
@@ -396,7 +394,7 @@ class MDSettingNumeric(MDSettingString):
             return
 
 
-class MDSettingOptions(MDSettingItem):
+class MKVSettingOptions(MKVSettingItem):
     """Implementation of an option list on top of a :class:`MDSettingItem`.
     It is visualized with a :class:`~kivy.uix.label.Label` widget that, when
     clicked, will open a :class:`~kivy.uix.popup.Popup` with a
@@ -449,7 +447,7 @@ class MDSettingOptions(MDSettingItem):
             content.add_widget(btn)
 
         # finally, add a cancel button to return on the previous panel
-        content.add_widget(MDSettingSpacer())
+        content.add_widget(MDDivider())
         btn = Button(text="Cancel", size_hint_y=None, height=dp(50))
         btn.bind(on_release=popup.dismiss)
         content.add_widget(btn)
@@ -458,14 +456,14 @@ class MDSettingOptions(MDSettingItem):
         popup.open()
 
 
-class MDSettingTitle(MDBoxLayout):
+class MKVSettingTitle(MDBoxLayout):
     """A simple title label, used to organize the settings in sections."""
 
     title = StringProperty()
     panel = ObjectProperty(None)
 
 
-class MDSettingsPanel(MDGridLayout):
+class MKVSettingsPanel(MDGridLayout):
     """This class is used to construct panel settings, for use with a
     :class:`MDSettings` instance or subclass.
     """
@@ -487,7 +485,7 @@ class MDSettingsPanel(MDGridLayout):
 
     def __init__(self, **kwargs):
         kwargs.setdefault("cols", 1)
-        super(MDSettingsPanel, self).__init__(**kwargs)
+        super(MKVSettingsPanel, self).__init__(**kwargs)
 
     def on_config(self, instance, value):
         if value is None:
@@ -506,7 +504,7 @@ class MDSettingsPanel(MDGridLayout):
         print(f"Dispatched to model: {key=}, {value=}")
 
 
-class MDInterfaceWithSidebar(MDBoxLayout):
+class MKVInterfaceWithSidebar(MDBoxLayout):
     """The default MDSettings interface class. It displays a sidebar menu
     with names of available settings panels, which may be used to switch
     which one is currently displayed.
@@ -541,7 +539,7 @@ class MDInterfaceWithSidebar(MDBoxLayout):
     __events__ = ("on_close",)
 
     def __init__(self, *args, **kwargs):
-        super(MDInterfaceWithSidebar, self).__init__(*args, **kwargs)
+        super(MKVInterfaceWithSidebar, self).__init__(*args, **kwargs)
         if self.menu.close_button:
             self.menu.close_button.bind(on_release=lambda j: self.dispatch("on_close"))
 
@@ -625,7 +623,7 @@ class MDInterfaceWithSidebar(MDBoxLayout):
 #         pass
 
 
-class MDContentPanel(MVCScrollView):
+class MKVContentPanel(MVCScrollView):
     """A class for displaying settings panels. It displays a single
     settings panel at a time, taking up the full size and shape of the
     ContentPanel. It is used by :class:`MDInterfaceWithSidebar` and
@@ -712,7 +710,7 @@ class MDContentPanel(MVCScrollView):
 
     def add_widget(self, *args, **kwargs):
         if self.container is None:
-            super(MDContentPanel, self).add_widget(*args, **kwargs)
+            super(MKVContentPanel, self).add_widget(*args, **kwargs)
         else:
             self.container.add_widget(*args, **kwargs)
 
@@ -720,7 +718,7 @@ class MDContentPanel(MVCScrollView):
         self.container.remove_widget(*args, **kwargs)
 
 
-class MDSettings(MDBoxLayout):
+class MKVSettings(MDBoxLayout):
     """MDSettings UI. Check module documentation for more information on how
     to use this class.
 
@@ -746,7 +744,7 @@ class MDSettings(MDBoxLayout):
 
     """
 
-    interface_cls = ObjectProperty(MDInterfaceWithSidebar)
+    interface_cls = ObjectProperty(MKVInterfaceWithSidebar)
     """The widget class that will be used to display the graphical
     interface for the settings panel. By default, it displays one MDSettings
     panel at a time with a sidebar to switch between them.
@@ -761,23 +759,23 @@ class MDSettings(MDBoxLayout):
 
     """
 
-    NO_PROPERTY_CLASSES = [MDSettingButton, MDSettingTitle]
+    NO_PROPERTY_CLASSES = [MKVSettingButton, MKVSettingTitle]
 
     def __init__(self, *args, **kwargs):
         self._types = {}
-        self._items: dict[str, MDSettingItem] = dict()
+        self._items: dict[str, MKVSettingItem] = dict()
         super().__init__(**kwargs)
         self.add_interface()
-        self.register_type("string", MDSettingString)
-        self.register_type("bool", MDSettingBoolean)
-        self.register_type("numeric", MDSettingNumeric)
-        self.register_type("options", MDSettingOptions)
-        self.register_type("path", MDSettingPath)
-        self.register_type("color", MDSettingColor)
-        self.register_type("info", MDSettingInfo)
+        self.register_type("string", MKVSettingString)
+        self.register_type("bool", MKVSettingBoolean)
+        self.register_type("numeric", MKVSettingNumeric)
+        self.register_type("options", MKVSettingOptions)
+        self.register_type("path", MKVSettingPath)
+        self.register_type("color", MKVSettingColor)
+        self.register_type("info", MKVSettingInfo)
 
-        self.register_type("title", MDSettingTitle)
-        self.register_type("button", MDSettingButton)
+        self.register_type("title", MKVSettingTitle)
+        self.register_type("button", MKVSettingButton)
 
     def on_touch_down(self, touch):
         if self.collide_point(*touch.pos):
@@ -802,10 +800,10 @@ class MDSettings(MDBoxLayout):
         self.add_widget(interface)
         self.interface.bind(on_close=lambda j: self.dispatch("on_close"))
 
-    def create_panel(self, title: str, data: list) -> MDSettingsPanel:
+    def create_panel(self, title: str, data: list) -> MKVSettingsPanel:
         """Create new :class:`MDSettingsPanel`"""
 
-        panel = MDSettingsPanel(title=title, settings=self)
+        panel = MKVSettingsPanel(title=title, settings=self)
 
         for setting in data:
             # determine the type and the class to use
@@ -841,11 +839,11 @@ class MDSettings(MDBoxLayout):
                 panel.add_widget(instance)
 
                 if str_settings.get("key", None):
-                    self._items[str_settings["key"]]: MDSettingItem = instance
+                    self._items[str_settings["key"]]: MKVSettingItem = instance
 
         return panel
 
-    def add_panel_to_interface(self, panel: MDSettingsPanel) -> None:
+    def add_panel_to_interface(self, panel: MKVSettingsPanel) -> None:
         self.interface.add_panel(panel, panel.title, panel.uid)
 
     def create_and_add_panel_to_interface(self, title: str, data: list):
@@ -872,7 +870,7 @@ class MDSettings(MDBoxLayout):
                 print(f"Init: {instance}\tValue: {instance.value}")
 
 
-class MDSettingsWithSidebar(MDSettings):
+class MKVSettingsWithSidebar(MKVSettings):
     pass
 
 
@@ -902,7 +900,7 @@ class MDSettingsWithSidebar(MDSettings):
 #         pass
 
 
-class MDSettingsWithNoMenu(MDSettings):
+class MKVSettingsWithNoMenu(MKVSettings):
     """A settings widget that displays a single settings panel with *no*
     Close button. It will not accept more than one MDSettings panel. It
     is intended for use in programs with few enough settings that a
@@ -919,11 +917,11 @@ class MDSettingsWithNoMenu(MDSettings):
     """
 
     def __init__(self, *args, **kwargs):
-        self.interface_cls = MDInterfaceWithNoMenu
-        super(MDSettingsWithNoMenu, self).__init__(*args, **kwargs)
+        self.interface_cls = MKVInterfaceWithNoMenu
+        super(MKVSettingsWithNoMenu, self).__init__(*args, **kwargs)
 
 
-class MDInterfaceWithNoMenu(MDContentPanel):
+class MKVInterfaceWithNoMenu(MKVContentPanel):
     """The interface widget used by :class:`MDSettingsWithNoMenu`. It
     stores and displays a single settings panel.
 
@@ -936,7 +934,7 @@ class MDInterfaceWithNoMenu(MDContentPanel):
     def add_widget(self, *args, **kwargs):
         if self.container is not None and len(self.container.children) > 0:
             raise Exception("ContentNoMenu cannot accept more than one settings panel")
-        super(MDInterfaceWithNoMenu, self).add_widget(*args, **kwargs)
+        super(MKVInterfaceWithNoMenu, self).add_widget(*args, **kwargs)
 
 
 # class MDInterfaceWithTabbedPanel(MDFloatLayout):
@@ -1005,7 +1003,7 @@ class MDInterfaceWithNoMenu(MDContentPanel):
 #         self.selected_uid = self.panel_names[text]
 
 
-class MDMenuSidebar(MDFloatLayout):
+class MKVMenuSidebar(MDFloatLayout):
     """The menu used by :class:`MDInterfaceWithSidebar`. It provides a
     sidebar with an entry for each settings panel, which the user may
     click to select.
@@ -1053,7 +1051,7 @@ class MDMenuSidebar(MDFloatLayout):
 
         """
 
-        label = MDSettingSidebarLabel(text=name, uid=uid, menu=self)
+        label = MKVSettingSidebarLabel(text=name, uid=uid, menu=self)
         if self.buttons_layout and len(self.buttons_layout.children) == 0:
             label.selected = True
         if self.buttons_layout is not None:
@@ -1069,7 +1067,7 @@ class MDMenuSidebar(MDFloatLayout):
                 button.selected = False
 
 
-class MDSettingSidebarLabel(MDLabel):
+class MKVSettingSidebarLabel(MDLabel):
     # Internal class, not documented.
     selected = BooleanProperty(False)
     uid = NumericProperty(0)
@@ -1097,7 +1095,7 @@ class MDSettingSidebarLabel(MDLabel):
 # Диалоги (визуал — в .kv)
 
 
-class StringValueDialog(MDAdaptiveDialog):
+class StringValueDialog(MKVDialog):
     title = StringProperty("")
     initial = StringProperty("")
     target_item = ObjectProperty(None)
@@ -1108,7 +1106,7 @@ class StringValueDialog(MDAdaptiveDialog):
         self.dismiss()
 
 
-class OptionsValueDialog(MDAdaptiveDialog):
+class OptionsValueDialog(MKVDialog):
     title = StringProperty("")
     options = ListProperty([])
     target_item = ObjectProperty(None)
@@ -1135,7 +1133,7 @@ class OptionsValueDialog(MDAdaptiveDialog):
         self.dismiss()
 
 
-class PathValueDialog(MDAdaptiveDialog):
+class PathValueDialog(MKVDialog):
     title = StringProperty("")
     initial = StringProperty("")
     dirselect = BooleanProperty(True)
@@ -1147,7 +1145,7 @@ class PathValueDialog(MDAdaptiveDialog):
         self.dismiss()
 
 
-class ColorValueDialog(MDAdaptiveDialog):
+class ColorValueDialog(MKVDialog):
     title = StringProperty("")
     initial = StringProperty("")
     target_item = ObjectProperty(None)

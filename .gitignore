@@ -213,3 +213,6 @@ build
 logs
 .vscode
 .superdesign
+
+# build
+*.ini

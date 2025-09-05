@@ -10,7 +10,7 @@ from kivy.factory import Factory as F
 from kivy.lang import Builder
 from kivy.logger import Logger
 from kivy.utils import platform
-from kivymd.tools.hotreload.app import MDApp
+from kivymd.app import MDApp
 
 
 class Reloader(F.Screen):
@@ -457,7 +457,7 @@ else:
     import hashlib
     import shutil
 
-    from kivymd.tools.hotreload.app import MDApp
+    from kivymd.app import MDApp
     from kivy.clock import Clock
 
     class App(MDApp):

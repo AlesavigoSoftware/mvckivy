@@ -2,7 +2,7 @@ from kivy.clock import Clock
 from kivy.core.window import Window
 from kivy.metrics import dp
 from kivy.properties import NumericProperty, BooleanProperty
-from kivymd.tools.hotreload.app import MDApp
+from kivymd.app import MDApp
 from typing import Callable
 from kivymd.uix.menu import MDDropdownMenu
 from kivymd.uix.menu.menu import (

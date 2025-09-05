@@ -86,8 +86,6 @@
 
         MDIcon:
             icon: "wifi"
-            theme_text_color: "Custom"
-            text_color: 1, 1, 1, 1
             md_bg_color: get_color_from_hex("#22c55e")
             radius: dp(12)
             padding: dp(4)
@@ -97,8 +95,6 @@
 
         MDIcon:
             icon: "signal-cellular-3"
-            theme_text_color: "Custom"
-            text_color: 1, 1, 1, 1
             md_bg_color: get_color_from_hex("#3b82f6")
             radius: dp(12)
             padding: dp(4)
@@ -108,8 +104,6 @@
 
         MDIcon:
             icon: "battery-medium"
-            theme_text_color: "Custom"
-            text_color: 0.1, 0.1, 0.1, 1
             md_bg_color: get_color_from_hex("#eab308")
             radius: dp(12)
             padding: dp(4)
@@ -160,8 +154,6 @@
             MDLabel:
                 text: "Проектирование"
                 bold: True
-                theme_text_color: "Custom"
-                text_color: 1, 1, 1, .92
                 size_hint_y: None
                 height: self.texture_size[1] + root.section_label_extra
                 padding: dp(6), dp(0)
@@ -205,8 +197,6 @@
             MDLabel:
                 text: "Данные и сохранение"
                 bold: True
-                theme_text_color: "Custom"
-                text_color: 1, 1, 1, .92
                 size_hint_y: None
                 height: self.texture_size[1] + root.section_label_extra
                 padding: dp(6), dp(0)
@@ -249,8 +239,6 @@
             MDLabel:
                 text: "Миссия"
                 bold: True
-                theme_text_color: "Custom"
-                text_color: 1, 1, 1, .92
                 size_hint_y: None
                 height: self.texture_size[1] + root.section_label_extra
                 padding: dp(6), dp(0)
@@ -417,5 +405,7 @@
                     MDTabsItemText:
                         text: "История"
 
-# корень
-CollapsibleMenuController:
+<AppScreen>
+
+<InitialScreen>
+    CollapsibleMenuController:

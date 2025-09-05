@@ -11,10 +11,6 @@ from mvckivy.base_mvc.base_app_screen import BaseAppScreen
 from mvckivy.utils.hot_reload_utils import HotReloadConfig
 
 
-class PathManager(MVCPathManager):
-    pass
-
-
 class AppScreen(BaseAppScreen):
     pass
 
@@ -44,7 +40,7 @@ class DemoAppSchema(AppSchema):
         ]
 
 
-class DemoApp(MVCApp):
+class DemoApp(MVCDebugApp):
     def create_screen_registrator(self) -> ScreenRegistrator:
         return ScreenRegistrator(DemoAppSchema.get_schema())
 
@@ -52,7 +48,13 @@ class DemoApp(MVCApp):
         self, hotreload_config: HotReloadConfig
     ) -> HotReloadConfig:
         return hotreload_config.from_manual(
-            kv_dirs=[self.path_manager.proj_dir.join("test", "swap_card_test").str()],
+            autoreloader_paths=[
+                (
+                    self.path_manager.proj_dir.str(),
+                    {"recursive": True},
+                ),
+            ],
+            kv_dirs=[self.path_manager.proj_dir.str()],
             screens=[{"name": "initial_screen", "recreate_children": True}],
         )
 
