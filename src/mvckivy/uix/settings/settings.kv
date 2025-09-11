@@ -3,7 +3,7 @@
 #:import MDLabel kivymd.uix.label.MDLabel
 
 
-<MDSettingItem>
+<MKVSettingItem>
     size_hint_x: 1.
     content: content
 
@@ -21,7 +21,7 @@
         size_hint_x: .1
 
 
-<MDSettingBoolean>
+<MKVSettingBoolean>
     icon: 'toggle-switch-off-outline'
 
     MDSwitch:
@@ -33,7 +33,7 @@
         disabled: root.disabled
 
 
-<MDSettingString>
+<MKVSettingString>
     icon: 'form-textbox'
 
     MDLabel:
@@ -43,7 +43,7 @@
         font_size: sp(15)
 
 
-<MDSettingPath>
+<MKVSettingPath>
     icon: 'folder-edit-outline'
 
     MDLabel:
@@ -53,7 +53,7 @@
         font_size: sp(15)
 
 
-<MDSettingColor>
+<MKVSettingColor>
     icon: 'palette-outline'
 
     MDBoxLayout:
@@ -83,15 +83,15 @@
             padding: (5,0)
 
 
-<MDSettingButton>
+<MKVSettingButton>
     icon: 'gesture-tap-button'
 
 
-<MDSettingInfo>
+<MKVSettingInfo>
     icon: 'information-outline'
 
 
-<MDSettingOptions>
+<MKVSettingOptions>
     icon: 'format-list-bulleted'
 
     MDLabel:
@@ -101,7 +101,7 @@
         font_size: sp(15)
 
 
-<MDSettingTitle>
+<MKVSettingTitle>
     orientation: 'vertical'
     size_hint_y: None
     height: label.height + divider.height
@@ -120,7 +120,7 @@
         size_hint_x: 1.
 
 
-<MDSettingSidebarLabel>
+<MKVSettingSidebarLabel>
     size_hint: 1, None
     text_size: self.width - 32, None
     height: self.texture_size[1] + dp(20)
@@ -135,44 +135,44 @@
             radius: dp(10), dp(10), dp(10), dp(10)
 
 
-<MDSettingsPanel>
+<MKVSettingsPanel>
     spacing: dp(5)
     padding: dp(5)
     size_hint_y: None
     height: self.minimum_height
 
 
-<MDSettings>
+<MKVSettings>
     orientation: 'horizontal'
 
 
-<MDInterfaceWithSidebar>
+<MKVInterfaceWithSidebar>
     orientation: 'horizontal'
     menu: menu
     content: content
 
-    MDContentPanel:
+    MKVContentPanel:
         id: content
         current_uid: menu.selected_uid
 
-    MDMenuSidebar:
+    MKVMenuSidebar:
         id: menu
 
 
-#<MDInterfaceWithSpinner>
+#<MKVInterfaceWithSpinner>
 #    orientation: 'vertical'
 #    menu: menu
 #    content: content
 #
-#    MDMenuSpinner:
+#    MKVMenuSpinner:
 #        id: menu
 #
-#    MDContentPanel:
+#    MKVContentPanel:
 #        id: content
 #        current_uid: menu.selected_uid
 
 
-#<MDMenuSpinner>
+#<MKVMenuSpinner>
 #    orientation: 'horizontal'
 #    size_hint_y: None
 #    height: '50dp'
@@ -191,7 +191,7 @@
 #        font_size: '15sp'
 
 
-<MDMenuSidebar>
+<MKVMenuSidebar>
     size_hint_x: None
     width: dp(200)
     buttons_layout: menu
@@ -258,7 +258,7 @@
 #            pos_hint: {"center_x": .5, "center_y": .5}
 
 
-<MDContentPanel>
+<MKVContentPanel>
     do_scroll_x: False
     container: content
 
@@ -268,7 +268,7 @@
         adaptive_height: True
 
 
-#<MDInterfaceWithTabbedPanel>
+#<MKVInterfaceWithTabbedPanel>
 #    tabbedpanel: tp
 #
 #    TabbedPanel:
@@ -284,16 +284,16 @@
     auto_dismiss: False
     md_bg_color: "Surface"
 
-    MDAdaptiveDialogIcon:
+    MKVDialogIcon:
         icon: "textbox"
 
-    MDAdaptiveDialogHeadlineText:
+    MKVDialogHeadlineText:
         text: root.title if root.title else "Введите значение"
 
-    MDAdaptiveDialogSupportingText:
+    MKVDialogSupportingText:
         text: ""
 
-    MDAdaptiveDialogContentContainer:
+    MKVDialogContentContainer:
         orientation: "vertical"
         spacing: "12dp"
         padding: "12dp"
@@ -304,7 +304,7 @@
             hint_text: "Значение"
             on_text_validate: root.on_ok()
 
-    MDAdaptiveDialogButtonContainer:
+    MKVDialogButtonContainer:
         spacing: "8dp"
         Widget:
         MDButton:
@@ -323,23 +323,23 @@
     auto_dismiss: True
     md_bg_color: "Surface"
 
-    MDAdaptiveDialogIcon:
+    MKVDialogIcon:
         icon: "format-list-bulleted"
 
-    MDAdaptiveDialogHeadlineText:
+    MKVDialogHeadlineText:
         text: root.title if root.title else "Выберите значение"
 
-    MDAdaptiveDialogSupportingText:
+    MKVDialogSupportingText:
         text: ""
 
-    MDAdaptiveDialogContentContainer:
+    MKVDialogContentContainer:
         orientation: "vertical"
         padding: "0dp"
 
         MDList:
             id: opts
 
-    MDAdaptiveDialogButtonContainer:
+    MKVDialogButtonContainer:
         spacing: "8dp"
         Widget:
         MDButton:
@@ -354,16 +354,16 @@
     auto_dismiss: False
     md_bg_color: "Surface"
 
-    MDAdaptiveDialogIcon:
+    MKVDialogIcon:
         icon: "folder"
 
-    MDAdaptiveDialogHeadlineText:
+    MKVDialogHeadlineText:
         text: root.title if root.title else "Выбор пути"
 
-    MDAdaptiveDialogSupportingText:
         text: ""
+    MKVDialogSupportingText:
 
-    MDAdaptiveDialogContentContainer:
+    MKVDialogContentContainer:
         orientation: "vertical"
         padding: "0dp"
 
@@ -375,7 +375,7 @@
             show_hidden_files: root.show_hidden
             current_path: root.initial if root.initial else "/"
 
-    MDAdaptiveDialogButtonContainer:
+    MKVDialogButtonContainer:
         spacing: "8dp"
         Widget:
         MDButton:
@@ -390,16 +390,16 @@
     auto_dismiss: False
     md_bg_color: "Surface"
 
-    MDAdaptiveDialogIcon:
+    MKVDialogIcon:
         icon: "palette"
 
-    MDAdaptiveDialogHeadlineText:
+    MKVDialogHeadlineText:
         text: root.title if root.title else "Выбор цвета"
 
-    MDAdaptiveDialogSupportingText:
+    MKVDialogSupportingText:
         text: ""
 
-    MDAdaptiveDialogContentContainer:
+    MKVDialogContentContainer:
         orientation: "vertical"
         padding: "8dp"
 
@@ -407,7 +407,7 @@
             id: cp
             on_color: root.on_color(self.color)
 
-    MDAdaptiveDialogButtonContainer:
+    MKVDialogButtonContainer:
         spacing: "8dp"
         Widget:
         MDButton:

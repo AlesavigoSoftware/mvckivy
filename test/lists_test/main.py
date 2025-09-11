@@ -10,7 +10,7 @@ from kivy.uix.widget import Widget
 
 from kivymd.app import MDApp
 from mvckivy.base_mvc.base_app_model import BaseAppModel
-from mvckivy.uix.dialog import MKVAdaptiveDialog
+from mvckivy.uix.dialog import MKVDialog
 
 from kivymd.uix.behaviors import HoverBehavior
 from kivymd.uix.list import (
@@ -196,7 +196,7 @@ class ScaledMDButton(ScaleAwareInputMixin, MDButton):
 # -----------------------------------------------------------------------------
 # ДИАЛОГИ
 # -----------------------------------------------------------------------------
-class AdaptiveListDialog(MKVAdaptiveDialog):
+class AdaptiveListDialog(MKVDialog):
     """Диалог со списком. Масштаб 1→0.5 включается только при vertical-лимите."""
 
     design_width = NumericProperty(dp(560))

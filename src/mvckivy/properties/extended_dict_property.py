@@ -9,15 +9,15 @@ from mvckivy.properties.base_classes import (
 
 
 class ObservableDictDispatcher(ObservableStructDispatcher):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.register_event_type("on_clear")
-        self.register_event_type("on_pop")
-        self.register_event_type("on_popitem")
-        self.register_event_type("on_setdefault")
-        self.register_event_type("on_update")
-        self.register_event_type("on___delitem__")
-        self.register_event_type("on___setitem__")
+    __events__ = (
+        "on_clear",
+        "on_pop",
+        "on_popitem",
+        "on_setdefault",
+        "on_update",
+        "on___delitem__",
+        "on___setitem__",
+    )
 
     def on_clear(self, *largs):
         pass
@@ -100,12 +100,18 @@ class ExtendedDictProperty(ExtendedStructProperty):
     def __init__(
         self,
         struct_cls=ObservableDict,
-        dispatcher=ObservableDictDispatcher(),
-        defaultvalue=dict(),
+        dispatcher=None,
+        defaultvalue=None,
         dispatch_on_change_to_prop=True,
         enable_on_change_only=False,
         **kwargs,
     ):
+        if defaultvalue is None:
+            defaultvalue = dict()
+
+        if dispatcher is None:
+            dispatcher = ObservableDictDispatcher()
+
         super().__init__(
             struct_cls=struct_cls,
             dispatcher=dispatcher,

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from fnmatch import fnmatch
 from importlib import reload
 import logging
@@ -8,6 +9,7 @@ from os.path import realpath
 from pathlib import Path
 import sys
 import trio
+from kivy._event import EventDispatcher
 from trio import Nursery
 from typing import TYPE_CHECKING, Iterable, Literal
 
@@ -18,13 +20,14 @@ from kivy.config import Config
 from kivy.core.window import Window
 from kivy.factory import Factory
 from kivy.lang import Builder
+from kivy.metrics import dp
 from kivy.properties import (
     ObjectProperty,
     StringProperty,
     BooleanProperty,
     NumericProperty,
+    OptionProperty,
 )
-from kivy.uix.widget import Widget
 
 from kivymd.theming import ThemeManager
 from kivymd.utils.fpsmonitor import FpsMonitor
@@ -33,7 +36,14 @@ from mvckivy.app import ScreenRegistrator
 from mvckivy.project_management import PathItem
 from mvckivy.project_management.path_manager import MVCPathManager
 from mvckivy.utils.builder import MVCBuilder
-from mvckivy.utils.constants import Scheme, Palette
+from mvckivy.utils.constants import (
+    Scheme,
+    Palette,
+    INPUT_MODES,
+    DEVICE_TYPES,
+    DEVICE_ORIENTATIONS,
+    AVAILABLE_PLATFORMS,
+)
 from mvckivy.utils.error_handlers import ClockHandler, AppExceptionNotifyHandler
 from mvckivy.utils.hot_reload_utils import HotReloadConfig, EXCEPTION_POPUP_KV
 
@@ -248,6 +258,60 @@ class UIShortcutsBehavior:
         return self.screen.create_and_open_notification(*args, **kwargs)
 
 
+class InputControllerBehavior(EventDispatcher):
+    platform = OptionProperty("unknown", options=[*AVAILABLE_PLATFORMS, "unknown"])
+    device_orientation = OptionProperty("none", options=[*DEVICE_ORIENTATIONS, "none"])
+    device_type = OptionProperty("none", options=[*DEVICE_TYPES, "none"])
+    input_mode = OptionProperty("none", options=[*INPUT_MODES, "none"])
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.platform = platform
+        self.input_mode = (
+            "mouse" if self.platform in DESKTOP_PLATFORMS else "touch"
+        )  # TODO: Implement dynamic input control system
+        self.app.theme_cls.bind(device_orientation=self.setter("device_orientation"))
+        self.device_orientation = self.app.theme_cls.device_orientation
+
+
+class WindowControllerBehavior:
+    def __init__(self):
+        self.window_resizing_direction = "unknown"
+        self.real_device_type = "unknown"
+        self.__width = Window.width
+        Window.bind(on_resize=self.on_size)
+
+    def on_size(self, instance, size: list) -> None:
+        self.device_type = self._choose_current_device_type(
+            window_width=size[0],
+            window_height=size[1],
+            orientation=self.model.device_orientation,
+        )
+
+    @classmethod
+    def _choose_current_device_type(
+        cls, window_width: float, window_height: float, orientation: str
+    ) -> str:
+        if orientation == "portrait":
+
+            if window_width <= dp(400) and window_height <= dp(800):
+                return "mobile"
+            elif window_width <= dp(700) and window_height <= dp(1200):
+                return "tablet"
+            else:
+                return "desktop"
+
+        elif orientation == "landscape":
+
+            if window_height <= dp(400) and window_width <= dp(800):
+                return "mobile"
+            elif window_height <= dp(700) and window_width <= dp(1200):
+                return "tablet"
+            else:
+                return "desktop"
+
+
 class MVCApp(
     PathManagerBehavior,
     ScreenRegistrationBehavior,
@@ -272,6 +336,7 @@ class MVCApp(
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self.session_id = datetime.now().strftime("%Y%m%d%H%M%S")
         self.nursery: Nursery | None = None
         self.idle_timer: monotonic = None
         self.path_manager = self.create_path_manager()

@@ -12,7 +12,6 @@ from kivy.properties import (
     StringProperty,
 )
 from kivy.uix.floatlayout import FloatLayout
-from kivy.uix.widget import Widget
 from kivymd.uix.button import MDIconButton
 from kivymd.app import MDApp
 
@@ -21,6 +20,27 @@ class SpeedDialAction(MDIconButton):
     """Элемент-экшен SpeedDial. Имеет порядок появления (order)."""
 
     order = NumericProperty(0)
+    sd: ObjectProperty[SpeedDial | None] = ObjectProperty(rebind=True)
+
+    def _get_alias(self) -> float:
+        return self._calc_alias()
+
+    def _calc_alias(self) -> float:
+        sd = self.sd
+        if sd is None:
+            return 0.0
+        return sd.animation_progress
+
+    alias = AliasProperty(
+        _get_alias, None, bind=["sd"], cache=True, watch_before_use=True
+    )
+
+
+class AnotherAction(SpeedDialAction):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+        self.alias = 0.1
 
 
 class SpeedDial(FloatLayout):

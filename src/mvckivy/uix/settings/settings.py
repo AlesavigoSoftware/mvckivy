@@ -4,7 +4,7 @@ import os
 
 import kivy.utils as utils
 from kivy.factory import Factory
-from kivy.metrics import dp
+from kivy.metrics import dp, sp
 from kivy.config import ConfigParser
 from kivy.compat import string_types, text_type
 from kivy.core.window import Window
@@ -162,16 +162,16 @@ class MKVSettingString(MKVSettingItem):
             title=self.title,
             content=content,
             size_hint=(None, None),
-            size=(popup_width, "250dp"),
+            size=(popup_width, dp(250)),
         )
 
         # create the textinput used for numeric input
         self.textinput = textinput = TextInput(
             text=self.value,
-            font_size="24sp",
+            font_size=sp(24),
             multiline=False,
             size_hint_y=None,
-            height="42sp",
+            height=sp(42),
         )
         textinput.bind(on_text_validate=self._validate)
         self.textinput = textinput

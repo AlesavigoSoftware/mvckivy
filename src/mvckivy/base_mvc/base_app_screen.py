@@ -174,33 +174,3 @@ class BaseAppScreen(BaseScreen):
             return self.create_drawer_dialog(*args, **kwargs)
         else:
             raise ValueError(f"Unknown modal type: {modal_type}")
-
-    def on_size(self, instance, size: list) -> None:
-        device_type = self._choose_current_device_type(
-            window_width=size[0],
-            window_height=size[1],
-            orientation=self.model.device_orientation,
-        )
-        self.controller.dispatch_to_model(device_type=device_type, force_dispatch=True)
-
-    @staticmethod
-    def _choose_current_device_type(
-        window_width: float, window_height: float, orientation: str
-    ) -> str:
-        if orientation == "portrait":
-
-            if window_width <= dp(400) and window_height <= dp(800):
-                return "mobile"
-            elif window_width <= dp(700) and window_height <= dp(1200):
-                return "tablet"
-            else:
-                return "desktop"
-
-        elif orientation == "landscape":
-
-            if window_height <= dp(400) and window_width <= dp(800):
-                return "mobile"
-            elif window_height <= dp(700) and window_width <= dp(1200):
-                return "tablet"
-            else:
-                return "desktop"

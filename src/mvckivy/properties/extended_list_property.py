@@ -9,19 +9,19 @@ from mvckivy.properties.base_classes import (
 
 
 class ObservableListDispatcher(ObservableStructDispatcher):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.register_event_type("on_append")
-        self.register_event_type("on_extend")
-        self.register_event_type("on_insert")
-        self.register_event_type("on_pop")
-        self.register_event_type("on_remove")
-        self.register_event_type("on_reverse")
-        self.register_event_type("on_sort")
-        self.register_event_type("on___delitem__")
-        self.register_event_type("on___iadd__")
-        self.register_event_type("on___imul__")
-        self.register_event_type("on___setitem__")
+    __events__ = (
+        "on_append",
+        "on_extend",
+        "on_insert",
+        "on_pop",
+        "on_remove",
+        "on_reverse",
+        "on_sort",
+        "on___delitem__",
+        "on___iadd__",
+        "on___imul__",
+        "on___setitem__",
+    )
 
     def on_append(self, *largs):
         pass
@@ -136,12 +136,18 @@ class ExtendedListProperty(ExtendedStructProperty):
     def __init__(
         self,
         struct_cls=ObservableList,
-        dispatcher=ObservableListDispatcher(),
-        defaultvalue=list(),
+        dispatcher=None,
+        defaultvalue=None,
         dispatch_on_change_to_prop=True,
         enable_on_change_only=False,
         **kwargs,
     ):
+        if defaultvalue is None:
+            defaultvalue = list()
+
+        if dispatcher is None:
+            dispatcher = ObservableListDispatcher()
+
         super().__init__(
             struct_cls=struct_cls,
             dispatcher=dispatcher,
