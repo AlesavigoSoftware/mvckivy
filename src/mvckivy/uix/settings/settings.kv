@@ -3,6 +3,24 @@
 #:import MDLabel kivymd.uix.label.MDLabel
 
 
+<MKVDefaultSettingItem>
+    size_hint_x: 1.
+    content: content
+
+    MDListItemLeadingIcon:
+        icon: root.icon
+
+    MDListItemHeadlineText:
+        text: root.title
+
+    MDListItemSupportingText:
+        text: root.desc
+
+    MDBoxLayout:
+        id: content
+        size_hint_x: .1
+
+
 <MKVSettingItem>
     size_hint_x: 1.
     content: content

@@ -21,6 +21,7 @@ from kivy.core.window import Window
 from kivy.factory import Factory
 from kivy.lang import Builder
 from kivy.metrics import dp
+from kivy.utils import platform as _platform
 from kivy.properties import (
     ObjectProperty,
     StringProperty,
@@ -43,6 +44,7 @@ from mvckivy.utils.constants import (
     DEVICE_TYPES,
     DEVICE_ORIENTATIONS,
     AVAILABLE_PLATFORMS,
+    DESKTOP_PLATFORMS,
 )
 from mvckivy.utils.error_handlers import ClockHandler, AppExceptionNotifyHandler
 from mvckivy.utils.hot_reload_utils import HotReloadConfig, EXCEPTION_POPUP_KV
@@ -258,58 +260,55 @@ class UIShortcutsBehavior:
         return self.screen.create_and_open_notification(*args, **kwargs)
 
 
-class InputControllerBehavior(EventDispatcher):
-    platform = OptionProperty("unknown", options=[*AVAILABLE_PLATFORMS, "unknown"])
+class AppInfoBehavior(EventDispatcher):
+    __events__ = ("on_device_profile_changed",)
+
+    platform = OptionProperty(_platform, options=[*AVAILABLE_PLATFORMS, "unknown"])
     device_orientation = OptionProperty("none", options=[*DEVICE_ORIENTATIONS, "none"])
     device_type = OptionProperty("none", options=[*DEVICE_TYPES, "none"])
-    input_mode = OptionProperty("none", options=[*INPUT_MODES, "none"])
+    input_mode = OptionProperty(
+        "mouse" if _platform in DESKTOP_PLATFORMS else "touch",
+        options=[*INPUT_MODES, "none"],
+    )
+    window_size: ObjectProperty[tuple[float, float]] = ObjectProperty(Window.size)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        Window.bind(size=self.setter("window_size"))
+        self._recalc_trigger = Clock.create_trigger(self._recalc, 0)
+        self._emit_trigger = Clock.create_trigger(self._emit, 0)
+        self._recalc_trigger()
 
-        self.platform = platform
-        self.input_mode = (
-            "mouse" if self.platform in DESKTOP_PLATFORMS else "touch"
-        )  # TODO: Implement dynamic input control system
-        self.app.theme_cls.bind(device_orientation=self.setter("device_orientation"))
-        self.device_orientation = self.app.theme_cls.device_orientation
+    def on_device_profile_changed(self, orientation: str, device_type: str) -> None:
+        pass
 
+    def on_window_size(self, window: Window, size: tuple[float, float]) -> None:
+        self._recalc_trigger()
 
-class WindowControllerBehavior:
-    def __init__(self):
-        self.window_resizing_direction = "unknown"
-        self.real_device_type = "unknown"
-        self.__width = Window.width
-        Window.bind(on_resize=self.on_size)
+    def _recalc(self, *_):
+        w, h = self.window_size
+        self.device_orientation = "landscape" if w > h else "portrait"
 
-    def on_size(self, instance, size: list) -> None:
-        self.device_type = self._choose_current_device_type(
-            window_width=size[0],
-            window_height=size[1],
-            orientation=self.model.device_orientation,
+        primary, secondary = (w, h) if self.device_orientation == "portrait" else (h, w)
+        if primary <= dp(400) and secondary <= dp(800):
+            self.device_type = "mobile"
+        elif primary <= dp(700) and secondary <= dp(1200):
+            self.device_type = "tablet"
+        else:
+            self.device_type = "desktop"
+
+    def on_device_orientation(self, *_):
+        self._emit_trigger()
+
+    def on_device_type(self, *_):
+        self._emit_trigger()
+
+    def _emit(self, *_):
+        self.dispatch(
+            "on_device_profile_changed",
+            self.device_orientation,
+            self.device_type,
         )
-
-    @classmethod
-    def _choose_current_device_type(
-        cls, window_width: float, window_height: float, orientation: str
-    ) -> str:
-        if orientation == "portrait":
-
-            if window_width <= dp(400) and window_height <= dp(800):
-                return "mobile"
-            elif window_width <= dp(700) and window_height <= dp(1200):
-                return "tablet"
-            else:
-                return "desktop"
-
-        elif orientation == "landscape":
-
-            if window_height <= dp(400) and window_width <= dp(800):
-                return "mobile"
-            elif window_height <= dp(700) and window_width <= dp(1200):
-                return "tablet"
-            else:
-                return "desktop"
 
 
 class MVCApp(
@@ -319,6 +318,7 @@ class MVCApp(
     WindowClockBehavior,
     IdleBehavior,
     UIShortcutsBehavior,
+    AppInfoBehavior,
     App,
 ):
     __events__ = ["on_idle", "on_wakeup"]

@@ -5,7 +5,7 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.properties import StringProperty
 from kivy.clock import Clock
 import logging
-from mvckivy.properties.base_classes import ExtendedAliasProperty
+from mvckivy.properties.extended_alias_property import ExtendedAliasProperty
 
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")

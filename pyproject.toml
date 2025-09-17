@@ -5,7 +5,10 @@ build-backend = "hatchling.build"
 [project]
 name = "mvckivy"
 version = "0.1.0"
-description = "Авторский фреймворк, продолжающий идеи kivymd и расширяющих их внедрением mvc паттерна на всех уровнях вложенности виджетов, а также находками авторов kivy-school"
+description = """
+Авторский фреймворк, продолжающий идеи kivymd и расширяющих их внедрением
+mvc паттерна на всех уровнях вложенности виджетов, а также находками авторов kivy-school
+"""
 readme = "README.md"
 requires-python = "~=3.11.0"
 authors = [{ name = "Alesavigo", email = "alesavigo@gmail.com" }]
@@ -21,7 +24,6 @@ dependencies = [
   "trio>=0.29.0,<0.30",
   "olefile>=0.47,<0.48",
   "watchdog>=6.0.0,<7",
-  "kivy-garden-hover",
 ]
 
 # Extras-группы. "optionals" оставлена пустой намеренно —

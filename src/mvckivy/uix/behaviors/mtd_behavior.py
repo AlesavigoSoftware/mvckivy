@@ -1,28 +1,26 @@
 from __future__ import annotations
 
 import logging
-from typing import Callable, Any, TypeVar
+from typing import Callable, Any, TYPE_CHECKING
 from kivy.core.window import Window
-from kivy.properties import ObjectProperty, AliasProperty, ListProperty
+from kivy.properties import ObjectProperty, AliasProperty
 from kivy.clock import Clock
 from kivy.uix.widget import Widget
 from kivy.event import EventDispatcher
-from kivymd.app import MDApp
+from kivy.app import App
+
+
+if TYPE_CHECKING:
+    from mvckivy.app import MVCApp
 
 
 logger = logging.getLogger("mvckivy")
 
 
 class MTDWidget(Widget):
-    destination_device_type: ListProperty[str] = ListProperty(
-        ["mobile", "tablet", "desktop"]
-    )
-    destination_device_orientation: ListProperty[str] = ListProperty(
-        ["portrait", "landscape"]
-    )
-    destination_device_platform: ListProperty[str] = ListProperty(
-        ["android", "ios", "linux", "macosx", "win"]
-    )
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.app: MVCApp = App.get_running_app()
 
     def _get_rendered(self) -> bool:
         return bool(self.parent)
@@ -58,20 +56,11 @@ class TooManyChildrenException(Exception):
     pass
 
 
-MTDWidgetImpl = TypeVar("MTDWidgetImpl", bound=MTDWidget)
-
-
 class SingleInterfaceWidget(Widget):
-    _interface: ObjectProperty[MTDWidgetImpl | None] = ObjectProperty(
-        None, allownone=True
-    )
+    __events__ = ("on_add_interface", "on_remove_interface")
+    _interface: ObjectProperty[MTDWidget | None] = ObjectProperty(None, allownone=True)
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.register_event_type("on_add_interface")
-        self.register_event_type("on_remove_interface")
-
-    def add_widget(self, widget: MTDWidgetImpl, *args, **kwargs) -> None:
+    def add_widget(self, widget: MTDWidget, *args, **kwargs) -> None:
         if len(self.children) > 1:
             raise TooManyChildrenException(
                 f"{self.__class__}: SingleInterfaceWidget can only have one interface per time."
@@ -83,11 +72,9 @@ class SingleInterfaceWidget(Widget):
         self.clear_widgets()
         self._interface = widget
         super().add_widget(self._interface, *args, **kwargs)
-        Clock.schedule_once(
-            lambda dt: self.dispatch("on_add_interface", self._interface), 0
-        )
+        self.dispatch("on_add_interface", self._interface)
 
-    def on_add_interface(self, interface: MTDWidgetImpl) -> None:
+    def on_add_interface(self, interface: MTDWidget) -> None:
         """
         Calls from Clock.schedule_once on "widget.parent" setting.
         A single difference from calling this method without using Clock
@@ -99,7 +86,7 @@ class SingleInterfaceWidget(Widget):
         :return: None
         """
 
-    def on_remove_interface(self, interface: MTDWidgetImpl) -> None:
+    def on_remove_interface(self, interface: MTDWidget) -> None:
         """
 
         :return:
@@ -110,7 +97,7 @@ class SingleInterfaceWidget(Widget):
         self._interface = None
         return super().clear_widgets()
 
-    def remove_widget(self, widget: MTDWidgetImpl) -> None:
+    def remove_widget(self, widget: MTDWidget) -> None:
         super().remove_widget(widget)
         if widget is self._interface:
             self.dispatch("on_remove_interface", self._interface)
@@ -121,17 +108,14 @@ class SingleInterfaceWidget(Widget):
 
 
 class MTDBehavior(EventDispatcher):
+    __events__ = ("on_mobile", "on_tablet", "on_desktop", "on_portrait", "on_landscape")
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.register_event_type("on_mobile")
-        self.register_event_type("on_tablet")
-        self.register_event_type("on_desktop")
-        self.register_event_type("on_portrait")
-        self.register_event_type("on_landscape")
-        self.app = MDApp.get_running_app()
-        self.__initialize_dispatchers()
+        self.app: MVCApp = App.get_running_app()
+        self._initialize_dispatchers()
 
-    def __initialize_dispatchers(self) -> None:
+    def _initialize_dispatchers(self) -> None:
         self.app.model.bind(
             device_type=self.on_device_type
         )  # on_device_type calls on app start by AppController
@@ -172,7 +156,7 @@ class MTDBehavior(EventDispatcher):
 class MTDBuilder(MTDBehavior, SingleInterfaceWidget):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._widgets: dict[str, dict[str, MTDWidgetImpl | None]] = {
+        self._widgets: dict[str, dict[str, MTDWidget | None]] = {
             "mobile": {
                 "portrait": None,
                 "landscape": None,
@@ -187,7 +171,7 @@ class MTDBuilder(MTDBehavior, SingleInterfaceWidget):
             },
         }
 
-    def add_widget(self, widget: MTDWidgetImpl, *args, render=False, **kwargs):
+    def add_widget(self, widget: MTDWidget, *args, render=False, **kwargs):
         if not isinstance(widget, MTDWidget):
             raise ValueError("Widget must be the instance of MTDWidget class.")
 
@@ -196,7 +180,7 @@ class MTDBuilder(MTDBehavior, SingleInterfaceWidget):
         else:
             self._distribute_widget(widget)
 
-    def _distribute_widget(self, widget: MTDWidgetImpl) -> None:
+    def _distribute_widget(self, widget: MTDWidget) -> None:
         platforms = list(widget.destination_device_platform)
         orientations = list(widget.destination_device_orientation)
         device_types = list(widget.destination_device_type)

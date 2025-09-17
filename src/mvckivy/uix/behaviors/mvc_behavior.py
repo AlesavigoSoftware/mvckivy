@@ -4,7 +4,6 @@ from contextlib import suppress
 from typing import TYPE_CHECKING
 
 from kivy.event import EventDispatcher
-from kivy.clock import Clock
 from kivy.properties import ObjectProperty, Property
 from kivy.uix.widget import Widget
 from kivymd.app import MDApp
@@ -19,13 +18,14 @@ class ParentClassUnsupported(Exception):
 
 
 class MVCWidget(Widget):
-    model: ObjectProperty[BaseModel] = ObjectProperty(None, allownone=True)
-    controller: ObjectProperty[BaseController] = ObjectProperty(None, allownone=True)
-    screen: ObjectProperty[BaseScreen] = ObjectProperty(None, allownone=True)
+    app: ObjectProperty[MVCApp] = ObjectProperty(None, allownone=False)
+    model: ObjectProperty[BaseModel] = ObjectProperty(None, allownone=False)
+    controller: ObjectProperty[BaseController] = ObjectProperty(None, allownone=False)
+    screen: ObjectProperty[BaseScreen] = ObjectProperty(None, allownone=False)
 
     def __init__(self, *args, **kwargs):
         super().__init__(**kwargs)
-        self.app: MVCApp = MDApp.get_running_app()
+        self.app = MDApp.get_running_app()
 
 
 class MVCBehavior(MVCWidget):
@@ -33,8 +33,6 @@ class MVCBehavior(MVCWidget):
         super().__init__(*args, **kwargs)
         self._ignore_parent_mvc = ignore_parent_mvc
         self._set_mvc_attrs_from_parent()
-        Clock.schedule_once(lambda dt: self._bind_all(), 0)
-        Clock.schedule_once(lambda dt: self._init_all(), 0)
 
     def on_parent(self, widget, parent):
         with suppress(AttributeError):
@@ -166,6 +164,16 @@ class MVCBehavior(MVCWidget):
             custom_model = self.model
 
         return custom_model.property(property_name)
+
+    def on_kv_post(self, base_widget) -> None:
+        """
+        Calls by kivy on kv lang loading finished.
+        :return: None
+        """
+        with suppress(KeyError):
+            super().on_kv_post(base_widget)
+        self._bind_all()
+        self._init_all()
 
     def _bind_all(self) -> None:
         """

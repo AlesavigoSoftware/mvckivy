@@ -1,7 +1,6 @@
 from kivy.animation import Animation
 from kivy.event import EventDispatcher
-from kivy.properties import ObjectProperty
-from typing import List, Callable
+from typing import Callable
 
 from mvckivy.uix.behaviors.mvc_behavior import MVCWidget
 from mvckivy import logger
@@ -14,13 +13,11 @@ class DispatchException(Exception):
 
 
 class BaseController(MVCWidget):
-    app_controller = ObjectProperty()
+    __events__ = ("on_app_start", "on_app_exit")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.register_event_type("on_app_start")
-        self.register_event_type("on_app_exit")
-        self._to_cancel_requests: List[UrlRequestRequests] = []
+        self._to_cancel_requests: list[UrlRequestRequests] = []
 
     def dispatch_to_model(
         self,
