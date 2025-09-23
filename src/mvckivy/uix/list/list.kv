@@ -1,10 +1,10 @@
-<MDList>
+<MKVList>
     cols: 1
     adaptive_height: True
     padding: 0, self._list_vertical_padding
 
 
-<MDListItem>
+<MKVListItem>
     size_hint_y: None
     spacing: "16dp"
     padding:
@@ -63,7 +63,7 @@
     MDDivider:
 
 
-<BaseListItemIcon>
+<MKVBaseListItemIcon>
     size_hint: None, None
     size: "24dp", "24dp"
     text_color:
@@ -83,13 +83,13 @@
         if not self.icon_color_disabled else self.icon_color_disabled
 
 
-<MDListItemTrailingSupportingText>
+<MKVListItemTrailingSupportingText>
     adaptive_width: True
     font_style: "Label"
     role: "small"
 
 
-<MDListItemLeadingAvatar>
+<MKVListItemLeadingAvatar>
     size_hint: None, None
     size: "40dp", "40dp"
     radius: self.height / 2
@@ -103,7 +103,7 @@
         )
 
 
-<BaseListItemText>
+<MKVBaseListItemText>
     adaptive_height: True
     markup: True
     shorten_from: "right"
@@ -120,7 +120,7 @@
         )
 
 
-<MDListItemHeadlineText>
+<MKVListItemHeadlineText>
     font_style: "Body"
     role: "large"
     bold: True

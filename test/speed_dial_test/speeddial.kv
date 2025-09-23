@@ -44,11 +44,11 @@ MDScreen:
             size_hint: None, None
             style: "tonal"
             radius: [self.height / 6, ]
-            size: root.main_size, root.main_size
-            icon: root.root_icon
-            x: root.main_x
-            y: root.main_y
-            on_release: root.toggle()
+            size: sd.main_size, sd.main_size
+            icon: sd.root_icon
+            x: sd.main_x
+            y: sd.main_y
+            on_release: sd.toggle()
 
         ActionsContent:
             id: actions_content

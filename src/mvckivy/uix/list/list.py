@@ -1,21 +1,5 @@
 from __future__ import annotations
 
-__all__ = (
-    "BaseListItemText",
-    "BaseListItem",
-    "BaseListItemIcon",
-    "MDList",
-    "MDListItem",
-    "MDListItemHeadlineText",
-    "MDListItemSupportingText",
-    "MDListItemTrailingSupportingText",
-    "MDListItemLeadingIcon",
-    "MDListItemTrailingIcon",
-    "MDListItemTrailingCheckbox",
-    "MDListItemLeadingAvatar",
-    "MDListItemTertiaryText",
-)
-
 from kivy.logger import Logger
 from kivy.clock import Clock
 from kivy.properties import (
@@ -42,11 +26,11 @@ from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.label import MDLabel, MDIcon
 
 
-class MDList(MDGridLayout):
+class MKVList(MDGridLayout):
     _list_vertical_padding = NumericProperty("8dp")
 
 
-class BaseListItem(
+class MKVBaseListItem(
     DeclarativeBehavior,
     BackgroundColorBehavior,
     RectangularRippleBehavior,
@@ -60,93 +44,89 @@ class BaseListItem(
     md_bg_color_disabled = ColorProperty(None)
 
 
-class BaseListItemText(MDLabel):
+class MKVBaseListItemText(MDLabel):
     pass
 
 
-class BaseListItemIcon(MDIcon):
+class MKVBaseListItemIcon(MDIcon):
     icon_color = ColorProperty(None)
     icon_color_disabled = ColorProperty(None)
 
 
-class MDListItemHeadlineText(BaseListItemText):
+class MKVListItemHeadlineText(MKVBaseListItemText):
     pass
 
 
-class MDListItemSupportingText(BaseListItemText):
+class MKVListItemSupportingText(MKVBaseListItemText):
     pass
 
 
-class MDListItemTertiaryText(BaseListItemText):
+class MKVListItemTertiaryText(MKVBaseListItemText):
     pass
 
 
-class MDListItemTrailingSupportingText(BaseListItemText):
+class MKVListItemTrailingSupportingText(MKVBaseListItemText):
     pass
 
 
-class MDListItemLeadingIcon(BaseListItemIcon):
+class MKVListItemLeadingIcon(MKVBaseListItemIcon):
     pass
 
 
-class MDListItemLeadingAvatar(
+class MKVListItemLeadingAvatar(
     ThemableBehavior, CircularRippleBehavior, ButtonBehavior, FitImage
 ):
     pass
     _list_item = ObjectProperty()
 
 
-class MDListItemTrailingIcon(BaseListItemIcon):
+class MKVListItemTrailingIcon(MKVBaseListItemIcon):
     pass
 
 
-class MDListItemTrailingCheckbox(MDCheckbox):
+class MKVListItemTrailingCheckbox(MDCheckbox):
     pass
 
 
-class MDListItem(BaseListItem, BoxLayout):
+class MKVListItem(MKVBaseListItem, BoxLayout):
     leading_container: ObjectProperty[MDBoxLayout] = ObjectProperty()
     text_container: ObjectProperty[MDBoxLayout] = ObjectProperty()
     trailing_container: ObjectProperty[MDBoxLayout] = ObjectProperty()
-    
+
     def add_widget(self, widget, *args, **kwargs):
         if isinstance(
             widget,
             (
-                MDListItemHeadlineText,
-                MDListItemSupportingText,
-                MDListItemTertiaryText,
+                MKVListItemHeadlineText,
+                MKVListItemSupportingText,
+                MKVListItemTertiaryText,
             ),
         ):
             if len(self.text_container.children) < 3:
                 self.text_container.add_widget(widget)
             elif len(self.text_container.children) > 3:
                 self._set_warnings(widget)
-        elif isinstance(widget, (MDListItemLeadingIcon, MDListItemLeadingAvatar)):
+        elif isinstance(widget, (MKVListItemLeadingIcon, MKVListItemLeadingAvatar)):
             if not self.leading_container.children:
                 widget._list_item = self
                 self.leading_container.add_widget(widget)
                 Clock.schedule_once(
-                    lambda x: self._set_with_container(
-                        self.leading_container, widget
-                    )
+                    lambda x: self._set_with_container(self.leading_container, widget)
                 )
             else:
                 self._set_warnings(widget)
         elif isinstance(
             widget,
             (
-                MDListItemTrailingIcon,
-                MDListItemTrailingCheckbox,
-                MDListItemTrailingSupportingText,
+                MKVListItemTrailingIcon,
+                MKVListItemTrailingCheckbox,
+                MKVListItemTrailingSupportingText,
             ),
         ):
             if not self.trailing_container.children:
                 self.trailing_container.add_widget(widget)
                 Clock.schedule_once(
-                    lambda x: self._set_with_container(
-                        self.trailing_container, widget
-                    )
+                    lambda x: self._set_with_container(self.trailing_container, widget)
                 )
             else:
                 self._set_warnings(widget)

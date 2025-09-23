@@ -1,13 +1,12 @@
-from pathlib import Path
 import trio
 
-from mvckivy.app import ScreenRegistrator, MVCDebugApp, MVCApp
-from mvckivy.project_management.path_manager import MVCPathManager, PathItem
+from mvckivy.app import ScreenRegistrator
 from mvckivy.app.screens_schema import AppSchema
 from mvckivy.base_mvc import BaseModel, BaseController, BaseScreen
 from mvckivy.base_mvc.base_app_controller import BaseAppController
 from mvckivy.base_mvc.base_app_model import BaseAppModel
 from mvckivy.base_mvc.base_app_screen import BaseAppScreen
+from mvckivy.hotreload_app import MVCDebugApp
 from mvckivy.utils.hot_reload_utils import HotReloadConfig
 
 

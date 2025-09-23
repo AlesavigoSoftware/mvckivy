@@ -39,7 +39,7 @@ def run_case(window_size: tuple[int, int], tag: str) -> Path:
     spec.loader.exec_module(mod)
 
     Window.size = window_size
-    app = mod.HeadlessDemoApp()
+    app = mod.DemoApp()
     snap_path_holder: dict[str, str | None] = {"p": None}
 
     def expand_and_shoot(*_):

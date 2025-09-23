@@ -33,3 +33,5 @@ register("MKVTabsItemIcon", module="mvckivy.uix.tabs")
 register("MKVTabsItemText", module="mvckivy.uix.tabs")
 register("MKVTabsCarousel", module="mvckivy.uix.tabs")
 register("MKVTabsBadge", module="mvckivy.uix.tabs")
+
+register("AutoResizeMDIconButton", module="mvckivy.uix.button")

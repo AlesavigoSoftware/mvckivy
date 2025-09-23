@@ -1,10 +1,7 @@
 from kivy.lang import Builder
-from kivy.metrics import dp
 from kivy.clock import Clock
 from kivymd.app import MDApp
-
-from mvckivy.uix.buttons.icon_button import AutoResizeMDIconButton
-
+from mvckivy.uix.button import *
 
 KV = """
 MDScreen:
@@ -67,7 +64,7 @@ class DemoApp(MDApp):
             r"C:\Users\alesa\Documents\AlesavigoSoftware\mvckivy\src\mvckivy\uix\label\icon.kv"
         )
         Builder.load_file(
-            r"C:\Users\alesa\Documents\AlesavigoSoftware\mvckivy\src\mvckivy\uix\buttons\icon_button.kv"
+            r"C:\Users\alesa\Documents\AlesavigoSoftware\mvckivy\src\mvckivy\uix\button\icon_button.kv"
         )
         root = Builder.load_string(KV)
         return root

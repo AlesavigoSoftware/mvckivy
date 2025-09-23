@@ -12,7 +12,7 @@ from kivy.properties import (
 from kivy.graphics.transformation import Matrix
 
 from kivymd.app import MDApp
-from mvckivy.uix.dialog import MKVAdaptiveDialog
+from mvckivy.uix.dialog import MKVDialog
 
 from kivymd.uix.behaviors import HoverBehavior
 from kivymd.uix.list import (
@@ -336,7 +336,7 @@ class DialogPatchedTextField(MVCTextField):
 
 
 # ── Диалог ввода числа ──────────────────────────────────────────────────────
-class NumberInputDialog(MKVAdaptiveDialog):
+class NumberInputDialog(MKVDialog):
     """Диалог ввода числа (0..65556). Масштаб включается только при вертикальном лимите."""
 
     design_width = NumericProperty(dp(480))
@@ -386,7 +386,7 @@ class NumberInputDialog(MKVAdaptiveDialog):
 
 
 # ── (опционально) диалог со списком из прежних задач ────────────────────────
-class AdaptiveListDialog(MKVAdaptiveDialog):
+class AdaptiveListDialog(MKVDialog):
     design_width = NumericProperty(dp(560))
     design_height = NumericProperty(dp(640))
     occupy_ratio_w = NumericProperty(0.70)

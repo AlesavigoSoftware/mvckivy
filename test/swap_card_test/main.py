@@ -1,7 +1,8 @@
-from mvckivy.app import AppSchema, MVCDebugApp, ScreenRegistrator
+from mvckivy.app import AppSchema, ScreenRegistrator
 from mvckivy.base_mvc import BaseModel, BaseController
 from mvckivy.base_mvc.base_app_controller import BaseAppController
 from mvckivy.base_mvc.base_app_model import BaseAppModel
+from mvckivy.hotreload_app import MVCDebugApp
 from mvckivy.utils.hot_reload_utils import HotReloadConfig
 from swap_card_test.menu import AppScreen, InitialScreen
 
