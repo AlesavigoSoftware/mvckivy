@@ -10,7 +10,7 @@ from kivymd.app import MDApp
 
 if TYPE_CHECKING:
     from mvckivy.app import MVCApp
-    from mvckivy.base_mvc import BaseModel, BaseScreen, BaseController
+    from mvckivy.mvc_base import BaseModel, BaseScreen, BaseController
 
 
 class ParentClassUnsupported(Exception):

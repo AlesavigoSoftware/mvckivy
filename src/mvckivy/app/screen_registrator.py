@@ -15,18 +15,14 @@ from typing import (
 )
 from dataclasses import dataclass
 
-from mvckivy.base_mvc.base_app_controller import BaseAppController
-from mvckivy.base_mvc.base_app_model import BaseAppModel
-from mvckivy.base_mvc.base_app_screen import BaseAppScreen
+from mvckivy.mvc_base.base_app_controller import BaseAppController
+from mvckivy.mvc_base.base_app_model import BaseAppModel
+from mvckivy.mvc_base.base_app_screen import BaseAppScreen
 from mvckivy.project_management import PathItem
 
 if TYPE_CHECKING:
-    from mvckivy.utils.typing import (
-        BaseModel,
-        BaseController,
-        BaseScreen,
-        ScreensSchema,
-    )
+    from mvckivy.app.screens_schema import ScreensSchema
+    from mvckivy.mvc_base import BaseScreen, BaseController, BaseModel
 
 
 logger = logging.getLogger("mvckivy")

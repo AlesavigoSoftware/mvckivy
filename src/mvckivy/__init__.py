@@ -8,12 +8,12 @@ logger.setLevel(logging.DEBUG if ConfigReader.get_debug_mode() else logging.INFO
 
 
 register = Factory.register
-register("MVCGridLayout", module="mvckivy.uix.layouts")
-register("MVCRelativeLayout", module="mvckivy.uix.layouts")
-register("MVCBoxLayout", module="mvckivy.uix.layouts")
-register("MVCAnchorLayout", module="mvckivy.uix.layouts")
-register("MVCFloatLayout", module="mvckivy.uix.layouts")
-register("MVCStackLayout", module="mvckivy.uix.layouts")
+register("MVCGridLayout", module="mvckivy.uix.layout")
+register("MVCRelativeLayout", module="mvckivy.uix.layout")
+register("MVCBoxLayout", module="mvckivy.uix.layout")
+register("MVCAnchorLayout", module="mvckivy.uix.layout")
+register("MVCFloatLayout", module="mvckivy.uix.layout")
+register("MVCStackLayout", module="mvckivy.uix.layout")
 
 register("MKVSettings", module="mvckivy.uix.settings")
 

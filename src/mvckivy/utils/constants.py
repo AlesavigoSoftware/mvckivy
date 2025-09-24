@@ -1,4 +1,5 @@
 from typing import TypeAlias, Literal
+from kivy.metrics import dp
 
 
 DESKTOP_PLATFORMS = ("win", "linux", "macosx")
@@ -167,3 +168,11 @@ Scheme: TypeAlias = Literal[
     "FIDELITY",
     "CONTENT",
 ]
+
+DENSITY: dict[int, float] = {
+    2: dp(8),
+    1: dp(4),
+    0: dp(0),
+    -1: -dp(4),
+    -2: -dp(8),
+}

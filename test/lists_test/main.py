@@ -9,7 +9,7 @@ from kivy.graphics.transformation import Matrix
 from kivy.uix.widget import Widget
 
 from kivymd.app import MDApp
-from mvckivy.base_mvc.base_app_model import BaseAppModel
+from mvckivy.mvc_base.base_app_model import BaseAppModel
 from mvckivy.uix.dialog import MKVDialog
 
 from kivymd.uix.behaviors import HoverBehavior

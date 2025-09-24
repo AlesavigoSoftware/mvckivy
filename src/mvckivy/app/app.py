@@ -47,9 +47,9 @@ except ImportError:
 
 
 if TYPE_CHECKING:
-    from mvckivy.base_mvc.base_app_controller import BaseAppController
-    from mvckivy.base_mvc.base_app_model import BaseAppModel
-    from mvckivy.base_mvc.base_app_screen import BaseAppScreen
+    from mvckivy.mvc_base.base_app_controller import BaseAppController
+    from mvckivy.mvc_base.base_app_model import BaseAppModel
+    from mvckivy.mvc_base.base_app_screen import BaseAppScreen
 
 
 original_argv = sys.argv
@@ -153,7 +153,7 @@ class ScreenRegistrationBehavior:
 
     def load_all_screens_kv_files(self) -> None:
         for p in self._registrator.get_kv_paths().values():
-            MVCBuilder.load_all_kv_files(p, directory_filters=["children"])
+            MVCBuilder.load_kv_files(p, directory_filters=["children"])
 
 
 class ThemeBehavior:

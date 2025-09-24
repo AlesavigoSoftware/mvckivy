@@ -1,7 +1,7 @@
 from kivy.lang import Builder
 from kivy.clock import Clock
-from kivymd.app import MDApp
-from mvckivy.uix.button import *
+from mvckivy.app import MKVApp
+from mvckivy.utils.builder import MVCBuilder
 
 KV = """
 MDScreen:
@@ -54,20 +54,11 @@ MDScreen:
 """
 
 
-class DemoApp(MDApp):
+class DemoApp(MKVApp):
     def build(self):
         self.theme_cls.primary_palette = "Olive"
-        Builder.load_file(
-            r"C:\Users\alesa\Documents\AlesavigoSoftware\mvckivy\src\mvckivy\uix\label\label.kv"
-        )
-        Builder.load_file(
-            r"C:\Users\alesa\Documents\AlesavigoSoftware\mvckivy\src\mvckivy\uix\label\icon.kv"
-        )
-        Builder.load_file(
-            r"C:\Users\alesa\Documents\AlesavigoSoftware\mvckivy\src\mvckivy\uix\button\icon_button.kv"
-        )
-        root = Builder.load_string(KV)
-        return root
+        MVCBuilder.load_libs_kv_files()
+        return Builder.load_string(KV)
 
     def on_start(self):
         # ensure a quick disabled toggle demo

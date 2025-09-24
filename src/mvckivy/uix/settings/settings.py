@@ -35,7 +35,7 @@ from kivymd.uix.list import MDListItem
 from kivymd.uix.divider import MDDivider
 
 from mvckivy.uix.dialog import MKVDialog
-from mvckivy.uix.scroll_view import MVCScrollView
+from mvckivy.uix.scroll_view import MKVScrollView
 
 
 class AttributeIsUnset(ValueError):
@@ -43,65 +43,13 @@ class AttributeIsUnset(ValueError):
 
 
 class MKVSettingItem(MDListItem):
-    """mvckivy class for individual settings (within a panel). This class cannot
-    be used directly; it is used for implementing the other setting classes.
-    It builds a row with a title/description (left) and a setting control
-    (right).
-
-    Look at :class:`MDSettingBoolean`, :class:`MDSettingNumeric` and
-    :class:`MDSettingOptions` for usage examples.
-
-    """
-
-    title = StringProperty("<No title set>")
-    """Title of the setting, defaults to '<No title set>'.
-
-    :attr:`title` is a :class:`~kivy.properties.StringProperty` and defaults
-    to '<No title set>'.
-    """
-
-    desc = StringProperty(None, allownone=True)
-    """Description of the setting, rendered on the line below the title.
-
-    :attr:`desc` is a :class:`~kivy.properties.StringProperty` and defaults to
-    None.
-    """
-
-    key = StringProperty(None)
-    """Key of the token inside the :attr:`section` in the
-    :class:`~kivy.utils.ConfigParser` instance.
-
-    :attr:`key` is a :class:`~kivy.properties.StringProperty` and defaults to
-    None.
-    """
-
-    value = ObjectProperty(None)
-    """Value of the token according to the :class:`~kivy.utils.ConfigParser`
-    instance. Any change to this value will trigger a
-    :meth:`MDSettings.on_config_change` event.
-
-    :attr:`value` is an :class:`~kivy.properties.ObjectProperty` and defaults
-    to None.
-    """
-
-    panel = ObjectProperty(None)
-    """(internal) Reference to the MDSettingsPanel for this setting. You don't
-    need to use it.
-
-    :attr:`panel` is an :class:`~kivy.properties.ObjectProperty` and defaults
-    to None.
-    """
-
-    content = ObjectProperty(None)
-    """(internal) Reference to the widget that contains the real setting.
-    As soon as the content object is set, any further call to add_widget will
-    call the content.add_widget. This is automatically set.
-
-    :attr:`content` is an :class:`~kivy.properties.ObjectProperty` and
-    defaults to None.
-    """
-
     icon = StringProperty("checkbox-blank-circle")
+    title = StringProperty("<No title set>")
+    desc = StringProperty(None, allownone=True)
+    key = StringProperty(None)
+    value = ObjectProperty(None)
+    panel = ObjectProperty(None)
+    content = ObjectProperty(None)
 
     def _open_dialog(self):
         pass
@@ -120,27 +68,8 @@ class MKVSettingBoolean(MKVSettingItem):
 
 
 class MKVSettingString(MKVSettingItem):
-    """Implementation of a string setting on top of a :class:`MDSettingItem`.
-    It is visualized with a :class:`~kivy.uix.label.Label` widget that, when
-    clicked, will open a :class:`~kivy.uix.popup.Popup` with a
-    :class:`~kivy.uix.textinput.Textinput` so the user can enter a custom
-    value.
-    """
-
     popup = ObjectProperty(None, allownone=True)
-    """(internal) Used to store the current popup when it's shown.
-
-    :attr:`popup` is an :class:`~kivy.properties.ObjectProperty` and defaults
-    to None.
-    """
-
     textinput = ObjectProperty(None)
-    """(internal) Used to store the current textinput from the popup and
-    to listen for changes.
-
-    :attr:`textinput` is an :class:`~kivy.properties.ObjectProperty` and
-    defaults to None.
-    """
 
     def _dismiss(self, *largs):
         if self.textinput:
@@ -209,48 +138,10 @@ class MKVSettingButton(MKVSettingItem):
 
 
 class MKVSettingPath(MKVSettingItem):
-    """Implementation of a Path setting on top of a :class:`MDSettingItem`.
-    It is visualized with a :class:`~kivy.uix.label.Label` widget that, when
-    clicked, will open a :class:`~kivy.uix.popup.Popup` with a
-    :class:`~kivy.uix.filechooser.FileChooserListView` so the user can enter
-    a custom value.
-
-    .. versionadded:: 1.1.0
-    """
-
     popup = ObjectProperty(None, allownone=True)
-    """(internal) Used to store the current popup when it is shown.
-
-    :attr:`popup` is an :class:`~kivy.properties.ObjectProperty` and defaults
-    to None.
-    """
-
     textinput = ObjectProperty(None)
-    """(internal) Used to store the current textinput from the popup and
-    to listen for changes.
-
-    :attr:`textinput` is an :class:`~kivy.properties.ObjectProperty` and
-    defaults to None.
-    """
-
     show_hidden = BooleanProperty(False)
-    """Whether to show 'hidden' filenames. What that means is
-    operating-system-dependent.
-
-    :attr:`show_hidden` is an :class:`~kivy.properties.BooleanProperty` and
-    defaults to False.
-
-    .. versionadded:: 1.10.0
-    """
-
     dirselect = BooleanProperty(True)
-    """Whether to allow selection of directories.
-
-    :attr:`dirselect` is a :class:`~kivy.properties.BooleanProperty` and
-    defaults to True.
-
-    .. versionadded:: 1.10.0
-    """
 
     def on_panel(self, instance, value):
         if value is None:
@@ -310,21 +201,7 @@ class MKVSettingPath(MKVSettingItem):
 
 
 class MKVSettingColor(MKVSettingItem):
-    """Implementation of a color setting on top of a :class:`MDSettingItem`.
-    It is visualized with a :class:`~kivy.uix.label.Label` widget and a
-    colored canvas rectangle that, when clicked, will open a
-    :class:`~kivy.uix.popup.Popup` with a
-    :class:`~kivy.uix.colorpicker.ColorPicker` so the user can choose a color.
-
-    .. versionadded:: 2.0.1
-    """
-
     popup = ObjectProperty(None, allownone=True)
-    """(internal) Used to store the current popup when it's shown.
-
-    :attr:`popup` is an :class:`~kivy.properties.ObjectProperty` and defaults
-    to None.
-    """
 
     def on_panel(self, instance, value):
         if value is None:
@@ -373,13 +250,6 @@ class MKVSettingColor(MKVSettingItem):
 
 
 class MKVSettingNumeric(MKVSettingString):
-    """Implementation of a numeric setting on top of a :class:`MDSettingString`.
-    It is visualized with a :class:`~kivy.uix.label.Label` widget that, when
-    clicked, will open a :class:`~kivy.uix.popup.Popup` with a
-    :class:`~kivy.uix.textinput.Textinput` so the user can enter a custom
-    value.
-    """
-
     def _validate(self, instance):
         # we know the type just by checking if there is a '.' in the original
         # value
@@ -395,26 +265,8 @@ class MKVSettingNumeric(MKVSettingString):
 
 
 class MKVSettingOptions(MKVSettingItem):
-    """Implementation of an option list on top of a :class:`MDSettingItem`.
-    It is visualized with a :class:`~kivy.uix.label.Label` widget that, when
-    clicked, will open a :class:`~kivy.uix.popup.Popup` with a
-    list of options from which the user can select.
-    """
-
     options = ListProperty([])
-    """List of all availables options. This must be a list of "string" items.
-    Otherwise, it will crash. :)
-
-    :attr:`options` is a :class:`~kivy.properties.ListProperty` and defaults
-    to [].
-    """
-
     popup = ObjectProperty(None, allownone=True)
-    """(internal) Used to store the current popup when it is shown.
-
-    :attr:`popup` is an :class:`~kivy.properties.ObjectProperty` and defaults
-    to None.
-    """
 
     def on_panel(self, instance, value):
         if value is None:
@@ -457,31 +309,14 @@ class MKVSettingOptions(MKVSettingItem):
 
 
 class MKVSettingTitle(MDBoxLayout):
-    """A simple title label, used to organize the settings in sections."""
-
     title = StringProperty()
     panel = ObjectProperty(None)
 
 
 class MKVSettingsPanel(MDGridLayout):
-    """This class is used to construct panel settings, for use with a
-    :class:`MDSettings` instance or subclass.
-    """
-
     title = StringProperty("Default title")
-    """Title of the panel. The title will be reused by the :class:`MDSettings` in
-    the sidebar.
-    """
-
     config = ObjectProperty(None, allownone=True)
-    """A :class:`kivy.utils.ConfigParser` instance. See module documentation
-    for more information.
-    """
-
     settings = ObjectProperty(None)
-    """A :class:`MDSettings` instance that will be used to fire the
-    `on_config_change` event.
-    """
 
     def __init__(self, **kwargs):
         kwargs.setdefault("cols", 1)
@@ -505,36 +340,8 @@ class MKVSettingsPanel(MDGridLayout):
 
 
 class MKVInterfaceWithSidebar(MDBoxLayout):
-    """The default MDSettings interface class. It displays a sidebar menu
-    with names of available settings panels, which may be used to switch
-    which one is currently displayed.
-
-    See :meth:`~MDInterfaceWithSidebar.add_panel` for information on the
-    method you must implement if creating your own interface.
-
-    This class also dispatches an event 'on_close', which is triggered
-    when the sidebar menu's close button is released. If creating your
-    own interface widget, it should also dispatch such an event which
-    will automatically be caught by :class:`MDSettings` and used to
-    trigger its own 'on_close' event.
-
-    """
-
     menu = ObjectProperty()
-    """(internal) A reference to the sidebar menu widget.
-
-    :attr:`menu` is an :class:`~kivy.properties.ObjectProperty` and
-    defaults to None.
-    """
-
     content = ObjectProperty()
-    """(internal) A reference to the panel display widget (a
-    :class:`ContentPanel`).
-
-    :attr:`content` is an :class:`~kivy.properties.ObjectProperty` and
-    defaults to None.
-
-    """
 
     __events__ = ("on_close",)
 
@@ -567,137 +374,21 @@ class MKVInterfaceWithSidebar(MDBoxLayout):
         pass
 
 
-# class MDInterfaceWithSpinner(MDBoxLayout):
-#     """A settings interface that displays a spinner at the top for
-#     switching between panels.
-#
-#     The workings of this class are considered internal and are not
-#     documented. See :meth:`MDInterfaceWithSidebar` for
-#     information on implementing your own interface class.
-#
-#     """
-#
-#     __events__ = ("on_close",)
-#
-#     menu = ObjectProperty()
-#     """(internal) A reference to the sidebar menu widget.
-#
-#     :attr:`menu` is an :class:`~kivy.properties.ObjectProperty` and
-#     defaults to None.
-#     """
-#
-#     content = ObjectProperty()
-#     """(internal) A reference to the panel display widget (a
-#     :class:`ContentPanel`).
-#
-#     :attr:`menu` is an :class:`~kivy.properties.ObjectProperty` and
-#     defaults to None.
-#
-#     """
-#
-#     def __init__(self, *args, **kwargs):
-#         super(MDInterfaceWithSpinner, self).__init__(*args, **kwargs)
-#         self.menu.close_button.bind(on_release=lambda j: self.dispatch("on_close"))
-#
-#     def add_panel(self, panel, name, uid):
-#         """This method is used by MDSettings to add new panels for possible
-#         display. Any replacement for ContentPanel *must* implement
-#         this method.
-#
-#         :Parameters:
-#             `panel`: :class:`MDSettingsPanel`
-#                 It should be stored and the interface should provide a way to
-#                 switch between panels.
-#             `name`:
-#                 The name of the panel as a string. It may be used to represent
-#                 the panel but may not be unique.
-#             `uid`:
-#                 A unique int identifying the panel. It should be used to
-#                 identify and switch between panels.
-#
-#         """
-#         self.content.add_panel(panel, name, uid)
-#         self.menu.add_item(name, uid)
-#
-#     def on_close(self, *args):
-#         pass
-
-
-class MKVContentPanel(MVCScrollView):
-    """A class for displaying settings panels. It displays a single
-    settings panel at a time, taking up the full size and shape of the
-    ContentPanel. It is used by :class:`MDInterfaceWithSidebar` and
-    :class:`MDInterfaceWithSpinner` to display settings.
-
-    """
-
+class MKVContentPanel(MKVScrollView):
     panels = DictProperty({})
-    """(internal) Stores a dictionary mapping settings panels to their uids.
-
-    :attr:`panels` is a :class:`~kivy.properties.DictProperty` and
-    defaults to {}.
-
-    """
-
     container = ObjectProperty()
-    """(internal) A reference to the GridLayout that contains the
-    settings panel.
-
-    :attr:`container` is an :class:`~kivy.properties.ObjectProperty` and
-    defaults to None.
-
-    """
-
     current_panel = ObjectProperty(None)
-    """(internal) A reference to the current settings panel.
-
-    :attr:`current_panel` is an :class:`~kivy.properties.ObjectProperty` and
-    defaults to None.
-
-    """
-
     current_uid = NumericProperty(0)
-    """(internal) A reference to the uid of the current settings panel.
-
-    :attr:`current_uid` is a
-    :class:`~kivy.properties.NumericProperty` and defaults to 0.
-
-    """
 
     def __init__(self, *args, ignore_parent_mvc=True, **kwargs):
         super().__init__(*args, ignore_parent_mvc=ignore_parent_mvc, **kwargs)
 
     def add_panel(self, panel, name, uid):
-        """This method is used by MDSettings to add new panels for possible
-        display. Any replacement for ContentPanel *must* implement
-        this method.
-
-        :Parameters:
-            `panel`: :class:`MDSettingsPanel`
-                It should be stored and displayed when requested.
-            `name`:
-                The name of the panel as a string. It may be used to represent
-                the panel.
-            `uid`:
-                A unique int identifying the panel. It should be stored and
-                used to identify panels when switching.
-
-        """
         self.panels[uid] = panel
         if not self.current_uid:
             self.current_uid = uid
 
     def on_current_uid(self, *args):
-        """The uid of the currently displayed panel. Changing this will
-        automatically change the displayed panel.
-
-        :Parameters:
-            `uid`:
-                A panel uid. It should be used to retrieve and display
-                a settings panel that has previously been added with
-                :meth:`add_panel`.
-
-        """
         uid = self.current_uid
         if uid in self.panels:
             if self.current_panel is not None:
@@ -719,45 +410,8 @@ class MKVContentPanel(MVCScrollView):
 
 
 class MKVSettings(MDBoxLayout):
-    """MDSettings UI. Check module documentation for more information on how
-    to use this class.
-
-    :Events:
-        `on_config_change`: ConfigParser instance, section, key, value
-            Fired when the section's key-value pair of a ConfigParser changes.
-
-            .. warning:
-
-                value will be str/unicode type, regardless of the setting
-                type (numeric, boolean, etc)
-        `on_close`
-            Fired by the default panel when the Close button is pressed.
-
-    """
-
     interface = ObjectProperty(None)
-    """(internal) Reference to the widget that will contain, organise and
-    display the panel configuration panel uix.
-
-    :attr:`interface` is an :class:`~kivy.properties.ObjectProperty` and
-    defaults to None.
-
-    """
-
     interface_cls = ObjectProperty(MKVInterfaceWithSidebar)
-    """The widget class that will be used to display the graphical
-    interface for the settings panel. By default, it displays one MDSettings
-    panel at a time with a sidebar to switch between them.
-
-    :attr:`interface_cls` is an
-    :class:`~kivy.properties.ObjectProperty` and defaults to
-    :class:`MDInterfaceWithSidebar`.
-
-    .. versionchanged:: 1.8.0
-        If you set a string, the :class:`~kivy.factory.Factory` will be used to
-        resolve the class.
-
-    """
 
     NO_PROPERTY_CLASSES = [MKVSettingButton, MKVSettingTitle]
 
@@ -783,15 +437,9 @@ class MKVSettings(MDBoxLayout):
             return True
 
     def register_type(self, tp, cls):
-        """Register a new type that can be used in the JSON definition."""
         self._types[tp] = cls
 
     def add_interface(self):
-        """(Internal) creates an instance of :attr:`MDSettings.interface_cls`,
-        and sets it to :attr:`~MDSettings.interface`. When json panels are
-        created, they will be added to this interface which will display them
-        to the user.
-        """
         cls = self.interface_cls
         if isinstance(cls, string_types):
             cls = Factory.get(cls)
@@ -801,8 +449,6 @@ class MKVSettings(MDBoxLayout):
         self.interface.bind(on_close=lambda j: self.dispatch("on_close"))
 
     def create_panel(self, title: str, data: list) -> MKVSettingsPanel:
-        """Create new :class:`MDSettingsPanel`"""
-
         panel = MKVSettingsPanel(title=title, settings=self)
 
         for setting in data:
@@ -874,168 +520,23 @@ class MKVSettingsWithSidebar(MKVSettings):
     pass
 
 
-# class MDSettingsWithSpinner(MDSettings):
-#     """A settings widget that displays one settings panel at a time with a
-#     spinner at the top to switch between them.
-#
-#     """
-#
-#     def __init__(self, *args, **kwargs):
-#         self.interface_cls = MDInterfaceWithSpinner
-#         super(MDSettingsWithSpinner, self).__init__(*args, **kwargs)
-
-
-# class MDSettingsWithTabbedPanel(MDSettings):
-#     """A settings widget that displays settings panels as pages in a
-#     :class:`~kivy.uix.tabbedpanel.TabbedPanel`.
-#     """
-#
-#     __events__ = ("on_close",)
-#
-#     def __init__(self, *args, **kwargs):
-#         self.interface_cls = MDInterfaceWithTabbedPanel
-#         super(MDSettingsWithTabbedPanel, self).__init__(*args, **kwargs)
-#
-#     def on_close(self, *args):
-#         pass
-
-
 class MKVSettingsWithNoMenu(MKVSettings):
-    """A settings widget that displays a single settings panel with *no*
-    Close button. It will not accept more than one MDSettings panel. It
-    is intended for use in programs with few enough settings that a
-    full panel switcher is not useful.
-
-    .. warning::
-
-        This MDSettings panel does *not* provide a Close
-        button, and so it is impossible to leave the settings screen
-        unless you also add other behavior or override
-        :meth:`~kivy.app.App.display_settings` and
-        :meth:`~kivy.app.App.close_settings`.
-
-    """
-
     def __init__(self, *args, **kwargs):
         self.interface_cls = MKVInterfaceWithNoMenu
         super(MKVSettingsWithNoMenu, self).__init__(*args, **kwargs)
 
 
 class MKVInterfaceWithNoMenu(MKVContentPanel):
-    """The interface widget used by :class:`MDSettingsWithNoMenu`. It
-    stores and displays a single settings panel.
-
-    This widget is considered internal and is not documented. See the
-    :class:`ContentPanel` for information on defining your own content
-    widget.
-
-    """
-
     def add_widget(self, *args, **kwargs):
         if self.container is not None and len(self.container.children) > 0:
             raise Exception("ContentNoMenu cannot accept more than one settings panel")
         super(MKVInterfaceWithNoMenu, self).add_widget(*args, **kwargs)
 
 
-# class MDInterfaceWithTabbedPanel(MDFloatLayout):
-#     """The content widget used by :class:`MDSettingsWithTabbedPanel`. It
-#     stores and displays MDSettings panels in tabs of a TabbedPanel.
-#
-#     This widget is considered internal and is not documented. See
-#     :class:`MDInterfaceWithSidebar` for information on defining your own
-#     interface widget.
-#
-#     """
-#
-#     tabbedpanel = ObjectProperty()
-#     close_button = ObjectProperty()
-#
-#     __events__ = ("on_close",)
-#
-#     def __init__(self, *args, **kwargs):
-#         super(MDInterfaceWithTabbedPanel, self).__init__(**kwargs)
-#         self.close_button.bind(on_release=lambda j: self.dispatch("on_close"))
-#
-#     def add_panel(self, panel, name, uid):
-#         scrollview = MVCScrollView()
-#         scrollview.add_widget(panel)
-#         if not self.tabbedpanel.default_tab_content:
-#             self.tabbedpanel.default_tab_text = name
-#             self.tabbedpanel.default_tab_content = scrollview
-#         else:
-#             panelitem = TabbedPanelHeader(text=name, content=scrollview)
-#             self.tabbedpanel.add_widget(panelitem)
-#
-#     def on_close(self, *args):
-#         pass
-
-
-# class MDMenuSpinner(MDBoxLayout):
-#     """The menu class used by :class:`MDSettingsWithSpinner`. It provides a
-#     sidebar with an entry for each settings panel.
-#
-#     This widget is considered internal and is not documented. See
-#     :class:`MenuSidebar` for information on menus and creating your own menu
-#     class.
-#
-#     """
-#
-#     selected_uid = NumericProperty(0)
-#     close_button = ObjectProperty(0)
-#     spinner = ObjectProperty()
-#     panel_names = DictProperty({})
-#     spinner_text = StringProperty()
-#
-#     def add_item(self, name, uid):
-#         values = self.spinner.values
-#         if name in values:
-#             i = 2
-#             while name + " {}".format(i) in values:
-#                 i += 1
-#             name = name + " {}".format(i)
-#         self.panel_names[name] = uid
-#         self.spinner.values.append(name)
-#         if not self.spinner.text:
-#             self.spinner.text = name
-#
-#     def on_spinner_text(self, *args):
-#         text = self.spinner_text
-#         self.selected_uid = self.panel_names[text]
-
-
 class MKVMenuSidebar(MDFloatLayout):
-    """The menu used by :class:`MDInterfaceWithSidebar`. It provides a
-    sidebar with an entry for each settings panel, which the user may
-    click to select.
-
-    """
-
     selected_uid = NumericProperty(0)
-    """The uid of the currently selected panel. This may be used to switch
-    between displayed panels, e.g. by binding it to the
-    :attr:`~ContentPanel.current_uid` of a :class:`ContentPanel`.
-
-    :attr:`selected_uid` is a
-    :class:`~kivy.properties.NumericProperty` and defaults to 0.
-
-    """
-
     buttons_layout = ObjectProperty(None)
-    """(internal) Reference to the GridLayout that contains individual
-    settings panel menu buttons.
-
-    :attr:`buttons_layout` is an
-    :class:`~kivy.properties.ObjectProperty` and defaults to None.
-
-    """
-
     close_button = ObjectProperty(None)
-    """(internal) Reference to the widget's Close button.
-
-    :attr:`buttons_layout` is an
-    :class:`~kivy.properties.ObjectProperty` and defaults to None.
-
-    """
 
     def add_item(self, name, uid):
         """This method is used to add new panels to the menu.
@@ -1058,10 +559,6 @@ class MKVMenuSidebar(MDFloatLayout):
             self.buttons_layout.add_widget(label)
 
     def on_selected_uid(self, *args):
-        """(internal) unselects any currently selected menu buttons, unless
-        they represent the current panel.
-
-        """
         for button in self.buttons_layout.children:
             if button.uid != self.selected_uid:
                 button.selected = False
@@ -1078,21 +575,6 @@ class MKVSettingSidebarLabel(MDLabel):
             return
         self.selected = True
         self.menu.selected_uid = self.uid
-
-
-# class MDSettingsCloseButton(MDIconButton, CommonElevationBehavior):
-#     def on_enter(self):
-#         super().on_enter()
-#         self.md_bg_color = "grey"
-#         self.icon_color = "black"
-#
-#     def on_leave(self):
-#         super().on_leave()
-#         self.md_bg_color = "black"
-#         self.icon_color = "white"
-
-
-# Диалоги (визуал — в .kv)
 
 
 class StringValueDialog(MKVDialog):

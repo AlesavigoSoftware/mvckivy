@@ -23,8 +23,8 @@ from kivymd.uix.dropdownitem import (  # noqa: F401 - register in Factory
 
 import logging
 
-from mvckivy.base_mvc import BaseScreen
-from mvckivy.base_mvc.base_app_screen import BaseAppScreen
+from mvckivy.mvc_base import BaseScreen
+from mvckivy.mvc_base.base_app_screen import BaseAppScreen
 
 logger = logging.getLogger("swap_card")
 if not logger.handlers:

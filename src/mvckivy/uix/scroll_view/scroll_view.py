@@ -1,10 +1,14 @@
 from kivy.metrics import sp
-from kivymd.uix.scrollview import MDScrollView
+from kivy.uix.scrollview import ScrollView
+from kivymd.uix.behaviors import BackgroundColorBehavior
 
-from mvckivy.uix.behaviors import InputModeBehavior, MVCBehavior
+from mvckivy.uix.behaviors import MVCBehavior, MKVAdaptiveBehavior
+from mvckivy.uix.behaviors.declarative_behavior import DeclarativeBehavior
 
 
-class MVCScrollView(MDScrollView, InputModeBehavior, MVCBehavior):
+class MKVScrollView(
+    DeclarativeBehavior, BackgroundColorBehavior, MKVAdaptiveBehavior, ScrollView
+):
     def __init__(
         self, *args, scroll_wheel_distance=sp(60), do_scroll_x=False, **kwargs
     ):
@@ -20,3 +24,7 @@ class MVCScrollView(MDScrollView, InputModeBehavior, MVCBehavior):
 
     def on_mouse_input(self):
         self.scroll_type = ["bars"]
+
+
+class MVCScrollView(MVCBehavior, MKVScrollView):
+    pass

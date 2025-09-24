@@ -3,7 +3,7 @@ from kivymd.uix.screenmanager import MDScreenManager
 from kivymd.uix.transition.transition import MDTransitionBase
 
 
-class ConfiguredScreenManager(MDScreenManager):
+class MKVScreenManager(MDScreenManager):
     def check_transition(self, *args) -> None:
         if not issubclass(self.transition.__class__, MDTransitionBase):
             logger.warning(

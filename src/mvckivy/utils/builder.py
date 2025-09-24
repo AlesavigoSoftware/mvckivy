@@ -109,7 +109,7 @@ class MVCBuilder(BuilderBase):
                 logger.error(f"{mode.capitalize()} failed for {kv_file}: {exc}")
 
     @classmethod
-    def load_all_kv_files(
+    def load_kv_files(
         cls,
         path: Union[str, Path, PathItem],
         directory_filters: Iterable[str | Path | PathItem] | None = None,
@@ -132,7 +132,7 @@ class MVCBuilder(BuilderBase):
         )
 
     @classmethod
-    def unload_all_kv_files(
+    def unload_kv_files(
         cls,
         path: Union[str, Path, PathItem],
         directory_filters: Iterable[str | Path | PathItem] | None = None,
@@ -287,4 +287,4 @@ class MVCBuilder(BuilderBase):
         Register the MVCKivy files for the application.
         This function is called to ensure that all necessary MVCKivy files are loaded.
         """
-        cls.load_all_kv_files(PathItem(Path(__file__).parents[1]))
+        cls.load_kv_files(PathItem(Path(__file__).parents[1]))

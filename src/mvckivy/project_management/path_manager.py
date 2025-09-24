@@ -1,11 +1,10 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Union
 
 
 class PathItem:
-    def __init__(self, path: Union[str, Path, PathItem]):
+    def __init__(self, path: str | Path | PathItem):
         self._path: Path = path.path() if isinstance(path, PathItem) else Path(path)
 
     def __str__(self) -> str:
@@ -17,7 +16,7 @@ class PathItem:
     def path(self) -> Path:
         return self._path
 
-    def join(self, *args: Union[str, Path, PathItem]) -> PathItem:
+    def join(self, *args: str | Path | PathItem) -> PathItem:
         args = [arg.path() if isinstance(arg, PathItem) else Path(arg) for arg in args]
         new_path = self._path.joinpath(*args)
         return PathItem(new_path)
@@ -35,13 +34,13 @@ class MVCPathManager:
     folder structure names.
     """
 
-    def __init__(self, proj_root: Union[str, Path, PathItem]):
+    def __init__(self, proj_root: str | Path | PathItem):
         self._proj_dir: PathItem = (
             proj_root if isinstance(proj_root, PathItem) else PathItem(proj_root)
         )
 
     @classmethod
-    def join_paths(cls, *args: Union[Path, str, PathItem]) -> PathItem:
+    def join_paths(cls, *args: Path | str | PathItem) -> PathItem:
         args = [arg.path() if isinstance(arg, PathItem) else Path(arg) for arg in args]
         return PathItem(Path().joinpath(*args))
 

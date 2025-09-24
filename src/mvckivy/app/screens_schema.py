@@ -6,7 +6,7 @@ from typing import NotRequired, TypedDict, TYPE_CHECKING
 from mvckivy.project_management import PathItem
 
 if TYPE_CHECKING:
-    from mvckivy.base_mvc import BaseModel, BaseController, BaseScreen
+    from mvckivy.mvc_base import BaseModel, BaseController, BaseScreen
     from mvckivy.app import MVCApp
 
 

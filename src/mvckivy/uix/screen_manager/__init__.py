@@ -1,1 +1,1 @@
-from .screen_manager import ConfiguredScreenManager
+from .screen_manager import MKVScreenManager

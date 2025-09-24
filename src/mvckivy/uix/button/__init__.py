@@ -1,1 +1,1 @@
-from .icon_button import AutoResizeMDIconButton
+from .auto_resize_icon_button import AutoResizeMDIconButton

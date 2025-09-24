@@ -1,21 +1,13 @@
 <MKVList>
     cols: 1
     adaptive_height: True
-    padding: 0, self._list_vertical_padding
+    padding: self.alias_padding
 
 
-<MKVListItem>
+<MKVBaseListItem>
     size_hint_y: None
-    spacing: "16dp"
-    padding:
-        "16dp", \
-        "12dp" if len(text_container.children) == 3 else "8dp", \
-        "24dp", \
-        "12dp" if len(text_container.children) == 3 else "8dp"
-    md_bg_color:
-        self.theme_cls.surfaceColor \
-        if self.theme_bg_color == "Primary" else \
-        self.md_bg_color
+    spacing: self.alias_spacing
+    md_bg_color: self.alias_md_bg_color
     height:
         { \
         0: "100dp", \
@@ -24,10 +16,10 @@
         3: "88dp", \
         } \
         [len(text_container.children)]
-    on_disabled:
-        if leading_container.children: \
-        leading_container.children[0].disabled = args[1]
 
+
+<MKVListItem>
+    padding: self.alias_padding
     leading_container: leading_container
     text_container: text_container
     trailing_container: trailing_container

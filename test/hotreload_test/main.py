@@ -2,10 +2,10 @@ import trio
 
 from mvckivy.app import ScreenRegistrator
 from mvckivy.app.screens_schema import AppSchema
-from mvckivy.base_mvc import BaseModel, BaseController, BaseScreen
-from mvckivy.base_mvc.base_app_controller import BaseAppController
-from mvckivy.base_mvc.base_app_model import BaseAppModel
-from mvckivy.base_mvc.base_app_screen import BaseAppScreen
+from mvckivy.mvc_base import BaseModel, BaseController, BaseScreen
+from mvckivy.mvc_base.base_app_controller import BaseAppController
+from mvckivy.mvc_base.base_app_model import BaseAppModel
+from mvckivy.mvc_base.base_app_screen import BaseAppScreen
 from mvckivy.hotreload_app import MVCDebugApp
 from mvckivy.utils.hot_reload_utils import HotReloadConfig
 

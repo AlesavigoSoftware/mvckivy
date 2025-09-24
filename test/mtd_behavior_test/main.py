@@ -6,7 +6,10 @@ from kivy.clock import Clock
 from kivy.lang import Builder
 
 from mvckivy.app import MKVApp
-from mvckivy.uix.behaviors.mtd_behavior import MTDWidget, MTDBuilder, MTDProfile
+from mvckivy.uix.behaviors.adaptive_behavior import (
+    DeviceProfile,
+)
+from mvckivy.uix.layout.responsive_layout import MKVResponsiveLayout, MTDWidget
 
 
 def pump_frames(n: int = 3) -> None:
@@ -28,8 +31,8 @@ class UITestApp(MKVApp):
 
 
 KV_BASE = r"""
-#:import MTDWidget mvckivy.uix.behaviors.mtd_behavior.MTDWidget
-#:import MTDBuilder mvckivy.uix.behaviors.mtd_behavior.MTDBuilder
+#:import MTDWidget mvckivy.uix.layout.responsive_layout.MTDWidget
+#:import MKVResponsiveLayout mvckivy.uix.layout.responsive_layout.MKVResponsiveLayout
 
 # Специфичный под mobile+portrait
 <MP@MTDWidget+Widget>:
@@ -88,7 +91,7 @@ class TestSingleInterfaceWidgetEvents(unittest.TestCase):
         kv = (
             KV_BASE
             + r"""
-MTDBuilder:
+MKVResponsiveLayout:
     id: builder
 """
         )
@@ -97,7 +100,7 @@ MTDBuilder:
         pump_frames()
 
     def test_on_add_remove_interface_events(self):
-        builder: MTDBuilder = self.root
+        builder: MKVResponsiveLayout = self.root
         events = {"added": 0, "removed": 0}
 
         def on_add(_inst, child):
@@ -119,30 +122,30 @@ MTDBuilder:
         self.assertEqual(2, events["removed"])
 
 
-class TestMTDBuilderFromKV(unittest.TestCase):
+class TestMKVResponsiveLayoutFromKV(unittest.TestCase):
     def setUp(self) -> None:
         # Корневой билдер + кандидаты через KV
         kv = (
             KV_BASE
             + r"""
-MTDBuilder:
+MKVResponsiveLayout:
     id: builder
-    # Регистрируем кандидатов (без render) — MTDBuilder.add_widget перехватит и НЕ добавит в children.
+    # Регистрируем кандидатов (без render) — MKVResponsiveLayout.add_widget перехватит и НЕ добавит в children.
     Generic:
     MAny:
     MP:
 """
         )
         self.app = UITestApp(kv)
-        self.root: MTDBuilder = self.app.build()
+        self.root: MKVResponsiveLayout = self.app.build()
         pump_frames()
 
     def test_candidates_registered_and_best_selected(self):
-        builder: MTDBuilder = self.root
+        builder: MKVResponsiveLayout = self.root
 
         # Первичное переключение: руками шлём профиль (на реальных событиях это сделает ваш MTDBehavior)
         builder.on_profile(
-            MTDProfile(device_type="mobile", device_orientation="portrait")
+            DeviceProfile(device_type="mobile", device_orientation="portrait")
         )
         pump_frames()
 
@@ -153,14 +156,14 @@ MTDBuilder:
 
         # Перебросим в mobile+landscape — останется MAny (т.к. портретный MP больше не подходит)
         builder.on_profile(
-            MTDProfile(device_type="mobile", device_orientation="landscape")
+            DeviceProfile(device_type="mobile", device_orientation="landscape")
         )
         pump_frames()
         self.assertEqual(builder._interface.__class__.__name__, "MAny")
 
         # Перебросим в desktop — останется Generic
         builder.on_profile(
-            MTDProfile(device_type="desktop", device_orientation="landscape")
+            DeviceProfile(device_type="desktop", device_orientation="landscape")
         )
         pump_frames()
         self.assertEqual(builder._interface.__class__.__name__, "Generic")
@@ -170,7 +173,7 @@ MTDBuilder:
         kv = (
             KV_BASE
             + r"""
-MTDBuilder:
+MKVResponsiveLayout:
     id: builder
     Generic:
     AlienPlat:   # d_plat = ["zzz_nonexistent_platform"] -> будет отфильтрован при регистрации
@@ -178,11 +181,13 @@ MTDBuilder:
 """
         )
         app = UITestApp(kv)
-        root: MTDBuilder = app.build()
+        root: MKVResponsiveLayout = app.build()
         pump_frames()
 
         # Пробуем выбрать mobile+portrait: доступен MP (платформа «чужого» варианта отфильтрована)
-        root.on_profile(MTDProfile(device_type="mobile", device_orientation="portrait"))
+        root.on_profile(
+            DeviceProfile(device_type="mobile", device_orientation="portrait")
+        )
         pump_frames()
         self.assertEqual(root._interface.__class__.__name__, "MP")
 
@@ -191,7 +196,7 @@ MTDBuilder:
         kv = (
             KV_BASE
             + r"""
-MTDBuilder:
+MKVResponsiveLayout:
     id: builder
     # Заведомо неподходящие кандидаты для desktop+portrait
     MAny:
@@ -199,11 +204,11 @@ MTDBuilder:
 """
         )
         app = UITestApp(kv)
-        root: MTDBuilder = app.build()
+        root: MKVResponsiveLayout = app.build()
         pump_frames()
 
         root.on_profile(
-            MTDProfile(device_type="desktop", device_orientation="portrait")
+            DeviceProfile(device_type="desktop", device_orientation="portrait")
         )
         pump_frames()
 
@@ -218,7 +223,7 @@ class TestTieBreakRegistrationOrder(unittest.TestCase):
         kv = (
             KV_BASE
             + r"""
-MTDBuilder:
+MKVResponsiveLayout:
     id: builder
     Generic:
     MAnyA:
@@ -226,12 +231,12 @@ MTDBuilder:
 """
         )
         self.app = UITestApp(kv)
-        self.root: MTDBuilder = self.app.build()
+        self.root: MKVResponsiveLayout = self.app.build()
         pump_frames()
 
     def test_late_registration_wins_on_equal_specificity(self):
         self.root.on_profile(
-            MTDProfile(device_type="mobile", device_orientation="portrait")
+            DeviceProfile(device_type="mobile", device_orientation="portrait")
         )
         pump_frames()
         # При равной специфичности должен победить более поздний (MAnyB)

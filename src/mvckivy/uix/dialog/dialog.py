@@ -17,10 +17,10 @@ from kivymd.uix.behaviors import MotionDialogBehavior
 from kivymd.uix.card import MDCard
 from kivymd.uix.label import MDIcon, MDLabel
 
-from mvckivy.uix.behaviors import MTDBehavior
+from mvckivy.uix.behaviors import MKVAdaptiveBehavior
 
 
-class MKVDialog(MDCard, MotionDialogBehavior, MTDBehavior):
+class MKVDialog(MDCard, MotionDialogBehavior, MKVAdaptiveBehavior):
     __events__ = ("on_pre_open", "on_open", "on_pre_dismiss", "on_dismiss")
 
     width_offset = NumericProperty(dp(48))

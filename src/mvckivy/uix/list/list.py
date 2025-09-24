@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Self
+
 from kivy.logger import Logger
 from kivy.clock import Clock
 from kivy.properties import (
@@ -7,9 +9,11 @@ from kivy.properties import (
     ObjectProperty,
     BooleanProperty,
     ColorProperty,
+    AliasProperty,
 )
 from kivy.uix.behaviors import ButtonBehavior
 from kivy.uix.boxlayout import BoxLayout
+from kivy.metrics import dp
 
 from kivymd.uix.selectioncontrol import MDCheckbox
 from kivymd.theming import ThemableBehavior
@@ -25,9 +29,27 @@ from kivymd.uix.gridlayout import MDGridLayout
 from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.label import MDLabel, MDIcon
 
+from mvckivy.properties.dedupe_mixin import KVDedupeMixin
+from mvckivy.properties.extended_alias_property import ExtendedAliasProperty
+from mvckivy.properties.null_dispatcher import create_null_dispatcher
+from mvckivy.utils.constants import DENSITY
+
 
 class MKVList(MDGridLayout):
-    _list_vertical_padding = NumericProperty("8dp")
+    density = NumericProperty(0)
+
+    def _get_alias_padding(self) -> list:
+        return self._calc_alias_padding()
+
+    def _calc_alias_padding(self) -> list[float]:
+        return [
+            0,
+            dp(8) + DENSITY.get(self.density, dp(0)),
+        ]
+
+    alias_padding = AliasProperty(
+        _get_alias_padding, None, bind=["density"], cache=True, rebind=False
+    )
 
 
 class MKVBaseListItem(
@@ -38,60 +60,80 @@ class MKVBaseListItem(
     ThemableBehavior,
     StateLayerBehavior,
 ):
+    __kv_dedupe_targets__ = ("spacing", "padding", "md_bg_color", "height")
 
+    density = NumericProperty(0)
     use_divider = BooleanProperty(False)
     divider_color = ColorProperty(None)
     md_bg_color_disabled = ColorProperty(None)
 
+    def _get_alias_spacing(self) -> float:
+        return self._calc_alias_spacing()
 
-class MKVBaseListItemText(MDLabel):
-    pass
+    def _calc_alias_spacing(self) -> float:
+        return dp(16) + DENSITY.get(self.density, dp(0))
 
+    alias_spacing = AliasProperty(
+        _get_alias_spacing, None, bind=["density"], cache=True, rebind=False
+    )
 
-class MKVBaseListItemIcon(MDIcon):
-    icon_color = ColorProperty(None)
-    icon_color_disabled = ColorProperty(None)
+    def _get_md_bg_color(self) -> list:
+        return self._calc_md_bg_color()
 
+    def _calc_md_bg_color(self) -> list[float]:
+        if self.theme_bg_color == "Primary":
+            return self.theme_cls.surfaceColor
+        else:
+            return self.md_bg_color
 
-class MKVListItemHeadlineText(MKVBaseListItemText):
-    pass
-
-
-class MKVListItemSupportingText(MKVBaseListItemText):
-    pass
-
-
-class MKVListItemTertiaryText(MKVBaseListItemText):
-    pass
-
-
-class MKVListItemTrailingSupportingText(MKVBaseListItemText):
-    pass
-
-
-class MKVListItemLeadingIcon(MKVBaseListItemIcon):
-    pass
+    alias_md_bg_color = ExtendedAliasProperty(
+        _get_md_bg_color,
+        None,
+        bind=["md_bg_color", "theme_bg_color", "theme_cls.surfaceColor"],
+        cache=True,
+        rebind=False,
+    )
 
 
-class MKVListItemLeadingAvatar(
-    ThemableBehavior, CircularRippleBehavior, ButtonBehavior, FitImage
-):
-    pass
-    _list_item = ObjectProperty()
+class MKVListItem(KVDedupeMixin, MKVBaseListItem, BoxLayout):
+    def _get_alias_padding(self) -> list:
+        return self._calc_alias_padding()
 
+    def _calc_alias_padding(self) -> list[float]:
 
-class MKVListItemTrailingIcon(MKVBaseListItemIcon):
-    pass
+        if len(self.text_container.children) == 3:
+            v_pad = dp(12)
+        else:
+            v_pad = dp(8)
 
+        return [
+            dp(16) + DENSITY.get(self.density, dp(0)),
+            v_pad + DENSITY.get(self.density, dp(0)),
+            dp(24) + DENSITY.get(self.density, dp(0)),
+            v_pad + DENSITY.get(self.density, dp(0)),
+        ]
 
-class MKVListItemTrailingCheckbox(MDCheckbox):
-    pass
+    alias_padding = ExtendedAliasProperty(
+        _get_alias_padding,
+        None,
+        bind=["density", "text_container.children"],
+        cache=True,
+        rebind=False,
+    )
 
+    leading_container: ObjectProperty[MDBoxLayout] = ObjectProperty(
+        rebind=True, cache=True
+    )
+    text_container: ObjectProperty[MDBoxLayout] = ObjectProperty(
+        create_null_dispatcher(children=[]), rebind=True, cache=True
+    )
+    trailing_container: ObjectProperty[MDBoxLayout] = ObjectProperty(
+        rebind=True, cache=True
+    )
 
-class MKVListItem(MKVBaseListItem, BoxLayout):
-    leading_container: ObjectProperty[MDBoxLayout] = ObjectProperty()
-    text_container: ObjectProperty[MDBoxLayout] = ObjectProperty()
-    trailing_container: ObjectProperty[MDBoxLayout] = ObjectProperty()
+    def on_disabled(self, instance: Self, value: bool) -> None:
+        if self.leading_container.children:
+            self.leading_container.children[0].disabled = value
 
     def add_widget(self, widget, *args, **kwargs):
         if isinstance(
@@ -143,3 +185,46 @@ class MKVListItem(MKVBaseListItem, BoxLayout):
 
     def _set_with_container(self, container, widget):
         container.width = widget.width
+
+
+class MKVBaseListItemText(MDLabel):
+    pass
+
+
+class MKVBaseListItemIcon(MDIcon):
+    icon_color = ColorProperty(None)
+    icon_color_disabled = ColorProperty(None)
+
+
+class MKVListItemHeadlineText(MKVBaseListItemText):
+    pass
+
+
+class MKVListItemSupportingText(MKVBaseListItemText):
+    pass
+
+
+class MKVListItemTertiaryText(MKVBaseListItemText):
+    pass
+
+
+class MKVListItemTrailingSupportingText(MKVBaseListItemText):
+    pass
+
+
+class MKVListItemLeadingIcon(MKVBaseListItemIcon):
+    pass
+
+
+class MKVListItemLeadingAvatar(
+    ThemableBehavior, CircularRippleBehavior, ButtonBehavior, FitImage
+):
+    _list_item = ObjectProperty()
+
+
+class MKVListItemTrailingIcon(MKVBaseListItemIcon):
+    pass
+
+
+class MKVListItemTrailingCheckbox(MDCheckbox):
+    pass

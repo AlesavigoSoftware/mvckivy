@@ -1,9 +1,11 @@
+from typing import Callable
+
+from kivy.app import App
 from kivy.clock import Clock
 from kivy.core.window import Window
 from kivy.metrics import dp
 from kivy.properties import NumericProperty, BooleanProperty
-from kivymd.app import MDApp
-from typing import Callable
+
 from kivymd.uix.menu import MDDropdownMenu
 from kivymd.uix.menu.menu import (
     MDDropdownLeadingIconItem,
@@ -16,56 +18,50 @@ from kivymd.uix.menu.menu import (
     MDDropdownLeadingTrailingIconItem,
 )
 
-from mvckivy import MenuItemHoverBehavior
+from mvckivy.uix.behaviors.hover_behavior import MenuItemHoverBehavior
 
 
-class CoverageMDDropdownTextItem(MDDropdownTextItem, MenuItemHoverBehavior):
+class MKVDropdownTextItem(MDDropdownTextItem, MenuItemHoverBehavior):
     pass
 
 
-class CoverageMDDropdownLeadingIconItem(
-    MDDropdownLeadingIconItem, MenuItemHoverBehavior
-):
+class MKVDropdownLeadingIconItem(MDDropdownLeadingIconItem, MenuItemHoverBehavior):
     pass
 
 
-class CoverageMDDropdownTrailingIconItem(
-    MDDropdownTrailingIconItem, MenuItemHoverBehavior
-):
+class MKVDropdownTrailingIconItem(MDDropdownTrailingIconItem, MenuItemHoverBehavior):
     pass
 
 
-class CoverageMDDropdownTrailingIconTextItem(
+class MKVDropdownTrailingIconTextItem(
     MDDropdownTrailingIconTextItem, MenuItemHoverBehavior
 ):
     pass
 
 
-class CoverageMDDropdownTrailingTextItem(
-    MDDropdownTrailingTextItem, MenuItemHoverBehavior
-):
+class MKVDropdownTrailingTextItem(MDDropdownTrailingTextItem, MenuItemHoverBehavior):
     pass
 
 
-class CoverageMDDropdownLeadingIconTrailingTextItem(
+class MKVDropdownLeadingIconTrailingTextItem(
     MDDropdownLeadingIconTrailingTextItem, MenuItemHoverBehavior
 ):
     pass
 
 
-class CoverageMDDropdownLeadingTrailingIconTextItem(
+class MKVDropdownLeadingTrailingIconTextItem(
     MDDropdownLeadingTrailingIconTextItem, MenuItemHoverBehavior
 ):
     pass
 
 
-class CoverageMDDropdownLeadingTrailingIconItem(
+class MKVDropdownLeadingTrailingIconItem(
     MDDropdownLeadingTrailingIconItem, MenuItemHoverBehavior
 ):
     pass
 
 
-class AdaptiveMDDropdownMenu(MDDropdownMenu):
+class MKVDropdownMenu(MDDropdownMenu):
     target_width = NumericProperty(dp(240))
     item_height = NumericProperty(dp(48))
     dismiss_after_release = BooleanProperty(True)
@@ -222,13 +218,10 @@ class AdaptiveMDDropdownMenu(MDDropdownMenu):
         return wrapper
 
 
-class MenuItems(list):
-    def __init__(
-        self, *args, model=None, view=None, controller=None, screen=None, **kwargs
-    ):
+class MKVDropdownMenuItems(list):
+    def __init__(self, *args, model=None, controller=None, screen=None, **kwargs):
         super().__init__(*args)
         self.model = model
         self.controller = controller
-        self.view = view
         self.screen = screen
-        self.app = MDApp.get_running_app()
+        self.app = App.get_running_app()
