@@ -1,15 +1,14 @@
 from __future__ import annotations
 
+import logging
 from typing import Self
 
-from kivy.logger import Logger
 from kivy.clock import Clock
 from kivy.properties import (
     NumericProperty,
     ObjectProperty,
     BooleanProperty,
     ColorProperty,
-    AliasProperty,
 )
 from kivy.uix.behaviors import ButtonBehavior
 from kivy.uix.boxlayout import BoxLayout
@@ -26,33 +25,37 @@ from kivymd.uix.behaviors import (
 from kivymd.uix.behaviors.state_layer_behavior import StateLayerBehavior
 from kivymd.uix.fitimage import FitImage
 from kivymd.uix.gridlayout import MDGridLayout
-from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.label import MDLabel, MDIcon
+from kivymd.uix.divider import MDDivider
 
-from mvckivy.properties.dedupe_mixin import KVDedupeMixin
+from mvckivy.properties.alias_dedupe_mixin import AliasDedupeMixin
 from mvckivy.properties.extended_alias_property import ExtendedAliasProperty
 from mvckivy.properties.null_dispatcher import create_null_dispatcher
 from mvckivy.utils.constants import DENSITY
 
 
-class MKVList(MDGridLayout):
+logger = logging.getLogger("mvckivy")
+
+
+class MKVList(AliasDedupeMixin, MDGridLayout):
     density = NumericProperty(0)
 
-    def _get_alias_padding(self) -> list:
-        return self._calc_alias_padding()
+    def _get_alias_padding(self, prop: ExtendedAliasProperty) -> list:
+        return self._calc_alias_padding(prop)
 
-    def _calc_alias_padding(self) -> list[float]:
+    def _calc_alias_padding(self, prop: ExtendedAliasProperty) -> list[float]:
         return [
             0,
             dp(8) + DENSITY.get(self.density, dp(0)),
         ]
 
-    alias_padding = AliasProperty(
-        _get_alias_padding, None, bind=["density"], cache=True, rebind=False
+    alias_padding = ExtendedAliasProperty(
+        _get_alias_padding, None, bind=["density", "padding"], cache=True, rebind=False
     )
 
 
 class MKVBaseListItem(
+    AliasDedupeMixin,
     DeclarativeBehavior,
     BackgroundColorBehavior,
     RectangularRippleBehavior,
@@ -60,27 +63,29 @@ class MKVBaseListItem(
     ThemableBehavior,
     StateLayerBehavior,
 ):
-    __kv_dedupe_targets__ = ("spacing", "padding", "md_bg_color", "height")
-
+    HEIGHTS = {
+        0: dp(100),
+        1: dp(56),
+        2: dp(72),
+        3: dp(88),
+    }
     density = NumericProperty(0)
     use_divider = BooleanProperty(False)
-    divider_color = ColorProperty(None)
-    md_bg_color_disabled = ColorProperty(None)
 
-    def _get_alias_spacing(self) -> float:
-        return self._calc_alias_spacing()
+    def _get_alias_spacing(self, prop: ExtendedAliasProperty) -> float:
+        return self._calc_alias_spacing(prop)
 
-    def _calc_alias_spacing(self) -> float:
+    def _calc_alias_spacing(self, prop: ExtendedAliasProperty) -> float:
         return dp(16) + DENSITY.get(self.density, dp(0))
 
-    alias_spacing = AliasProperty(
-        _get_alias_spacing, None, bind=["density"], cache=True, rebind=False
+    alias_spacing = ExtendedAliasProperty(
+        _get_alias_spacing, None, bind=["density", "spacing"], cache=True, rebind=False
     )
 
-    def _get_md_bg_color(self) -> list:
-        return self._calc_md_bg_color()
+    def _get_md_bg_color(self, prop: ExtendedAliasProperty) -> list:
+        return self._calc_md_bg_color(prop)
 
-    def _calc_md_bg_color(self) -> list[float]:
+    def _calc_md_bg_color(self, prop: ExtendedAliasProperty) -> list[float]:
         if self.theme_bg_color == "Primary":
             return self.theme_cls.surfaceColor
         else:
@@ -91,15 +96,12 @@ class MKVBaseListItem(
         None,
         bind=["md_bg_color", "theme_bg_color", "theme_cls.surfaceColor"],
         cache=True,
-        rebind=False,
     )
 
+    def _get_alias_padding(self, prop: ExtendedAliasProperty) -> list:
+        return self._calc_alias_padding(prop)
 
-class MKVListItem(KVDedupeMixin, MKVBaseListItem, BoxLayout):
-    def _get_alias_padding(self) -> list:
-        return self._calc_alias_padding()
-
-    def _calc_alias_padding(self) -> list[float]:
+    def _calc_alias_padding(self, prop: ExtendedAliasProperty) -> list[float]:
 
         if len(self.text_container.children) == 3:
             v_pad = dp(12)
@@ -116,20 +118,96 @@ class MKVListItem(KVDedupeMixin, MKVBaseListItem, BoxLayout):
     alias_padding = ExtendedAliasProperty(
         _get_alias_padding,
         None,
-        bind=["density", "text_container.children"],
+        bind=["density", "text_container.children", "padding"],
         cache=True,
-        rebind=False,
     )
 
-    leading_container: ObjectProperty[MDBoxLayout] = ObjectProperty(
-        rebind=True, cache=True
+    def _get_alias_height(self, prop: ExtendedAliasProperty) -> float:
+        return self._calc_alias_height(prop)
+
+    def _calc_alias_height(self, prop: ExtendedAliasProperty) -> float:
+        return self.HEIGHTS[len(self.text_container.children)] + DENSITY.get(
+            self.density, dp(0)
+        )
+
+    alias_height = ExtendedAliasProperty(
+        _get_alias_height,
+        None,
+        bind=["density", "text_container.children", "height"],
+        cache=True,
     )
-    text_container: ObjectProperty[MDBoxLayout] = ObjectProperty(
+
+    leading_container: ObjectProperty[BoxLayout] = ObjectProperty(
         create_null_dispatcher(children=[]), rebind=True, cache=True
     )
-    trailing_container: ObjectProperty[MDBoxLayout] = ObjectProperty(
-        rebind=True, cache=True
+    text_container: ObjectProperty[BoxLayout] = ObjectProperty(
+        create_null_dispatcher(children=[]), rebind=True, cache=True
     )
+    trailing_container: ObjectProperty[BoxLayout] = ObjectProperty(
+        create_null_dispatcher(children=[]), rebind=True, cache=True
+    )
+    h_divider: ObjectProperty[MDDivider] = ObjectProperty(
+        create_null_dispatcher(divider_width=dp(1)), rebind=True, cache=True
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._trigger_layout = Clock.create_trigger(self._refresh_layout, 0)
+
+    def _refresh_layout(self, _):
+        pass
+
+    def add_widget(self, widget, *args, **kwargs):
+        if isinstance(
+            widget,
+            (
+                MKVListItemHeadlineText,
+                MKVListItemSupportingText,
+                MKVListItemTertiaryText,
+            ),
+        ):
+            self.text_container.add_widget(widget)
+
+        elif isinstance(widget, (MKVListItemLeadingIcon, MKVListItemLeadingAvatar)):
+            self.leading_container.add_widget(widget)
+
+        elif isinstance(
+            widget,
+            (
+                MKVListItemTrailingIcon,
+                MKVListItemTrailingCheckbox,
+                MKVListItemTrailingSupportingText,
+            ),
+        ):
+            self.trailing_container.add_widget(widget)
+
+        else:
+            return super().add_widget(widget)
+
+
+class MKVListItem(MKVBaseListItem, BoxLayout):
+    def on_kv_post(self, base_widget):
+        super().on_kv_post(base_widget)
+        self.leading_container.bind(children=lambda *args: self._trigger_layout())
+        self.text_container.bind(children=lambda *args: self._trigger_layout())
+        self.trailing_container.bind(children=lambda *args: self._trigger_layout())
+
+    def _refresh_layout(self, *args):
+        if self.leading_container.children:
+            self.leading_container.children[0].pos_hint = (
+                {"top": 1}
+                if len(self.text_container.children) == 3
+                else {"center_y": 0.5}
+            )
+        if self.text_container.children and self.trailing_container.children:
+            self.trailing_container.children[0].pos_hint = (
+                {"top": 1}
+                if len(self.text_container.children) == 3
+                else {"center_y": 0.5}
+            )
+
+    def on_use_divider(self, instance: Self, value: bool) -> None:
+        self.h_divider.divider_width = dp(1) if value else 0
 
     def on_disabled(self, instance: Self, value: bool) -> None:
         if self.leading_container.children:
@@ -153,7 +231,7 @@ class MKVListItem(KVDedupeMixin, MKVBaseListItem, BoxLayout):
                 widget._list_item = self
                 self.leading_container.add_widget(widget)
                 Clock.schedule_once(
-                    lambda x: self._set_with_container(self.leading_container, widget)
+                    lambda x: self._set_width_container(self.leading_container, widget)
                 )
             else:
                 self._set_warnings(widget)
@@ -168,7 +246,7 @@ class MKVListItem(KVDedupeMixin, MKVBaseListItem, BoxLayout):
             if not self.trailing_container.children:
                 self.trailing_container.add_widget(widget)
                 Clock.schedule_once(
-                    lambda x: self._set_with_container(self.trailing_container, widget)
+                    lambda x: self._set_width_container(self.trailing_container, widget)
                 )
             else:
                 self._set_warnings(widget)
@@ -176,14 +254,15 @@ class MKVListItem(KVDedupeMixin, MKVBaseListItem, BoxLayout):
             return super().add_widget(widget)
 
     def _set_warnings(self, widget):
-        Logger.warning(
+        logger.warning(
             f"KivyMD: "
             f"Do not use more than one <{widget.__class__.__name__}> "
             f"widget. This is contrary to the material design rules "
             f"of version 3"
         )
 
-    def _set_with_container(self, container, widget):
+    @staticmethod
+    def _set_width_container(container, widget):
         container.width = widget.width
 
 
