@@ -210,25 +210,6 @@ wheels = [
 ]
 
 [[package]]
-name = "headless-kivy"
-version = "0.12.4"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "kivy" },
-    { name = "numpy" },
-    { name = "python-strtobool" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/13/17/2f88b12f7a7fab855fdc8b628e064664c0b6f4514859894499a730ac54f5/headless_kivy-0.12.4.tar.gz", hash = "sha256:e1c7c91aab73d9959f53b69633a6825a7f06da607a43d6b1c6729cfd8ad42b94", size = 16540, upload-time = "2025-06-06T00:02:51.499Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/73/48/df34c9e981bdcef4b86a096c989a3ee2d507e73ecda6c24a751977d481b4/headless_kivy-0.12.4-py3-none-any.whl", hash = "sha256:330859da48e1bc42f792935be36295b1a4a53be8f207037e4d212e9b0c37bbe3", size = 20206, upload-time = "2025-06-06T00:02:49.851Z" },
-]
-
-[package.optional-dependencies]
-test = [
-    { name = "pypng" },
-]
-
-[[package]]
 name = "idna"
 version = "3.10"
 source = { registry = "https://pypi.org/simple" }
@@ -305,11 +286,6 @@ dependencies = [
 wheels = [
     { url = "https://files.pythonhosted.org/packages/6a/55/cd1555bde62f809219cbc5d8a0836b0293399da2f4ba4e8ee84b6a7cc393/Kivy_Garden-0.1.5-py3-none-any.whl", hash = "sha256:ef50f44b96358cf10ac5665f27a4751bb34ef54051c54b93af891f80afe42929", size = 4623, upload-time = "2022-03-23T23:25:33.752Z" },
 ]
-
-[[package]]
-name = "kivy-garden-hover"
-version = "0.1.0"
-source = { git = "https://github.com/pythonic64/hover.git#02932c7460589070bdd618947a60b2787e8d2f67" }
 
 [[package]]
 name = "kivy-garden-mapview"
@@ -426,7 +402,6 @@ source = { editable = "." }
 dependencies = [
     { name = "ffpyplayer" },
     { name = "kivy" },
-    { name = "kivy-garden-hover" },
     { name = "kivy-garden-mapview" },
     { name = "kivymd" },
     { name = "kivymd-extensions-akivymd" },
@@ -438,7 +413,6 @@ dependencies = [
 [package.optional-dependencies]
 dev = [
     { name = "black" },
-    { name = "headless-kivy", extra = ["test"] },
     { name = "kivy-stubs" },
     { name = "matplotlib" },
     { name = "mypy" },
@@ -449,7 +423,6 @@ dev = [
 [package.dev-dependencies]
 dev = [
     { name = "black" },
-    { name = "headless-kivy", extra = ["test"] },
     { name = "kivy-stubs" },
     { name = "matplotlib" },
     { name = "mypy" },
@@ -462,9 +435,7 @@ dev = [
 requires-dist = [
     { name = "black", marker = "extra == 'dev'", specifier = ">=25.1.0,<26" },
     { name = "ffpyplayer", specifier = ">=4.5.2,<5" },
-    { name = "headless-kivy", extras = ["test"], marker = "extra == 'dev'" },
     { name = "kivy", specifier = ">=2.3.1,<3" },
-    { name = "kivy-garden-hover", git = "https://github.com/pythonic64/hover.git" },
     { name = "kivy-garden-mapview", git = "https://github.com/AlesavigoSoftware/mapview-production-fork.git?rev=main" },
     { name = "kivy-stubs", marker = "extra == 'dev'", git = "https://github.com/AlesavigoSoftware/kivy-stubs.git?rev=main" },
     { name = "kivymd", git = "https://github.com/AlesavigoSoftware/kivymd-production-fork.git?rev=main" },
@@ -482,7 +453,6 @@ provides-extras = ["optionals", "dev"]
 [package.metadata.requires-dev]
 dev = [
     { name = "black", specifier = ">=25.1.0,<26" },
-    { name = "headless-kivy", extras = ["test"] },
     { name = "kivy-stubs", git = "https://github.com/AlesavigoSoftware/kivy-stubs.git?rev=main" },
     { name = "matplotlib", specifier = ">=3.8.0,<4" },
     { name = "mypy", specifier = ">=1.15.0,<2" },
@@ -709,15 +679,6 @@ wheels = [
 ]
 
 [[package]]
-name = "pypng"
-version = "0.20220715.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/93/cd/112f092ec27cca83e0516de0a3368dbd9128c187fb6b52aaaa7cde39c96d/pypng-0.20220715.0.tar.gz", hash = "sha256:739c433ba96f078315de54c0db975aee537cbc3e1d0ae4ed9aab0ca1e427e2c1", size = 128992, upload-time = "2022-07-15T14:11:05.301Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/3e/b9/3766cc361d93edb2ce81e2e1f87dd98f314d7d513877a342d31b30741680/pypng-0.20220715.0-py3-none-any.whl", hash = "sha256:4a43e969b8f5aaafb2a415536c1a8ec7e341cd6a3f957fd5b5f32a4cfeed902c", size = 58057, upload-time = "2022-07-15T14:11:03.713Z" },
-]
-
-[[package]]
 name = "pytest"
 version = "8.4.1"
 source = { registry = "https://pypi.org/simple" }
@@ -743,15 +704,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/66/c0/0c8b6ad9f17a802ee498c46e004a0eb49bc148f2fd230864601a86dcf6db/python-dateutil-2.9.0.post0.tar.gz", hash = "sha256:37dd54208da7e1cd875388217d5e00ebd4179249f90fb72437e91a35459a0ad3", size = 342432, upload-time = "2024-03-01T18:36:20.211Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/ec/57/56b9bcc3c9c6a792fcbaf139543cee77261f3651ca9da0c93f5c1221264b/python_dateutil-2.9.0.post0-py2.py3-none-any.whl", hash = "sha256:a8b2bc7bffae282281c8140a97d3aa9c14da0b136dfe83f850eea9a5f7470427", size = 229892, upload-time = "2024-03-01T18:36:18.57Z" },
-]
-
-[[package]]
-name = "python-strtobool"
-version = "1.0.3"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/f7/4d/f4ae4d70c309cd1a1a20b4de4eb4e1f7c75a5e119120625cfc29e8417ecf/python_strtobool-1.0.3.tar.gz", hash = "sha256:b05e8a732025907e0ab900693cf574bb275d0ef3473e3255dbb2958e0db32e1b", size = 6578, upload-time = "2024-12-13T12:24:28.706Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/60/42/48f58917a897d3fab179294501fa751cbd520f61f498e6cb5d7abd112de5/python_strtobool-1.0.3-py3-none-any.whl", hash = "sha256:a9f6988be13660fbb451023fe2966aae423b48c8f67bd5948f7dc315184575d2", size = 6408, upload-time = "2024-12-13T12:24:25.926Z" },
 ]
 
 [[package]]
