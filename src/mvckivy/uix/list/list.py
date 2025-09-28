@@ -275,12 +275,85 @@ class MKVListItem(MKVBaseListItem, BoxLayout):
         container.width = widget.width
 
 
-class MKVBaseListItemText(MDLabel):
-    pass
+class MKVBaseListItemText(AliasDedupeMixin, MDLabel):
+    def _get_alias_text_color(self, prop: ExtendedAliasProperty) -> list[float]:
+        return self._calc_alias_text_color(prop)
+
+    def _calc_alias_text_color(self, prop: ExtendedAliasProperty) -> list[float]:
+        if self.theme_text_color == "Primary":
+            return self.theme_cls.onSurfaceVariantColor
+        if self.text_color:
+            return self.text_color
+        return self.theme_cls.onSurfaceVariantColor
+
+    alias_text_color = ExtendedAliasProperty(
+        _get_alias_text_color,
+        None,
+        bind=("theme_text_color", "text_color", "theme_cls.onSurfaceVariantColor"),
+        cache=True,
+        watch_before_use=True,
+    )
 
 
-class MKVBaseListItemIcon(MDIcon):
-    pass
+class MKVBaseListItemIcon(AliasDedupeMixin, MDIcon):
+    theme_cls = ObjectProperty(
+        create_null_dispatcher(
+            onSurfaceColor=[], onSurfaceVariantColor=[], transparentColor=[]
+        ),
+        cache=True,
+        rebind=True,
+    )
+
+    def _get_alias_disabled_color(self, prop: ExtendedAliasProperty) -> list[float]:
+        return self._calc_alias_disabled_color(prop)
+
+    def _calc_alias_disabled_color(self, prop: ExtendedAliasProperty) -> list[float]:
+        if self.icon_color_disabled:
+            return self.icon_color_disabled
+        base_color = self.theme_cls.onSurfaceColor
+        opacity = self.icon_button_standard_opacity_value_disabled_icon
+        return base_color[:-1] + [opacity]
+
+    alias_disabled_color = ExtendedAliasProperty(
+        _get_alias_disabled_color,
+        None,
+        bind=[
+            "icon_color_disabled",
+            "icon_button_standard_opacity_value_disabled_icon",
+            "theme_cls.onSurfaceColor",
+            "disabled_color",
+        ],
+        cache=True,
+        rebind=False,
+    )
+
+    def _get_alias_text_color(self, prop: ExtendedAliasProperty) -> list[float]:
+        return self._calc_alias_text_color(prop)
+
+    def _calc_alias_text_color(self, prop: ExtendedAliasProperty) -> list[float]:
+        if self.disabled:
+            return self.disabled_color
+        if self.theme_icon_color == "Primary":
+            return self.theme_cls.onSurfaceVariantColor
+        if self.icon_color:
+            return self.icon_color
+        return self.theme_cls.transparentColor
+
+    alias_text_color = ExtendedAliasProperty(
+        _get_alias_text_color,
+        None,
+        bind=[
+            "disabled",
+            "disabled_color",
+            "theme_icon_color",
+            "icon_color",
+            "theme_cls.onSurfaceVariantColor",
+            "theme_cls.transparentColor",
+            "text_color",
+        ],
+        cache=True,
+        rebind=False,
+    )
 
 
 class MKVListItemHeadlineText(MKVBaseListItemText):

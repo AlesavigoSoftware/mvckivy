@@ -6,7 +6,7 @@ KV assets live alongside their Python modules (e.g., `uix/buttons/icon_button.py
 - `test/`: runnable UI demos and probes (e.g., `test/dialog_with_text_field_test/`), useful for manual verification.
 - `pyproject.toml`: Hatch/PEP 621 config with uv integration. Must be compatible with both `uv` and `pip` commands.
 
-## Test, and Dev Commands
+## Test and Dev Commands
 - Install `uv` (if it is not presented) — a lightweight CLI for managing virtual envs and dependencies.
   - Windows: `powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"`
   - macOS/Linux: `curl -fsSL https://astral.sh/uv/install.sh | sh` or `wget -qO- https://astral.sh/uv/install.sh | sh`

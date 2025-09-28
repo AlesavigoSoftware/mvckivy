@@ -46,34 +46,14 @@
     shorten_from: "right"
     font_style: "Body"
     role: "medium"
-    text_color:
-        self.theme_cls.onSurfaceVariantColor \
-        if root.theme_text_color == "Primary" else \
-        ( \
-        root.text_color \
-        if root.text_color else \
-        self.theme_cls.onSurfaceVariantColor \
-        )
+    text_color: self.alias_text_color
 
 
 <MKVBaseListItemIcon>
     size_hint: None, None
     size: dp(24), dp(24)
-    text_color:
-        ( \
-        self.theme_cls.onSurfaceVariantColor \
-        if self.theme_icon_color == "Primary" else \
-        ( \
-        self.icon_color \
-        if self.icon_color else \
-        self.theme_cls.transparentColor \
-        ) \
-        ) \
-        if not self.disabled else self.disabled_color
-    disabled_color:
-        self.theme_cls.onSurfaceColor[:-1] + \
-        [self.icon_button_standard_opacity_value_disabled_icon] \
-        if not self.icon_color_disabled else self.icon_color_disabled
+    text_color: self.alias_text_color
+    disabled_color: self.alias_disabled_color
 
 
 <MKVListItemTrailingSupportingText>
@@ -100,6 +80,4 @@
     font_style: "Body"
     role: "large"
     bold: True
-    # FIXME: `RecursionError: maximum recursion depth exceeded while calling
-    #  a Python object` when use `text_color` property.
-    -text_color: self.theme_cls.onSurfaceColor if root.theme_text_color == "Primary" else (root.text_color if root.text_color else self.theme_cls.onSurfaceColor)
+    text_color: self.theme_cls.onSurfaceColor if root.theme_text_color == "Primary" else (root.text_color if root.text_color else self.theme_cls.onSurfaceColor)
