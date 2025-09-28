@@ -1,3 +1,7 @@
+#:import dp kivy.metrics.dp
+#:import sp kivy.metrics.sp
+
+
 <MKVBaseDialog>
     radius: root.radius
     size_hint_min_x: dp(280)
@@ -11,6 +15,7 @@
 
 
 <MKVDialog>
+    layout_container: layout_container
     content_stack: content_stack
     icon_container: icon_container
     headline_container: headline_container
@@ -18,45 +23,47 @@
     content_container: content_container
     button_container: button_container
 
-    BoxLayout:
-        orientation: "vertical"
+    MDRelativeLayout:
+        id: layout_container
         size_hint_y: None
-        height: self.minimum_height
+        height: content_stack.height + button_container.height + dp(24)
 
-        BoxLayout:
+        MDBoxLayout:
             id: content_stack
             orientation: "vertical"
             size_hint_y: None
             height: self.minimum_height
             spacing: dp(16)
             padding: dp(24)
+            y: button_container.height + dp(24)
 
-            AnchorLayout:
+            MDAnchorLayout:
                 id: icon_container
                 size_hint_y: None
-                height: 0
                 anchor_x: "center"
+                height: self.children[0].height if self.children else 0
 
-            BoxLayout:
+            MDBoxLayout:
                 id: headline_container
                 size_hint_y: None
                 height: self.minimum_height
 
-            BoxLayout:
+            MDBoxLayout:
                 id: supporting_text_container
                 size_hint_y: None
                 height: self.minimum_height
 
-            BoxLayout:
+            MDBoxLayout:
                 id: content_container
                 size_hint_y: None
                 height: self.minimum_height
 
-        BoxLayout:
+        MDBoxLayout:
             id: button_container
             size_hint_y: None
             height: self.minimum_height
-#            padding: dp(24), 0, dp(24), dp(24)
+            padding: dp(24), 0, dp(24), 0
+            y: 0
 
 
 <MKVDialogIcon>
