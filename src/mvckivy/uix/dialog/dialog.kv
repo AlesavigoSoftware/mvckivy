@@ -1,7 +1,4 @@
 #:import dp kivy.metrics.dp
-#:import sp kivy.metrics.sp
-
-
 <MKVBaseDialog>
     radius: root.radius
     size_hint_min_x: dp(280)
@@ -12,95 +9,6 @@
     theme_shadow_color: "Custom"
     shadow_color: self.theme_cls.transparentColor
     focus_behavior: False
-
-
-<MKVDialog>
-    layout_container: layout_container
-    content_stack: content_stack
-    icon_container: icon_container
-    headline_container: headline_container
-    supporting_text_container: supporting_text_container
-    content_container: content_container
-    button_container: button_container
-
-    MDRelativeLayout:
-        id: layout_container
-        size_hint_y: None
-        height: content_stack.height + button_container.height + dp(24)
-
-        MDBoxLayout:
-            id: content_stack
-            orientation: "vertical"
-            size_hint_y: None
-            height: self.minimum_height
-            spacing: dp(16)
-            padding: dp(24)
-            y: button_container.height + dp(24)
-
-            MDAnchorLayout:
-                id: icon_container
-                size_hint_y: None
-                anchor_x: "center"
-                height: self.children[0].height if self.children else 0
-
-            MDBoxLayout:
-                id: headline_container
-                size_hint_y: None
-                height: self.minimum_height
-
-            MDBoxLayout:
-                id: supporting_text_container
-                size_hint_y: None
-                height: self.minimum_height
-
-            MDBoxLayout:
-                id: content_container
-                size_hint_y: None
-                height: self.minimum_height
-
-        MDBoxLayout:
-            id: button_container
-            size_hint_y: None
-            height: self.minimum_height
-            padding: dp(24), 0, dp(24), 0
-            y: 0
-
-
-<MKVDialogIcon>
-    size_hint: None, None
-    size: dp(24), dp(24)
-    theme_font_size: "Custom"
-    font_size: sp(24)
-    icon_color: self.alias_icon_color
-
-
-<MKVDialogHeadlineText>
-    adaptive_height: True
-    halign: "center"
-    font_style: "Headline"
-    role: "small"
-    markup: True
-    color: self.alias_color
-
-
-<MKVDialogSupportingText>
-    adaptive_height: True
-    halign: "center"
-    font_style: "Body"
-    role: "medium"
-    markup: True
-    text_color: self.alias_text_color
-
-
-<MKVDialogContentContainer>
-    size_hint_y: None
-    height: self.minimum_height
-
-
-<MKVDialogButtonContainer>
-    size_hint_y: None
-    height: self.minimum_height
-    padding: dp(24), 0, dp(24), 0
 
 
 <MKVDialogScrim>
