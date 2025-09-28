@@ -361,6 +361,12 @@ class MKVBaseListItemIcon(AliasDedupeMixin, MDIcon):
 
 
 class MKVListItemHeadlineText(MKVBaseListItemText):
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault("font_style", "Body")
+        kwargs.setdefault("role", "large")
+        kwargs.setdefault("bold", True)
+        super().__init__(*args, **kwargs)
+
     def _calc_alias_text_color(self, prop: ExtendedAliasProperty) -> list[float]:
         if self.theme_text_color == "Primary":
             return self.theme_cls.onSurfaceColor
@@ -397,6 +403,26 @@ class MKVListItemLeadingAvatar(
         cache=True,
         rebind=True,
     )
+
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault("size_hint", (None, None))
+        kwargs.setdefault("size", (dp(40), dp(40)))
+        super().__init__(*args, **kwargs)
+
+        self.fbind("alias_radius", self._apply_radius)
+        self.fbind("alias_md_bg_color", self._apply_md_bg_color)
+        self._apply_radius(self, self.alias_radius)
+        self._apply_md_bg_color(self, self.alias_md_bg_color)
+
+    @staticmethod
+    def _apply_radius(instance, value):
+        if value is not None:
+            instance.radius = value
+
+    @staticmethod
+    def _apply_md_bg_color(instance, value):
+        if value is not None:
+            instance.md_bg_color = value
 
     def _get_alias_radius(self, prop: ExtendedAliasProperty) -> float:
         return self._calc_alias_radius(prop)
