@@ -1,0 +1,65 @@
+#:kivy 2.3.0
+#:import dp kivy.metrics.dp
+
+<Root>:
+    orientation: "vertical"
+    padding: dp(16)
+    spacing: dp(16)
+    md_bg_color: app.theme_cls.backgroundColor
+
+    MDLabel:
+        text: "MKVTabsPrimary"
+        adaptive_height: True
+        halign: "center"
+        font_style: "Headline"
+        role: "small"
+
+    MKVTabsPrimary:
+        id: primary_tabs
+        allow_stretch: True
+
+        MKVTabsItem:
+            MKVTabsItemIcon:
+                icon: "home"
+            MKVTabsItemText:
+                text: "Главная"
+
+        MKVTabsItem:
+            MKVTabsItemIcon:
+                icon: "cog"
+            MKVTabsItemText:
+                text: "Настройки"
+
+        MKVTabsCarousel:
+            MDScreen:
+                name: "home"
+            MDScreen:
+                name: "settings"
+
+    MDLabel:
+        text: "MKVTabsSecondary"
+        adaptive_height: True
+        halign: "center"
+        font_style: "Headline"
+        role: "small"
+
+    MKVTabsSecondary:
+        allow_stretch: False
+
+        MKVTabsItemSecondary:
+            MKVTabsItemIcon:
+                icon: "music"
+            MKVTabsItemText:
+                text: "Музыка"
+
+        MKVTabsItemSecondary:
+            MKVTabsItemIcon:
+                icon: "video"
+            MKVTabsItemText:
+                text: "Видео"
+
+        MKVTabsCarousel:
+            MDScreen:
+                name: "music"
+            MDScreen:
+                name: "video"

@@ -1,0 +1,39 @@
+#:kivy 2.3.0
+#:import dp kivy.metrics.dp
+
+<Root>:
+    orientation: "horizontal"
+    padding: dp(16)
+    spacing: dp(16)
+    md_bg_color: app.theme_cls.backgroundColor
+
+    NavigationRail:
+        id: rail
+        type: "selected"
+
+        NavigationRailMenuButton:
+
+        NavigationRailButton:
+            icon: "account"
+
+        NavigationRailItem:
+            icon: "folder-outline"
+            text: "Файлы"
+
+        NavigationRailItem:
+            icon: "bookmark-outline"
+            text: "Закладки"
+
+        NavigationRailItem:
+            icon: "library-outline"
+            text: "Библиотека"
+
+    MDScreen:
+        md_bg_color: app.theme_cls.surfaceColor
+
+        MDLabel:
+            text: "Content area"
+            halign: "center"
+            valign: "center"
+            adaptive_height: True
+            pos_hint: {"center_x": .5, "center_y": .5}
