@@ -1,0 +1,38 @@
+#:kivy 2.3.0
+#:import dp kivy.metrics.dp
+
+<Root>:
+    orientation: "vertical"
+    padding: dp(24)
+    spacing: dp(24)
+    md_bg_color: app.theme_cls.backgroundColor
+
+    MDLabel:
+        text: "Примеры MKVDialog"
+        halign: "center"
+        adaptive_height: True
+        font_style: "Headline"
+        role: "medium"
+
+    MDLabel:
+        text: "Кнопки ниже создают диалоги в Python"
+        halign: "center"
+        adaptive_height: True
+        opacity: 0.8
+
+    MDButton:
+        style: "elevated"
+        on_release: app.open_basic_dialog()
+
+        MDButtonText:
+            text: "Открыть простой диалог"
+
+    MDButton:
+        style: "outlined"
+        on_release: app.open_form_dialog()
+
+        MDButtonText:
+            text: "Диалог с контентом"
+
+    Widget:
+        size_hint_y: 1

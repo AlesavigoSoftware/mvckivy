@@ -1,0 +1,117 @@
+#:kivy 2.3.0
+#:import dp kivy.metrics.dp
+
+<Root>:
+    orientation: "vertical"
+    spacing: dp(16)
+    padding: dp(16)
+    md_bg_color: app.theme_cls.backgroundColor
+
+    Widget:
+
+    MDBoxLayout:
+        orientation: "vertical"
+        adaptive_height: True
+        spacing: dp(12)
+        size_hint_y: None
+
+        MDLabel:
+            text: "Выберите сценарий для проверки диалога"
+            halign: "center"
+            adaptive_height: True
+
+        MDButton:
+            style: "filled"
+            pos_hint: {"center_x": 0.5}
+            on_release: app.open_dialog("DialogDefault")
+            MDButtonText:
+                text: "Базовый"
+
+        MDButton:
+            style: "filled"
+            pos_hint: {"center_x": 0.5}
+            on_release: app.open_dialog("DialogForm")
+            MDButtonText:
+                text: "С формой"
+
+        MDButton:
+            style: "filled"
+            pos_hint: {"center_x": 0.5}
+            on_release: app.open_dialog("DialogActionsOnly")
+            MDButtonText:
+                text: "Только действия"
+
+    Widget:
+
+<DialogDefault@MKVDialog>:
+    MKVDialogIcon:
+        icon: "information"
+    MKVDialogHeadlineText:
+        text: "Инфо"
+    MKVDialogSupportingText:
+        text: "Диалог отображает иконку, заголовок и основное содержание."
+    MKVDialogContentContainer:
+        orientation: "vertical"
+        adaptive_height: True
+        spacing: dp(8)
+        MDLabel:
+            text: "• Паддинги соответствуют дизайну."
+            halign: "center"
+            adaptive_height: True
+        MDLabel:
+            text: "• Кнопки прижаты к нижнему краю."
+            halign: "center"
+            adaptive_height: True
+    MKVDialogButtonContainer:
+        spacing: dp(8)
+        MDButton:
+            style: "text"
+            on_release: app.open_dialog("DialogForm")
+            MDButtonText:
+                text: "Другой"
+        MDButton:
+            style: "text"
+            on_release: app.close_active_dialog()
+            MDButtonText:
+                text: "Закрыть"
+
+<DialogForm@MKVDialog>:
+    MKVDialogHeadlineText:
+        text: "Форма"
+    MKVDialogContentContainer:
+        orientation: "vertical"
+        adaptive_height: True
+        spacing: dp(12)
+        MDTextField:
+            hint_text: "Имя"
+            adaptive_height: True
+        MDTextField:
+            hint_text: "Почта"
+            adaptive_height: True
+    MKVDialogButtonContainer:
+        spacing: dp(8)
+        MDButton:
+            style: "text"
+            on_release: app.close_active_dialog()
+            MDButtonText:
+                text: "Отмена"
+        MDButton:
+            style: "filled"
+            on_release: app.close_active_dialog()
+            MDButtonText:
+                text: "Отправить"
+
+<DialogActionsOnly@MKVDialog>:
+    MKVDialogHeadlineText:
+        text: "Мини"
+    MKVDialogSupportingText:
+        text: "Без дополнительных контейнеров."
+    MKVDialogButtonContainer:
+        spacing: dp(8)
+        MDButton:
+            style: "text"
+            on_release: app.close_active_dialog()
+            MDButtonText:
+                text: "Ок"
+
+Root:
