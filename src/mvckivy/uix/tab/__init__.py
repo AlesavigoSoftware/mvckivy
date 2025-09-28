@@ -3,6 +3,7 @@ from .tab import (
     MKVTabsSecondary,
     MKVTabsItem,
     MKVTabsItemSecondary,
+    MKVTabsItemSecondaryContainer,
     MKVTabsItemIcon,
     MKVTabsItemText,
     MKVTabsCarousel,

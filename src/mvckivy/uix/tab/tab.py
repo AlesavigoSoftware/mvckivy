@@ -1,11 +1,9 @@
 from __future__ import annotations
 
-from kivy.uix.anchorlayout import AnchorLayout
-from kivy.uix.carousel import Carousel
-from kivy.uix.widget import Widget
-from kivy.utils import boundary
 from kivy.animation import Animation
 from kivy.clock import Clock
+from kivy.effects.dampedscroll import DampedScrollEffect
+from kivy.graphics import Color, Rectangle, SmoothRoundedRectangle
 from kivy.metrics import dp
 from kivy.properties import (
     ObjectProperty,
@@ -16,9 +14,14 @@ from kivy.properties import (
     StringProperty,
     VariableListProperty,
 )
+from kivy.uix.anchorlayout import AnchorLayout
 from kivy.uix.behaviors import ButtonBehavior
 from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.carousel import Carousel
+from kivy.uix.gridlayout import GridLayout
 from kivy.uix.scrollview import ScrollView
+from kivy.uix.widget import Widget
+from kivy.utils import boundary
 
 from kivymd.theming import ThemableBehavior
 from kivymd.uix.badge import MDBadge
@@ -90,6 +93,13 @@ class MKVTabsCarousel(Carousel):
 
 
 class MKVTabsScrollView(BackgroundColorBehavior, ScrollView):
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault("size_hint", (1, None))
+        super().__init__(*args, **kwargs)
+        self.do_scroll_y = False
+        self.bar_width = 0
+        self.effect_cls = DampedScrollEffect
+
     def goto(self, scroll_x: float | None, scroll_y: float | None) -> None:
         def _update(e, x):
             if e:
@@ -107,9 +117,33 @@ class MKVTabsScrollView(BackgroundColorBehavior, ScrollView):
 class MKVTabsItemText(MDLabel):
     _active = BooleanProperty(False)
 
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault("adaptive_size", True)
+        kwargs.setdefault("pos_hint", {"center_x": 0.5, "center_y": 0.5})
+        kwargs.setdefault("font_style", "Title")
+        kwargs.setdefault("role", "small")
+        super().__init__(*args, **kwargs)
+        padding = list(self.padding)
+        if len(padding) == 2:
+            padding[0] = dp(36)
+        elif len(padding) >= 4:
+            padding[0] = dp(36)
+            padding[2] = dp(36)
+        self.padding = padding
+        if self.theme_text_color != "Custom":
+            self.theme_text_color = "Custom"
+        if not self.text_color:
+            self.text_color = self.theme_cls.onSurfaceVariantColor
+
 
 class MKVTabsItemIcon(MDIcon):
-    pass
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault("pos_hint", {"center_x": 0.5})
+        super().__init__(*args, **kwargs)
+        if self.theme_icon_color != "Custom":
+            self.theme_icon_color = "Custom"
+        if not self.icon_color:
+            self.icon_color = self.theme_cls.onSurfaceVariantColor
 
 
 class MKVTabsItemBase(
@@ -135,19 +169,31 @@ class MKVTabsItemBase(
 
 
 class MKVTabsItem(MKVTabsItemBase, BoxLayout):
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault("orientation", "vertical")
+        kwargs.setdefault("size_hint", (None, None))
+        kwargs.setdefault("spacing", dp(4))
+        kwargs.setdefault("padding", (0, dp(12), 0, dp(8)))
+        super().__init__(*args, **kwargs)
+        self.bind(minimum_height=self._sync_height)
+
+    def _sync_height(self, *_):
+        self.height = self.minimum_height
+
     def add_widget(self, widget, *args, **kwargs):
         if isinstance(widget, (MKVTabsItemText, MKVTabsItemIcon)):
             if len(self.children) <= 1:
                 Clock.schedule_once(lambda x: self._set_width(widget))
+            index = len(self.children)
+            return super().add_widget(widget, index=index)
+        return super().add_widget(widget, *args, **kwargs)
 
     def _set_width(self, widget):
-        def set_width(*args):
-            self.width = widget.texture_size[0] + widget.padding_x + 2
-
         if not self._tabs.allow_stretch and isinstance(widget, MKVTabsItemText):
-            Clock.schedule_once(set_width)
+            def set_width(*args):
+                self.width = widget.texture_size[0] + widget.padding_x + 2
 
-        super().add_widget(widget)
+            Clock.schedule_once(set_width)
 
 
 class MKVTabsPrimary(DeclarativeBehavior, ThemableBehavior, BoxLayout):
@@ -169,10 +215,7 @@ class MKVTabsPrimary(DeclarativeBehavior, ThemableBehavior, BoxLayout):
     target = ObjectProperty(None, allownone=True)
 
     def get_rect_instruction(self):
-        canvas_instructions = self.ids.container.canvas.before.get_group(
-            "md-tabs-rounded-rectangle"
-        )
-        return canvas_instructions[0]
+        return self._indicator_rect
 
     indicator = AliasProperty(get_rect_instruction, cache=True)
 
@@ -182,9 +225,35 @@ class MKVTabsPrimary(DeclarativeBehavior, ThemableBehavior, BoxLayout):
     _do_releasing = True
 
     def __init__(self, *args, **kwargs):
+        self._scroll_bg_color_instr: Color | None = None
+        self._scroll_bg_rect: Rectangle | None = None
+        self._indicator_color_instr: Color | None = None
+        self._indicator_rect: SmoothRoundedRectangle | None = None
         super().__init__(*args, **kwargs)
+
+        self.orientation = "vertical"
+        self.size_hint_y = None
+        self.bind(minimum_height=self._sync_height)
+
         self.register_event_type("on_tab_switch")
         self.register_event_type("on_slide_progress")
+
+        self._build_layout()
+        self._bind_theme_events()
+        self._bind_container_events()
+        
+        self.bind(indicator_height=lambda *_: self._update_indicator_height())
+        self.bind(indicator_radius=lambda *_: self._update_indicator_radius())
+        self.bind(md_bg_color=lambda *_: self._update_scroll_background())
+        self.bind(theme_bg_color=lambda *_: self._update_scroll_background())
+
+        self._update_scroll_background()
+        self._update_indicator_color()
+        self._update_indicator_radius()
+        self._update_indicator_height()
+        self._update_indicator_base_pos()
+        self._update_scroll_do_scroll_x()
+
         Clock.schedule_once(self._check_panel_height)
         Clock.schedule_once(self._set_slides_attributes)
 
@@ -193,6 +262,8 @@ class MKVTabsPrimary(DeclarativeBehavior, ThemableBehavior, BoxLayout):
             self._tabs_carousel = widget
             widget._tabs = self
             widget.bind(_offset=self.android_animation, index=self.on_carousel_index)
+            widget.bind(height=lambda *_: self._update_indicator_base_pos())
+            self._update_indicator_base_pos()
             return super().add_widget(widget)
         elif isinstance(widget, MKVTabsItem) or (
             isinstance(self, MKVTabsSecondary)
@@ -203,6 +274,112 @@ class MKVTabsPrimary(DeclarativeBehavior, ThemableBehavior, BoxLayout):
             self.ids.container.add_widget(widget)
         else:
             return super().add_widget(widget)
+
+    def _sync_height(self, *_):
+        self.height = self.minimum_height
+
+    def _build_layout(self) -> None:
+        scroll = MKVTabsScrollView()
+        container = GridLayout(rows=1, size_hint=(None, None))
+        container.bind(minimum_width=lambda inst, value: setattr(inst, "width", value))
+        self.bind(height=lambda inst, value: setattr(container, "height", value))
+        container.height = self.height
+
+        scroll.add_widget(container)
+        super(MKVTabsPrimary, self).add_widget(scroll)
+
+        self._scroll_view = scroll
+        self._container = container
+        self.ids["tab_scroll"] = scroll
+        self.ids["container"] = container
+
+        with scroll.canvas.before:
+            self._scroll_bg_color_instr = Color(0, 0, 0, 0)
+            self._scroll_bg_rect = Rectangle(pos=scroll.pos, size=scroll.size)
+
+        with container.canvas.before:
+            self._indicator_color_instr = Color(1, 1, 1, 1)
+            self._indicator_rect = SmoothRoundedRectangle(
+                group="md-tabs-rounded-rectangle",
+                pos=(container.x, 0),
+                size=(0, self.indicator_height),
+                radius=self.indicator_radius,
+            )
+
+        scroll.bind(pos=self._update_scroll_bg_rect, size=self._update_scroll_bg_rect)
+        container.bind(pos=lambda *_: self._update_indicator_base_pos())
+        container.bind(width=lambda *_: self._update_scroll_do_scroll_x())
+        scroll.bind(width=lambda *_: self._update_scroll_do_scroll_x())
+
+    def _bind_theme_events(self) -> None:
+        try:
+            self.theme_cls.bind(
+                surfaceColor=lambda *_: self._update_scroll_background(),
+                primaryColor=lambda *_: self._update_indicator_color(),
+            )
+        except Exception:  # theme_cls may not be ready during tests
+            pass
+
+    def _bind_container_events(self) -> None:
+        container = self.ids.get("container")
+        if not container:
+            return
+
+        def _refresh(*_):
+            self._update_scroll_do_scroll_x()
+            Clock.schedule_once(lambda *_: self._update_indicator_base_pos())
+
+        container.bind(children=_refresh)
+
+    def _update_scroll_bg_rect(self, *_):
+        if self._scroll_bg_rect and "tab_scroll" in self.ids:
+            scroll = self.ids["tab_scroll"]
+            self._scroll_bg_rect.pos = scroll.pos
+            self._scroll_bg_rect.size = scroll.size
+
+    def _update_scroll_background(self) -> None:
+        if not self._scroll_bg_color_instr:
+            return
+        if self.theme_bg_color == "Custom" and self.md_bg_color:
+            color = self.md_bg_color
+        else:
+            color = getattr(self.theme_cls, "surfaceColor", (0, 0, 0, 1))
+        self._scroll_bg_color_instr.rgba = color
+
+    def _update_indicator_color(self) -> None:
+        if self._indicator_color_instr:
+            self._indicator_color_instr.rgba = getattr(
+                self.theme_cls, "primaryColor", (1, 1, 1, 1)
+            )
+
+    def _update_indicator_radius(self) -> None:
+        if self._indicator_rect:
+            self._indicator_rect.radius = self.indicator_radius
+
+    def _update_indicator_height(self) -> None:
+        if self._indicator_rect:
+            self._indicator_rect.size = (
+                self._indicator_rect.size[0],
+                self.indicator_height,
+            )
+
+    def _compute_indicator_base_y(self) -> float:
+        if self._tabs_carousel:
+            return self._tabs_carousel.height
+        container = self.ids.get("container")
+        return container.y if container else 0
+
+    def _update_indicator_base_pos(self, *_):
+        if not self._indicator_rect:
+            return
+        x, _ = self._indicator_rect.pos
+        self._indicator_rect.pos = (x, self._compute_indicator_base_y())
+
+    def _update_scroll_do_scroll_x(self, *_):
+        scroll = self.ids.get("tab_scroll")
+        container = self.ids.get("container")
+        if scroll and container:
+            scroll.do_scroll_x = container.width > scroll.width
 
     def do_autoscroll_tabs(self, instance: MKVTabsItem, value: float) -> None:
         bound_left = self.center_x - self.x
@@ -498,13 +675,35 @@ class MKVTabsPrimary(DeclarativeBehavior, ThemableBehavior, BoxLayout):
 
 
 class MKVTabsItemSecondaryContainer(BoxLayout):
-    pass
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault("size_hint", (None, None))
+        kwargs.setdefault("orientation", "horizontal")
+        kwargs.setdefault("spacing", dp(8))
+        super().__init__(*args, **kwargs)
+        self.bind(minimum_size=self._sync_size)
+
+    def _sync_size(self, instance, value):
+        self.size = value
 
 
 class MKVTabsItemSecondary(MKVTabsItemBase, AnchorLayout):
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault("size_hint", (None, None))
+        kwargs.setdefault("height", dp(48))
+        kwargs.setdefault("anchor_x", "center")
+        kwargs.setdefault("anchor_y", "center")
+        super().__init__(*args, **kwargs)
+        container = MKVTabsItemSecondaryContainer()
+        self.ids["box_container"] = container
+        super(MKVTabsItemSecondary, self).add_widget(container)
+
     def add_widget(self, widget, *args, **kwargs):
         if isinstance(widget, (MKVTabsItemText, MKVTabsItemIcon, MKVTabsBadge)):
-            Clock.schedule_once(lambda x: self.ids.box_container.add_widget(widget))
+            def _add(*_):
+                container = self.ids.box_container
+                container.add_widget(widget, index=len(container.children))
+
+            Clock.schedule_once(_add)
         else:
             return super().add_widget(widget)
 

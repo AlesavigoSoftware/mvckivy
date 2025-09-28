@@ -1,31 +1,23 @@
+#:import dp kivy.metrics.dp
+
 <NavigationRailItem>
-    NavigationRailItemIcon:
-        icon: root.icon
 
-    NavigationRailItemLabel:
-        text: root.text
-        theme_font_name: 'Custom'
-        font_name: 'nasalization'
 
-<NavigationRailMenuButton>
-    icon: 'menu'
+<NavigationRailItemIcon>
+    pos_hint: {"center_x": .5}
 
-<-NavigationRail>
-    size_hint: None, 1
-    width: dp(80)
-    md_bg_color: app.theme_cls.surfaceColor
 
-    MVCBoxLayout:
-        id: box_items
-        orientation: 'vertical'
-        size_hint: None, None
-        size: self.minimum_size
-        pos_hint: {'center_x': .5}
-        spacing:
-            { \
-            'selected': '12dp', \
-            'labeled': '52dp', \
-            'unselected': '20dp', \
-            }[root.type]
+<NavigationRailItemLabel>
+    halign: "center"
+
 
 <NavigationRailButton>
+
+
+<NavigationRailMenuButton>
+    icon: "menu"
+
+
+<NavigationRail>
+    size_hint: None, 1
+    width: dp(80)
