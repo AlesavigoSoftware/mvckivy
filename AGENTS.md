@@ -263,6 +263,11 @@ class MKVListItem(MKVBaseListItem, BoxLayout):
 (via `self.alias_*` from the parent (Base) class).
 * This KV file defines one **specific** presentation. 
 You can create other variants with different KV while reusing the same base logic.
+* **Important!** Main container class (`MKVListItem` here) must control 
+the `leading_container`, `text_container`, and `trailing_container` (any inherited containers) dynamic properties.
+That guarantees that all logic centrally routes through this instance, and avoids confusion if children are added directly to sub-containers.
+Also, it allows to use basic classes like `BoxLayout` or `AnchorLayout` as the main container, without needing to subclass them,
+and replace them with other layouts if needed by just changing the KV rule (keeping the same `MKVBaseListItem` in common).
 
 ### KV Override Examples (AliasDedupeMixin in action)
 
@@ -308,8 +313,12 @@ class Child(Parent):
     padding: dp(10)   # Constant override → parent alias bindings detached on the child
 ```
 
-**Result:** the child’s `padding` stays at `dp(10)` regardless of `ui_scale` changes, while the parent remains dynamic. 
+**Notes:** 
+* the child’s `padding` stays at `dp(10)` regardless of `ui_scale` changes, while the parent remains dynamic. 
 This is exactly what `AliasDedupeMixin` guarantees.
+* When implementing a new widget, always inherit from `AliasDedupeMixin` to enable this safe override behavior.
+* Remember that Behaviors (e.g., `ThemableBehavior`) should come **after** `AliasDedupeMixin` in the inheritance list 
+and before any concrete BaseWidget class (e.g., `BoxLayout` or `BaseListItem`).
 
 ### Important Note about theme_cls and ThemableBehavior
 If your base widget inherits from `ThemableBehavior`, you must not use create_null_dispatcher inside its ObjectProperty defaultvalue.
@@ -350,7 +359,7 @@ alias_md_bg_color = ExtendedAliasProperty(
 )
 ```
 
-### What to Test
+### What (and how) to Test
 
 1. **Alias computations**: change inputs, verify alias outputs:
    * `density → alias_spacing`, `text_container.children → alias_height`, etc.
