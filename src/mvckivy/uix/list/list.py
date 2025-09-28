@@ -10,9 +10,10 @@ from kivy.properties import (
     BooleanProperty,
     ColorProperty,
 )
+from kivy.metrics import dp
 from kivy.uix.behaviors import ButtonBehavior
 from kivy.uix.boxlayout import BoxLayout
-from kivy.metrics import dp
+from kivy.uix.widget import Widget
 
 from kivymd.uix.selectioncontrol import MDCheckbox
 from kivymd.theming import ThemableBehavior
@@ -27,6 +28,7 @@ from kivymd.uix.fitimage import FitImage
 from kivymd.uix.gridlayout import MDGridLayout
 from kivymd.uix.label import MDLabel, MDIcon
 from kivymd.uix.divider import MDDivider
+from kivymd.uix.selectioncontrol import MDSwitch
 
 from mvckivy.properties.alias_dedupe_mixin import AliasDedupeMixin
 from mvckivy.properties.extended_alias_property import ExtendedAliasProperty
@@ -39,6 +41,7 @@ logger = logging.getLogger("mvckivy")
 
 class MKVList(AliasDedupeMixin, MDGridLayout):
     density = NumericProperty(0)
+    use_divider = BooleanProperty(True)
 
     def _get_alias_padding(self, prop: ExtendedAliasProperty) -> list:
         return self._calc_alias_padding(prop)
@@ -53,6 +56,39 @@ class MKVList(AliasDedupeMixin, MDGridLayout):
         _get_alias_padding, None, bind=["density", "padding"], cache=True, rebind=False
     )
 
+    def on_kv_post(self, base_widget: Widget) -> None:
+        super().on_kv_post(base_widget)
+        self.on_use_divider()
+
+    def on_use_divider(self, *_):
+        """Динамическое включение/выключение разделителей после on_kv_post."""
+        if self.use_divider:
+            self._insert_dividers()
+        else:
+            self._remove_dividers()
+
+    @classmethod
+    def _make_divider(cls) -> Widget:
+        return MDDivider(size_hint_y=None, divider_width=dp(1), height=dp(1))
+
+    def _remove_dividers(self) -> None:
+        divider_type = type(self._make_divider())
+        for w in list(self.children):
+            if isinstance(w, divider_type):
+                self.remove_widget(w)
+
+    def _insert_dividers(self) -> None:
+        self._remove_dividers()
+
+        n = len(self.children)
+        if n <= 1:
+            return
+
+        for i in range(n - 1):
+            # Индекс позиции разделителя в текущем списке на i-м шаге
+            idx = 2 * i + 1
+            self.add_widget(self._make_divider(), index=idx)
+
 
 class MKVBaseListItem(
     AliasDedupeMixin,
@@ -63,14 +99,16 @@ class MKVBaseListItem(
     ThemableBehavior,
     StateLayerBehavior,
 ):
+    theme_cls = ObjectProperty(
+        create_null_dispatcher(surfaceColor=[]), cache=True, rebind=True
+    )
+    density = NumericProperty(0)
     HEIGHTS = {
         0: dp(100),
         1: dp(56),
         2: dp(72),
         3: dp(88),
     }
-    density = NumericProperty(0)
-    use_divider = BooleanProperty(False)
 
     def _get_alias_spacing(self, prop: ExtendedAliasProperty) -> float:
         return self._calc_alias_spacing(prop)
@@ -146,9 +184,6 @@ class MKVBaseListItem(
     trailing_container: ObjectProperty[BoxLayout] = ObjectProperty(
         create_null_dispatcher(children=[]), rebind=True, cache=True
     )
-    h_divider: ObjectProperty[MDDivider] = ObjectProperty(
-        create_null_dispatcher(divider_width=dp(1)), rebind=True, cache=True
-    )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -156,33 +191,6 @@ class MKVBaseListItem(
 
     def _refresh_layout(self, _):
         pass
-
-    def add_widget(self, widget, *args, **kwargs):
-        if isinstance(
-            widget,
-            (
-                MKVListItemHeadlineText,
-                MKVListItemSupportingText,
-                MKVListItemTertiaryText,
-            ),
-        ):
-            self.text_container.add_widget(widget)
-
-        elif isinstance(widget, (MKVListItemLeadingIcon, MKVListItemLeadingAvatar)):
-            self.leading_container.add_widget(widget)
-
-        elif isinstance(
-            widget,
-            (
-                MKVListItemTrailingIcon,
-                MKVListItemTrailingCheckbox,
-                MKVListItemTrailingSupportingText,
-            ),
-        ):
-            self.trailing_container.add_widget(widget)
-
-        else:
-            return super().add_widget(widget)
 
 
 class MKVListItem(MKVBaseListItem, BoxLayout):
@@ -241,6 +249,7 @@ class MKVListItem(MKVBaseListItem, BoxLayout):
                 MKVListItemTrailingIcon,
                 MKVListItemTrailingCheckbox,
                 MKVListItemTrailingSupportingText,
+                MKVListItemTrailingSwitch,
             ),
         ):
             if not self.trailing_container.children:
@@ -271,8 +280,7 @@ class MKVBaseListItemText(MDLabel):
 
 
 class MKVBaseListItemIcon(MDIcon):
-    icon_color = ColorProperty(None)
-    icon_color_disabled = ColorProperty(None)
+    pass
 
 
 class MKVListItemHeadlineText(MKVBaseListItemText):
@@ -291,7 +299,7 @@ class MKVListItemTrailingSupportingText(MKVBaseListItemText):
     pass
 
 
-class MKVListItemLeadingIcon(MKVBaseListItemIcon):
+class MKVListItemTrailingIcon(MKVBaseListItemIcon):
     pass
 
 
@@ -301,9 +309,13 @@ class MKVListItemLeadingAvatar(
     _list_item = ObjectProperty()
 
 
-class MKVListItemTrailingIcon(MKVBaseListItemIcon):
+class MKVListItemLeadingIcon(MKVBaseListItemIcon):
     pass
 
 
 class MKVListItemTrailingCheckbox(MDCheckbox):
+    pass
+
+
+class MKVListItemTrailingSwitch(MDSwitch):
     pass

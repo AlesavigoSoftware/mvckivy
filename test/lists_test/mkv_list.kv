@@ -1,7 +1,7 @@
 #:kivy 2.3.0
 #:import dp kivy.metrics.dp
 
-<Root@MDBoxLayout>:
+<Root>
     orientation: "vertical"
     spacing: 0
 #    md_bg_color: app.theme_cls.onBackgroundColor
@@ -9,15 +9,9 @@
 
     MDScrollView:
         MKVList:
-            cols: 1
-            adaptive_height: True
-            padding: [dp(8), dp(8), dp(8), dp(8)]
-            spacing: dp(4)
+            use_divider: True
 
-            # 1) Single-line item
             MKVListItem:
-#                density: 0
-                use_divider: True
                 MKVListItemLeadingIcon:
                     icon: "account"
                 MKVListItemHeadlineText:
@@ -25,10 +19,7 @@
                 MKVListItemTrailingIcon:
                     icon: "chevron-right"
 
-            # 2) Two-line item (checkbox trailing)
             MKVListItem:
-#                density: 1
-                use_divider: True
                 MKVListItemLeadingIcon:
                     icon: "email"
                 MKVListItemHeadlineText:
@@ -38,10 +29,7 @@
                 MKVListItemTrailingCheckbox:
                     active: True
 
-            # 3) Three-line item (icon trailing)
             MKVListItem:
-#                density: 2
-                use_divider: True
                 MKVListItemLeadingIcon:
                     icon: "map"
                 MKVListItemHeadlineText:
@@ -54,10 +42,7 @@
                 MKVListItemTrailingIcon:
                     icon: "dots-vertical"
 
-            # 4) Disabled item
             MKVListItem:
-#                density: 0
-                use_divider: True
                 disabled: True
                 MKVListItemLeadingIcon:
                     icon: "alert"
@@ -68,17 +53,11 @@
                 MKVListItemTrailingCheckbox:
                     active: False
 
-            # 5) Plain headline (no divider)
             MKVListItem:
-#                density: 1
-                use_divider: False
                 MKVListItemHeadlineText:
                     text: "Plain headline"
 
-            # 6) Compact density (icon trailing)
             MKVListItem:
-#                density: 1
-                use_divider: True
                 MKVListItemLeadingIcon:
                     icon: "calendar"
                 MKVListItemHeadlineText:
@@ -88,10 +67,7 @@
                 MKVListItemTrailingIcon:
                     icon: "information-outline"
 
-            # 7) Cozy density (checkbox trailing)
             MKVListItem:
-#                density: 2
-                use_divider: True
                 MKVListItemLeadingIcon:
                     icon: "star"
                 MKVListItemHeadlineText:
@@ -103,10 +79,7 @@
                 MKVListItemTrailingCheckbox:
                     active: True
 
-            # 8) Max density (icon trailing)
             MKVListItem:
-#                density: 3
-                use_divider: True
                 MKVListItemLeadingIcon:
                     icon: "account-circle"
                 MKVListItemHeadlineText:
@@ -117,6 +90,16 @@
                     text: "For visual check"
                 MKVListItemTrailingIcon:
                     icon: "chevron-right"
+
+            MKVListItem:
+                density: -2
+                MKVListItemLeadingIcon:
+                    icon: "account-circle"
+                MKVListItemHeadlineText:
+                    text: "Switch theme"
+                MKVListItemTrailingSwitch:
+                    active: False
+                    on_active: app.toggle_theme(self.active)
 
 # Корень сцены
 Root:

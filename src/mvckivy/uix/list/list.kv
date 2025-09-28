@@ -13,36 +13,10 @@
 
 
 <MKVListItem>
-#    orientation: "vertical"
     orientation: "horizontal"
     leading_container: leading_container
     text_container: text_container
     trailing_container: trailing_container
-#    h_divider: h_divider
-    canvas.after:
-        Color:
-            rgba:
-                ( \
-                ( \
-                self.theme_cls.surfaceVariantColor \
-                if not self.disabled else \
-                self.theme_cls.onSurfaceColor \
-                ) \
-                if self.theme_divider_color == "Primary" else \
-                self.divider_color
-                ) \
-
-                if root.use_divider else self.theme_cls.transparentColor
-        Line:
-            id: h_divider
-            width: 1
-            points: self.x ,self.y, self.x + self.width, self.y
-
-#    BoxLayout:
-#        orientation: "horizontal"
-#        size_hint: 1, 1
-#        padding: 0, 0, 0, 0
-#        spacing: 0
 
     BoxLayout:
         id: leading_container
@@ -64,13 +38,22 @@
         size_hint_x: None
         width: 0
 
-#    MDDivider:
-#        id: h_divider
-#        orientation: "horizontal"
-#        size_hint: 1, None
-#        height: 0.1
-#        padding: 0, 0, 0, 0
-#        spacing: 0
+
+<MKVBaseListItemText>
+    adaptive_height: True
+    markup: True
+    shorten: True
+    shorten_from: "right"
+    font_style: "Body"
+    role: "medium"
+    text_color:
+        self.theme_cls.onSurfaceVariantColor \
+        if root.theme_text_color == "Primary" else \
+        ( \
+        root.text_color \
+        if root.text_color else \
+        self.theme_cls.onSurfaceVariantColor \
+        )
 
 
 <MKVBaseListItemIcon>
@@ -101,7 +84,7 @@
 
 <MKVListItemLeadingAvatar>
     size_hint: None, None
-    size: "40dp", "40dp"
+    size: dp(40), dp(40)
     radius: self.height / 2
     md_bg_color:
         self.theme_cls.primaryContainerColor \
@@ -110,23 +93,6 @@
         + ( \
         [self._list_item.list_opacity_value_disabled_leading_avatar] \
         if self._list_item else [0] \
-        )
-
-
-<MKVBaseListItemText>
-    adaptive_height: True
-    markup: True
-    shorten_from: "right"
-    font_style: "Body"
-    role: "medium"
-    shorten: True
-    text_color:
-        self.theme_cls.onSurfaceVariantColor \
-        if root.theme_text_color == "Primary" else \
-        ( \
-        root.text_color \
-        if root.text_color else \
-        self.theme_cls.onSurfaceVariantColor \
         )
 
 

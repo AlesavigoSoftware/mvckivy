@@ -53,6 +53,9 @@ class DemoListApp(MDApp):
             r"C:\Users\alesa\Documents\AlesavigoSoftware\mvckivy\test\lists_test\mkv_list.kv"
         )
 
+    def toggle_theme(self, active: bool):
+        # если active True — включаем Dark, иначе Light
+        self.theme_cls.theme_style = "Dark" if active else "Light"
         # root = Root(
         #     orientation="vertical",
         #     spacing=0,
