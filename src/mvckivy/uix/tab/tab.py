@@ -677,8 +677,9 @@ class MKVTabsPrimary(DeclarativeBehavior, ThemableBehavior, BoxLayout):
 class MKVTabsItemSecondaryContainer(BoxLayout):
     def __init__(self, *args, **kwargs):
         kwargs.setdefault("size_hint", (None, None))
-        kwargs.setdefault("orientation", "horizontal")
-        kwargs.setdefault("spacing", dp(8))
+        kwargs.setdefault("orientation", "vertical")
+        kwargs.setdefault("spacing", dp(4))
+        kwargs.setdefault("pos_hint", {"center_x": 0.5})
         super().__init__(*args, **kwargs)
         self.bind(minimum_size=self._sync_size)
 

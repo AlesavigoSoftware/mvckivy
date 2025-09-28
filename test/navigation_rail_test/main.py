@@ -8,6 +8,12 @@ from kivy.factory import Factory
 from kivy.lang import Builder
 from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.label import MDLabel
+from kivy.uix.screenmanager import ScreenManager
+from kivymd.uix.navigationdrawer import (
+    MDNavigationDrawer,
+    MDNavigationDrawerItem,
+    MDNavigationLayout,
+)
 from kivymd.uix.screen import MDScreen
 
 from mvckivy.app import MKVApp
@@ -38,6 +44,11 @@ FACTORY_CLASSES = (
     NavigationRailItemLabel,
     NavigationRailButton,
     NavigationRailMenuButton,
+    MDNavigationLayout,
+    MDNavigationDrawer,
+    MDNavigationDrawerItem,
+    MDBoxLayout,
+    ScreenManager,
     MDScreen,
     MDLabel,
 )
@@ -46,7 +57,7 @@ for _cls in FACTORY_CLASSES:
     Factory.register(_cls.__name__, cls=_cls)
 
 
-class Root(MDBoxLayout):
+class Root(MDNavigationLayout):
     pass
 
 

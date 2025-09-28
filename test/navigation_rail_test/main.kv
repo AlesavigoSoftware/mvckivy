@@ -2,38 +2,69 @@
 #:import dp kivy.metrics.dp
 
 <Root>:
-    orientation: "horizontal"
-    padding: dp(16)
-    spacing: dp(16)
-    md_bg_color: app.theme_cls.backgroundColor
+    ScreenManager:
+        MDScreen:
+            name: "content"
+            md_bg_color: app.theme_cls.backgroundColor
 
-    NavigationRail:
-        id: rail
-        type: "selected"
+            MDBoxLayout:
+                orientation: "horizontal"
+                padding: dp(16)
+                spacing: dp(16)
 
-        NavigationRailMenuButton:
+                NavigationRail:
+                    id: rail
+                    type: "selected"
+                    panel_widget: nav_drawer
 
-        NavigationRailButton:
-            icon: "account"
+                    NavigationRailMenuButton:
 
-        NavigationRailItem:
-            icon: "folder-outline"
-            text: "Файлы"
+                    NavigationRailButton:
+                        icon: "account"
 
-        NavigationRailItem:
-            icon: "bookmark-outline"
-            text: "Закладки"
+                    NavigationRailItem:
+                        icon: "folder-outline"
+                        text: "Файлы"
 
-        NavigationRailItem:
-            icon: "library-outline"
-            text: "Библиотека"
+                    NavigationRailItem:
+                        icon: "bookmark-outline"
+                        text: "Закладки"
 
-    MDScreen:
-        md_bg_color: app.theme_cls.surfaceColor
+                    NavigationRailItem:
+                        icon: "library-outline"
+                        text: "Библиотека"
 
-        MDLabel:
-            text: "Content area"
-            halign: "center"
-            valign: "center"
-            adaptive_height: True
-            pos_hint: {"center_x": .5, "center_y": .5}
+                MDScreen:
+                    md_bg_color: app.theme_cls.surfaceColor
+
+                    MDLabel:
+                        text: "Content area"
+                        halign: "center"
+                        valign: "center"
+                        adaptive_height: True
+                        pos_hint: {"center_x": .5, "center_y": .5}
+
+    MDNavigationDrawer:
+        id: nav_drawer
+        radius: (0, dp(16), dp(16), 0)
+
+        MDBoxLayout:
+            orientation: "vertical"
+            padding: dp(16)
+            spacing: dp(12)
+
+            MDLabel:
+                text: "Меню"
+                adaptive_height: True
+
+            MDNavigationDrawerItem:
+                icon: "home"
+                text: "Главная"
+
+            MDNavigationDrawerItem:
+                icon: "cog"
+                text: "Настройки"
+
+            MDNavigationDrawerItem:
+                icon: "information"
+                text: "О приложении"

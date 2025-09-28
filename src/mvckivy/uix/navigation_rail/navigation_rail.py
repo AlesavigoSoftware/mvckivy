@@ -1,6 +1,8 @@
 from kivy.animation import Animation
+from kivy.clock import Clock
 from kivy.metrics import dp
-from kivy.properties import StringProperty
+from kivy.properties import ObjectProperty, StringProperty
+from kivymd.uix.navigationdrawer import MDNavigationDrawer
 from kivymd.uix.navigationrail import (
     MDNavigationRailItem,
     MDNavigationRailItemIcon,
@@ -128,8 +130,17 @@ class NavigationRailMenuButton(MDNavigationRailMenuButton, ButtonHoverBehavior):
         kwargs.setdefault("icon", "menu")
         super().__init__(*args, **kwargs)
 
+    def on_release(self):
+        parent = self.parent
+        toggle_panel = getattr(parent, "toggle_panel", None)
+        if callable(toggle_panel):
+            toggle_panel()
+        super().on_release()
+
 
 class NavigationRail(MDNavigationRail, MVCBehavior):
+    panel_widget = ObjectProperty(None, rebind=True, allownone=True)
+
     def _set_mvc_attrs_from_parent(self) -> None:
         try:
             super()._set_mvc_attrs_from_parent()
@@ -139,9 +150,12 @@ class NavigationRail(MDNavigationRail, MVCBehavior):
     def __init__(self, *args, **kwargs):
         kwargs.setdefault("size_hint", (None, 1))
         kwargs.setdefault("width", dp(80))
+        kwargs.setdefault("anchor", "top")
         super().__init__(*args, **kwargs)
 
         self._upgrade_box_items_container()
+
+        Clock.schedule_once(lambda *_: self._ensure_panel_reference())
 
         self.bind(type=lambda *_: self._update_spacing())
         self._update_spacing()
@@ -150,6 +164,36 @@ class NavigationRail(MDNavigationRail, MVCBehavior):
         except Exception:
             pass
         self._update_background()
+
+    def _ensure_panel_reference(self) -> None:
+        if self.panel_widget is not None:
+            return
+
+        for widget in self.walk_reverse():
+            if widget is self:
+                continue
+            if isinstance(widget, MDNavigationDrawer):
+                self.panel_widget = widget
+                break
+
+    def toggle_panel(self, state: str = "toggle") -> None:
+        panel = self.panel_widget
+        if panel is None:
+            self._ensure_panel_reference()
+            panel = self.panel_widget
+
+        if panel is None:
+            return
+
+        set_state = getattr(panel, "set_state", None)
+        if callable(set_state):
+            set_state(state)
+
+    def open_panel(self) -> None:
+        self.toggle_panel(state="open")
+
+    def close_panel(self) -> None:
+        self.toggle_panel(state="close")
 
     def _upgrade_box_items_container(self) -> None:
         box_items = self.ids.get("box_items")
