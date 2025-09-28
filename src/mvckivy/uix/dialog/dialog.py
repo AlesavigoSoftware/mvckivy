@@ -18,9 +18,12 @@ from kivymd.uix.card import MDCard
 from kivymd.uix.label import MDIcon, MDLabel
 
 from mvckivy.uix.behaviors import MKVAdaptiveBehavior
+from mvckivy.properties.alias_dedupe_mixin import AliasDedupeMixin
+from mvckivy.properties.extended_alias_property import ExtendedAliasProperty
+from mvckivy.properties.null_dispatcher import create_null_dispatcher
 
 
-class MKVDialog(MDCard, MotionDialogBehavior, MKVAdaptiveBehavior):
+class MKVDialog(MotionDialogBehavior, MKVAdaptiveBehavior, MDCard):
     __events__ = ("on_pre_open", "on_open", "on_pre_dismiss", "on_dismiss")
 
     width_offset = NumericProperty(dp(48))
@@ -50,14 +53,9 @@ class MKVDialog(MDCard, MotionDialogBehavior, MKVAdaptiveBehavior):
         None, allownone=True
     )
 
-    def __init__(self, *args, ignore_parent_mvc=True, **kwargs):
-        super().__init__(*args, ignore_parent_mvc=ignore_parent_mvc, **kwargs)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         Window.bind(on_resize=self.update_size)
-
-    def on_device_type(self, widget, device_type: str):
-        super().on_device_type(widget, device_type)
-        if self.dismiss_on_device_type:
-            self.dismiss()
 
     def update_size(self, *args):
         window_width = args[1]
@@ -66,7 +64,7 @@ class MKVDialog(MDCard, MotionDialogBehavior, MKVAdaptiveBehavior):
         self.size_hint_max_x = max(
             self.width_offset,
             min(
-                dp(560) if self.app.model.device_type != "mobile" else dp(420),
+                dp(560) if self._last_profile.device_type != "mobile" else dp(420),
                 window_width - self.width_offset,
             ),
         )
@@ -141,16 +139,95 @@ class MKVDialog(MDCard, MotionDialogBehavior, MKVAdaptiveBehavior):
         self.dispatch("on_dismiss")
 
 
-class MKVDialogIcon(MDIcon):
-    pass
+class MKVDialogIcon(AliasDedupeMixin, MDIcon):
+    theme_cls = ObjectProperty(
+        cache=True,
+        rebind=True,
+    )
+
+    def _get_alias_icon_color(self, prop: ExtendedAliasProperty) -> list[float]:
+        return self._calc_alias_icon_color(prop)
+
+    def _calc_alias_icon_color(self, prop: ExtendedAliasProperty) -> list[float]:
+        if self.theme_icon_color == "Primary":
+            return self.theme_cls.secondaryColor
+        if self.icon_color:
+            return self.icon_color
+        return self.theme_cls.transparentColor
+
+    alias_icon_color = ExtendedAliasProperty(
+        _get_alias_icon_color,
+        None,
+        bind=(
+            "theme_icon_color",
+            "icon_color",
+            "theme_cls.secondaryColor",
+            "theme_cls.transparentColor",
+        ),
+        cache=True,
+        watch_before_use=True,
+    )
 
 
-class MKVDialogHeadlineText(MDLabel):
-    pass
+class MKVDialogHeadlineText(AliasDedupeMixin, MDLabel):
+    theme_cls = ObjectProperty(
+        cache=True,
+        rebind=True,
+    )
+
+    def _get_alias_color(self, prop: ExtendedAliasProperty) -> list[float]:
+        return self._calc_alias_color(prop)
+
+    def _calc_alias_color(self, prop: ExtendedAliasProperty) -> list[float]:
+        if self.theme_text_color == "Primary":
+            return self.theme_cls.onSurfaceColor
+        if self.text_color and self.text_color != self.theme_cls.transparentColor:
+            return self.text_color
+        return self.theme_cls.onSurfaceColor
+
+    alias_color = ExtendedAliasProperty(
+        _get_alias_color,
+        None,
+        bind=(
+            "theme_text_color",
+            "text_color",
+            "color",
+            "theme_cls.onSurfaceColor",
+            "theme_cls.transparentColor",
+        ),
+        cache=True,
+        watch_before_use=True,
+    )
 
 
-class MKVDialogSupportingText(MDLabel):
-    pass
+class MKVDialogSupportingText(AliasDedupeMixin, MDLabel):
+    theme_cls = ObjectProperty(
+        cache=True,
+        rebind=True,
+    )
+
+    def _get_alias_text_color(self, prop: ExtendedAliasProperty) -> list[float]:
+        return self._calc_alias_text_color(prop)
+
+    def _calc_alias_text_color(self, prop: ExtendedAliasProperty) -> list[float]:
+        if self.theme_text_color == "Primary":
+            return self.theme_cls.onSurfaceVariantColor
+        if self.text_color and self.text_color != self.theme_cls.transparentColor:
+            return self.text_color
+        return self.theme_cls.onSurfaceVariantColor
+
+    alias_text_color = ExtendedAliasProperty(
+        _get_alias_text_color,
+        None,
+        bind=(
+            "theme_text_color",
+            "text_color",
+            "theme_cls.onSurfaceVariantColor",
+            "theme_cls.transparentColor",
+        ),
+        cache=True,
+        watch_before_use=True,
+    )
 
 
 class MKVDialogContentContainer(MDBoxLayout):

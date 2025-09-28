@@ -62,13 +62,7 @@
     size: dp(24), dp(24)
     theme_font_size: "Custom"
     font_size: sp(24)
-    icon_color:
-        self.theme_cls.secondaryColor \
-        if self.theme_icon_color == "Primary" else \
-        ( \
-        self.icon_color \
-        if self.icon_color else self.theme_cls.transparentColor \
-        )
+    icon_color: self.alias_icon_color
 
 
 <MKVDialogHeadlineText>
@@ -77,13 +71,7 @@
     font_style: "Headline"
     role: "small"
     markup: True
-    color:
-        self.theme_cls.onSurfaceColor \
-        if self.theme_text_color == "Primary" else ( \
-        self.text_color \
-        if self.text_color != self.theme_cls.transparentColor else \
-        self.theme_cls.onSurfaceColor \
-        )
+    color: self.alias_color
 
 
 <MKVDialogSupportingText>
@@ -92,13 +80,7 @@
     font_style: "Body"
     role: "medium"
     markup: True
-    text_color:
-        self.theme_cls.onSurfaceVariantColor \
-        if self.theme_text_color == "Primary" else ( \
-        self.text_color \
-        if self.text_color != self.theme_cls.transparentColor else \
-        self.theme_cls.onSurfaceVariantColor \
-        )
+    text_color: self.alias_text_color
 
 
 <MKVDialogContentContainer>
@@ -119,3 +101,4 @@
         Rectangle:
             pos: self.pos
             size: self.size
+

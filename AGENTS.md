@@ -311,6 +311,45 @@ class Child(Parent):
 **Result:** the child’s `padding` stays at `dp(10)` regardless of `ui_scale` changes, while the parent remains dynamic. 
 This is exactly what `AliasDedupeMixin` guarantees.
 
+### Important Note about theme_cls and ThemableBehavior
+If your base widget inherits from `ThemableBehavior`, you must not use create_null_dispatcher inside its ObjectProperty defaultvalue.
+This is because ThemableBehavior overrides the theme_cls property in its __init__ method, which happens after the ObjectProperty defaultvalue is set.
+```python
+    def __init__(self, **kwargs):
+        if self.theme_cls is None:
+            try:
+                if not isinstance(
+                    App.get_running_app().property("theme_cls", True),
+                    ObjectProperty,
+                ):
+                    raise ValueError(
+                        "KivyMD: App object must be inherited from "
+                        "`kivymd.app.MDApp`"
+                    )
+            except AttributeError:
+                raise ValueError(
+                    "KivyMD: App object must be initialized before loading "
+                    "root widget. See "
+                    "https://github.com/kivymd/KivyMD/wiki/Modules-Material-App#exceptions"
+                )
+            self.theme_cls = App.get_running_app().theme_cls
+
+        super().__init__(**kwargs)
+```
+As the result, if you use `create_null_dispatcher` in the `ObjectProperty` defaultvalue, the `theme_cls` property will not be `None` when assigned,
+and `theme_cls` will not be set correctly. DO NOT USE `create_null_dispatcher` in this case.
+Correct way to use `theme_cls` with `ExtendedAliasProperty`:
+```python
+theme_cls = ObjectProperty(None, rebind=True, cache=True)
+alias_md_bg_color = ExtendedAliasProperty(
+    _get_alias_md_bg_color,
+    None,
+    bind=("md_bg_color", "theme_bg_color", "theme_cls.surfaceColor"),
+    cache=True,
+    watch_before_use=True,
+)
+```
+
 ### What to Test
 
 1. **Alias computations**: change inputs, verify alias outputs:
@@ -324,6 +363,12 @@ This is exactly what `AliasDedupeMixin` guarantees.
 4. **Trigger consolidation**:
    * Frequently changing inputs should coalesce into a single `_refresh_layout` per frame.
 5. **Rare toggles** (e.g., `disabled`, `use_divider`) update directly without unintended side effects.
+6. **Test app**: for tests must be used `MKVApp` as a base class for the App, not `MDApp` or `App` directly. Example:
+```python
+from mvckivy.app import MKVApp
+class TestApp(MKVApp):
+    ...
+```
 
 ### Summary
 

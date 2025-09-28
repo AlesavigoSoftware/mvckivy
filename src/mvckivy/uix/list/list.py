@@ -8,7 +8,6 @@ from kivy.properties import (
     NumericProperty,
     ObjectProperty,
     BooleanProperty,
-    ColorProperty,
 )
 from kivy.metrics import dp
 from kivy.uix.behaviors import ButtonBehavior
@@ -47,9 +46,10 @@ class MKVList(AliasDedupeMixin, MDGridLayout):
         return self._calc_alias_padding(prop)
 
     def _calc_alias_padding(self, prop: ExtendedAliasProperty) -> list[float]:
+        v_pad = dp(8)
         return [
             0,
-            dp(8) + DENSITY.get(self.density, dp(0)),
+            v_pad + DENSITY.get(self.density, dp(0)),
         ]
 
     alias_padding = ExtendedAliasProperty(
@@ -100,7 +100,8 @@ class MKVBaseListItem(
     StateLayerBehavior,
 ):
     theme_cls = ObjectProperty(
-        create_null_dispatcher(surfaceColor=[]), cache=True, rebind=True
+        cache=True,
+        rebind=True,
     )
     density = NumericProperty(0)
     HEIGHTS = {
@@ -276,6 +277,11 @@ class MKVListItem(MKVBaseListItem, BoxLayout):
 
 
 class MKVBaseListItemText(AliasDedupeMixin, MDLabel):
+    theme_cls = ObjectProperty(
+        cache=True,
+        rebind=True,
+    )
+
     def _get_alias_text_color(self, prop: ExtendedAliasProperty) -> list[float]:
         return self._calc_alias_text_color(prop)
 
@@ -297,12 +303,10 @@ class MKVBaseListItemText(AliasDedupeMixin, MDLabel):
 
 class MKVBaseListItemIcon(AliasDedupeMixin, MDIcon):
     theme_cls = ObjectProperty(
-        create_null_dispatcher(
-            onSurfaceColor=[], onSurfaceVariantColor=[], transparentColor=[]
-        ),
         cache=True,
         rebind=True,
     )
+    disabled = BooleanProperty(False)
 
     def _get_alias_disabled_color(self, prop: ExtendedAliasProperty) -> list[float]:
         return self._calc_alias_disabled_color(prop)
@@ -357,7 +361,12 @@ class MKVBaseListItemIcon(AliasDedupeMixin, MDIcon):
 
 
 class MKVListItemHeadlineText(MKVBaseListItemText):
-    pass
+    def _calc_alias_text_color(self, prop: ExtendedAliasProperty) -> list[float]:
+        if self.theme_text_color == "Primary":
+            return self.theme_cls.onSurfaceColor
+        if self.text_color:
+            return self.text_color
+        return self.theme_cls.onSurfaceColor
 
 
 class MKVListItemSupportingText(MKVBaseListItemText):
@@ -377,9 +386,55 @@ class MKVListItemTrailingIcon(MKVBaseListItemIcon):
 
 
 class MKVListItemLeadingAvatar(
-    ThemableBehavior, CircularRippleBehavior, ButtonBehavior, FitImage
+    AliasDedupeMixin,
+    ThemableBehavior,
+    CircularRippleBehavior,
+    ButtonBehavior,
+    FitImage,
 ):
-    _list_item = ObjectProperty()
+    _list_item = ObjectProperty(
+        create_null_dispatcher(list_opacity_value_disabled_leading_avatar=0),
+        cache=True,
+        rebind=True,
+    )
+
+    def _get_alias_radius(self, prop: ExtendedAliasProperty) -> float:
+        return self._calc_alias_radius(prop)
+
+    def _calc_alias_radius(self, prop: ExtendedAliasProperty) -> float:
+        return self.height / 2
+
+    alias_radius = ExtendedAliasProperty(
+        _get_alias_radius,
+        None,
+        bind=("height", "radius"),
+        cache=True,
+        watch_before_use=True,
+    )
+
+    def _get_alias_md_bg_color(self, prop: ExtendedAliasProperty) -> list[float]:
+        return self._calc_alias_md_bg_color(prop)
+
+    def _calc_alias_md_bg_color(self, prop: ExtendedAliasProperty) -> list[float]:
+        if not self.disabled:
+            return self.theme_cls.primaryContainerColor
+        base_color = self.theme_cls.onSurfaceColor
+        opacity = self._list_item.list_opacity_value_disabled_leading_avatar
+        return base_color[:-1] + opacity
+
+    alias_md_bg_color = ExtendedAliasProperty(
+        _get_alias_md_bg_color,
+        None,
+        bind=(
+            "disabled",
+            "md_bg_color",
+            "theme_cls.primaryContainerColor",
+            "theme_cls.onSurfaceColor",
+            "_list_item.list_opacity_value_disabled_leading_avatar",
+        ),
+        cache=True,
+        watch_before_use=True,
+    )
 
 
 class MKVListItemLeadingIcon(MKVBaseListItemIcon):

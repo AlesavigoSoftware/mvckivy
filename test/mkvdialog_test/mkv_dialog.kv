@@ -1,0 +1,64 @@
+#:kivy 2.3.0
+#:import dp kivy.metrics.dp
+
+<Root>:
+    orientation: "vertical"
+    spacing: dp(16)
+    padding: dp(16)
+    md_bg_color: app.theme_cls.backgroundColor
+
+    Widget:
+
+    MDBoxLayout:
+        orientation: "vertical"
+        adaptive_height: True
+        spacing: dp(12)
+        size_hint_y: None
+
+        MDLabel:
+            text: "Используйте кнопку ниже для проверки диалога."
+            halign: "center"
+            adaptive_height: True
+
+        MDButton:
+            style: "filled"
+            pos_hint: {"center_x": 0.5}
+            on_release: app.open_dialog()
+            MDButtonText:
+                text: "Открыть диалог"
+
+    Widget:
+
+<DemoDialog@MKVDialog>:
+    MKVDialogIcon:
+        icon: "forum"
+    MKVDialogHeadlineText:
+        text: "Диалог MKV"
+    MKVDialogSupportingText:
+        text: "Пример демонстрирует перенос логики из KV в Python."
+    MKVDialogContentContainer:
+        orientation: "vertical"
+        adaptive_height: True
+        spacing: dp(8)
+        MDLabel:
+            text: "• Используются кастомные контейнеры."
+            adaptive_height: True
+            halign: "center"
+        MDLabel:
+            text: "• Цвета вычисляются через ExtendedAliasProperty."
+            adaptive_height: True
+            halign: "center"
+    MKVDialogButtonContainer:
+        spacing: dp(8)
+        MDButton:
+            style: "text"
+            on_release: app.close_dialog()
+            MDButtonText:
+                text: "Закрыть"
+        MDButton:
+            style: "text"
+            on_release: app.toggle_theme()
+            MDButtonText:
+                text: "Смена темы"
+
+Root:
