@@ -319,6 +319,7 @@ This is exactly what `AliasDedupeMixin` guarantees.
 * When implementing a new widget, always inherit from `AliasDedupeMixin` to enable this safe override behavior.
 * Remember that Behaviors (e.g., `ThemableBehavior`) should come **after** `AliasDedupeMixin` in the inheritance list 
 and before any concrete BaseWidget class (e.g., `BoxLayout` or `BaseListItem`).
+* All numeric parameters in both py and kv must use `dp(...)` to ensure density independence and avoid using strings like `"10dp"`.
 
 ### Important Note about theme_cls and ThemableBehavior
 If your base widget inherits from `ThemableBehavior`, you must not use create_null_dispatcher inside its ObjectProperty defaultvalue.

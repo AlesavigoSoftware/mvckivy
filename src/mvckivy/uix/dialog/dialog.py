@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from kivy.clock import Clock
 from kivy.core.window import Window
 from kivy.metrics import dp
 from kivy.properties import (
@@ -23,7 +24,9 @@ from mvckivy.properties.extended_alias_property import ExtendedAliasProperty
 from mvckivy.properties.null_dispatcher import create_null_dispatcher
 
 
-class MKVDialog(MotionDialogBehavior, MKVAdaptiveBehavior, MDCard):
+class MKVBaseDialog(
+    AliasDedupeMixin, MotionDialogBehavior, MKVAdaptiveBehavior, MDCard
+):
     __events__ = ("on_pre_open", "on_open", "on_pre_dismiss", "on_dismiss")
 
     width_offset = NumericProperty(dp(48))
@@ -31,43 +34,54 @@ class MKVDialog(MotionDialogBehavior, MKVAdaptiveBehavior, MDCard):
     radius: VariableListProperty[list[float]] = VariableListProperty(dp(28), lenght=4)
     scrim_color: ColorProperty = ColorProperty([0, 0, 0, 0.3])
     auto_dismiss = BooleanProperty(True)
-    opacity: NumericProperty[float] = NumericProperty(0)  # creates invisible
+    opacity: NumericProperty[float] = NumericProperty(0)
     dismiss_on_device_type = BooleanProperty(True)
+
+    content_stack = ObjectProperty(
+        create_null_dispatcher(children=[], height=0),
+        rebind=True,
+        cache=True,
+    )
+    icon_container = ObjectProperty(
+        create_null_dispatcher(children=[], height=0),
+        rebind=True,
+        cache=True,
+    )
+    headline_container = ObjectProperty(
+        create_null_dispatcher(children=[]),
+        rebind=True,
+        cache=True,
+    )
+    supporting_text_container = ObjectProperty(
+        create_null_dispatcher(children=[]),
+        rebind=True,
+        cache=True,
+    )
+    content_container = ObjectProperty(
+        create_null_dispatcher(children=[], height=0),
+        rebind=True,
+        cache=True,
+    )
+    button_container = ObjectProperty(
+        create_null_dispatcher(children=[], height=0),
+        rebind=True,
+        cache=True,
+    )
 
     _scrim: ObjectProperty[MKVDialogScrim | None] = ObjectProperty(None, allownone=True)
     _is_open = False
 
-    icon_container: ObjectProperty[MDAnchorLayout | None] = ObjectProperty(
-        None, allownone=True
-    )
-    headline_container: ObjectProperty[MDBoxLayout | None] = ObjectProperty(
-        None, allownone=True
-    )
-    supporting_text_container: ObjectProperty[MDBoxLayout | None] = ObjectProperty(
-        None, allownone=True
-    )
-    content_container: ObjectProperty[MDBoxLayout | None] = ObjectProperty(
-        None, allownone=True
-    )
-    button_container: ObjectProperty[MDBoxLayout | None] = ObjectProperty(
-        None, allownone=True
-    )
-
     def __init__(self, *args, **kwargs):
+        self._layout_trigger = Clock.create_trigger(self._refresh_layout, 0)
+        self._update_size_trigger = Clock.create_trigger(self._update_size, 0)
         super().__init__(*args, **kwargs)
-        Window.bind(on_resize=self.update_size)
+        Window.bind(on_resize=lambda *_: self._update_size_trigger())
 
-    def update_size(self, *args):
-        window_width = args[1]
-        window_height = args[2]
+    def _refresh_layout(self, *args) -> None:
+        pass
 
-        self.size_hint_max_x = max(
-            self.width_offset,
-            min(
-                dp(560) if self._last_profile.device_type != "mobile" else dp(420),
-                window_width - self.width_offset,
-            ),
-        )
+    def _update_size(self, *args) -> None:
+        pass
 
     def add_widget(self, widget, *args, **kwargs):
         if isinstance(widget, MKVDialogIcon):
@@ -89,8 +103,6 @@ class MKVDialog(MotionDialogBehavior, MKVAdaptiveBehavior, MDCard):
             return super().add_widget(widget)
 
     def open(self) -> None:
-        """Show the dialog."""
-
         if self._is_open:
             return
 
@@ -106,10 +118,7 @@ class MKVDialog(MotionDialogBehavior, MKVAdaptiveBehavior, MDCard):
         self.dispatch("on_open")
 
     def on_pre_open(self, *args) -> None:
-        if self.icon_container:
-            self.icon_container.height = self.icon_container.children[
-                0
-            ].height  # bugfix
+        self._layout_trigger()
 
     def on_open(self, *args) -> None:
         pass
@@ -131,12 +140,70 @@ class MKVDialog(MotionDialogBehavior, MKVAdaptiveBehavior, MDCard):
         return True
 
     def dismiss(self, *args) -> None:
-        """Closes the dialog."""
-
         self.dispatch("on_pre_dismiss")
         super().on_dismiss()
         self._is_open = False
         self.dispatch("on_dismiss")
+
+
+class MKVDialog(MKVBaseDialog):
+    def on_kv_post(self, base_widget):
+        super().on_kv_post(base_widget)
+        self.content_stack.bind(height=lambda *args: self._layout_trigger())
+        self.icon_container.bind(
+            children=lambda *args: self._layout_trigger(),
+            height=lambda *args: self._layout_trigger(),
+        )
+        self.button_container.bind(
+            children=lambda *args: self._layout_trigger(),
+            height=lambda *args: self._layout_trigger(),
+        )
+        self._layout_trigger()
+
+    def _refresh_layout(self, *_):
+        icon_height = (
+            max(child.height for child in self.icon_container.children)
+            if self.icon_container.children
+            else 0
+        )
+
+        self.icon_container.height = icon_height
+
+        if self.content_stack:
+            self.content_stack.height = (
+                self.content_stack.minimum_height
+                + self.button_container.height
+                + dp(24)
+            )
+
+    def _get_alias_height(self, prop: ExtendedAliasProperty) -> float:
+        return self._calc_alias_height(prop)
+
+    def _calc_alias_height(self, prop: ExtendedAliasProperty) -> float:
+        return self.content_stack.height + self.button_container.height + dp(24)
+
+    alias_height = ExtendedAliasProperty(
+        _get_alias_height,
+        None,
+        bind=(
+            "content_stack.height",
+            "button_container.height",
+            "height",
+        ),
+        cache=True,
+        watch_before_use=True,
+    )
+
+    def _update_size(self, *_):
+        window_width = Window.width
+
+        self.size_hint_max_x = max(
+            self.width_offset,
+            min(
+                dp(560) if self._last_profile.device_type != "mobile" else dp(420),
+                window_width - self.width_offset,
+            ),
+        )
 
 
 class MKVDialogIcon(AliasDedupeMixin, MDIcon):

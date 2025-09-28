@@ -37,13 +37,6 @@ class MKVTabsBadge(MDBadge):
 
 class MKVTabsCarousel(Carousel):
     lock_swiping = BooleanProperty(False)
-    """
-    If True - disable switching tabs by swipe.
-
-    :attr:`lock_swiping` is an :class:`~kivy.properties.BooleanProperty`
-    and defaults to `False`.
-    """
-
     _tabs = ObjectProperty()  # MKVTabsPrimary/MKVTabsSecondary object
 
     def on_touch_move(self, touch) -> str | bool | None:
@@ -98,8 +91,6 @@ class MKVTabsCarousel(Carousel):
 
 class MKVTabsScrollView(BackgroundColorBehavior, ScrollView):
     def goto(self, scroll_x: float | None, scroll_y: float | None) -> None:
-        """Update event value along with scroll_*."""
-
         def _update(e, x):
             if e:
                 e.value = (e.max + e.min) * x
@@ -130,22 +121,10 @@ class MKVTabsItemBase(
     StateLayerBehavior,
 ):
     active = BooleanProperty(False)
-    """
-    Is the tab active.
-
-    :attr:`active` is an :class:`~kivy.properties.BooleanProperty`
-    and defaults to `False`.
-    """
-
     _tabs = ObjectProperty()  # MKVTabsPrimary/MKVTabsSecondary object
     _tab_content = ObjectProperty()  # Carousel slide (related content) object
 
     def on_release(self, *args) -> None:
-        """
-        Fired when the button is released
-        (i.e. the touch/click that pressed the button goes away).
-        """
-
         if self._tab_content:
             self._tabs._tabs_carousel.load_slide(self._tab_content)
 
@@ -173,124 +152,21 @@ class MKVTabsItem(MKVTabsItemBase, BoxLayout):
 
 class MKVTabsPrimary(DeclarativeBehavior, ThemableBehavior, BoxLayout):
     md_bg_color = ColorProperty(None)
-    """
-    The background color of the widget.
-
-    :attr:`md_bg_color` is an :class:`~kivy.properties.ColorProperty`
-    and defaults to `None`.
-    """
-
     label_only = BooleanProperty(False)
-    """
-    Tabs with a label only or with an icon and a label.
-
-    .. versionadded:: 2.0.0
-
-    :attr:`label_only` is an :class:`~kivy.properties.BooleanProperty`
-    and defaults to `False`.
-    """
-
     allow_stretch = BooleanProperty(True)
-    """
-    Whether to stretch tabs to the width of the panel.
-
-    :attr:`allow_stretch` is an :class:`~kivy.properties.BooleanProperty`
-    and defaults to `True`.
-    """
-
     lock_swiping = BooleanProperty(False)
-    """
-    If True - disable switching tabs by swipe.
-
-    :attr:`lock_swiping` is an :class:`~kivy.properties.BooleanProperty`
-    and defaults to `False`.
-    """
-
     anim_duration = NumericProperty(0.2)
-    """
-    Duration of the slide animation.
-
-    :attr:`anim_duration` is an :class:`~kivy.properties.NumericProperty`
-    and defaults to `0.2`.
-    """
-
     indicator_anim = BooleanProperty(True)
-    """
-    Tab indicator animation. If you want use animation set it to ``True``.
-
-    .. versionchanged:: 2.0.0
-
-        Rename from `tab_indicator_anim` to `indicator_anim` attribute.
-
-    :attr:`indicator_anim` is an :class:`~kivy.properties.BooleanProperty`
-    and defaults to `True`.
-    """
-
     indicator_radius = VariableListProperty([dp(2), dp(2), 0, 0], lenght=4)
-    """
-    Radius of the tab indicator.
-
-    .. versionadded:: 2.0.0
-
-    :attr:`indicator_radius` is an :class:`~kivy.properties.VariableListProperty`
-    and defaults to `[dp(2), dp(2), 0, 0]`.
-    """
-
     indicator_height = NumericProperty("4dp")
-    """
-    Height of the tab indicator.
-
-    .. versionchanged:: 2.0.0
-
-        Rename from `tab_indicator_height` to `indicator_height` attribute.
-
-    :attr:`indicator_height` is an :class:`~kivy.properties.NumericProperty`
-    and defaults to `'4dp'`.
-    """
-
     indicator_duration = NumericProperty(0.5)
-    """
-    The duration of the animation of the indicator movement when switching
-    tabs.
-
-    .. versionadded:: 2.0.0
-
-    :attr:`indicator_duration` is an :class:`~kivy.properties.NumericProperty`
-    and defaults to `0.5`.
-    """
-
     indicator_transition = StringProperty("out_expo")
-    """
-    The transition name of animation of the indicator movement when switching
-    tabs.
-
-    .. versionadded:: 2.0.0
-
-    :attr:`indicator_transition` is an :class:`~kivy.properties.StringProperty`
-    and defaults to `'out_expo'.
-    """
 
     def get_last_scroll_x(self):
         return self.ids.tab_scroll.scroll_x
 
     last_scroll_x = AliasProperty(get_last_scroll_x, bind=("target",), cache=True)
-    """
-    Is the carousel reference of the next tab/slide.
-    When you go from `'Tab A'` to `'Tab B'`, `'Tab B'` will be the
-    target tab/slide of the carousel.
-
-    :attr:`last_scroll_x` is an :class:`~kivy.properties.AliasProperty`.
-    """
-
     target = ObjectProperty(None, allownone=True)
-    """
-    It is the carousel reference of the next tab / slide.
-    When you go from `'Tab A'` to `'Tab B'`, `'Tab B'` will be the
-    target tab / slide of the carousel.
-
-    :attr:`target` is an :class:`~kivy.properties.ObjectProperty`
-    and default to `None`.
-    """
 
     def get_rect_instruction(self):
         canvas_instructions = self.ids.container.canvas.before.get_group(
@@ -299,12 +175,6 @@ class MKVTabsPrimary(DeclarativeBehavior, ThemableBehavior, BoxLayout):
         return canvas_instructions[0]
 
     indicator = AliasProperty(get_rect_instruction, cache=True)
-    """
-    It is the :class:`~kivy.graphics.vertex_instructions.SmoothRoundedRectangle`
-    instruction reference of the tab indicator.
-
-    :attr:`indicator` is an :class:`~kivy.properties.AliasProperty`.
-    """
 
     _tabs_carousel = ObjectProperty()  # MKVTabsCarousel object
     _current_tab = None  # MKVTabsItem object
@@ -335,15 +205,6 @@ class MKVTabsPrimary(DeclarativeBehavior, ThemableBehavior, BoxLayout):
             return super().add_widget(widget)
 
     def do_autoscroll_tabs(self, instance: MKVTabsItem, value: float) -> None:
-        """
-        Automatically scrolls the list of tabs when swiping the carousel
-        slide (related content).
-
-        .. versionchanged:: 2.0.0
-
-            Rename from `tab_bar_autoscroll` to `do_autoscroll_tabs` method.
-        """
-
         bound_left = self.center_x - self.x
         bound_right = self.ids.container.width - bound_left
         dt = instance.center_x - bound_left
@@ -365,8 +226,6 @@ class MKVTabsPrimary(DeclarativeBehavior, ThemableBehavior, BoxLayout):
         self.ids.tab_scroll.goto(x, None)
 
     def android_animation(self, instance: MKVTabsCarousel, offset: float) -> None:
-        """Fired when swiping a carousel slide (related content)."""
-
         self.dispatch("on_slide_progress", instance, offset)
 
         # Try to reproduce the android animation effect.
@@ -421,8 +280,6 @@ class MKVTabsPrimary(DeclarativeBehavior, ThemableBehavior, BoxLayout):
     def update_indicator(
         self, x: float = 0.0, w: float = 0.0, instance: MKVTabsItem = None
     ) -> None:
-        """Update position and size of the indicator."""
-
         def update_indicator(*args):
             indicator_pos = (0, 0)
             indicator_size = (0, 0)
@@ -464,8 +321,6 @@ class MKVTabsPrimary(DeclarativeBehavior, ThemableBehavior, BoxLayout):
     def switch_tab(
         self, instance: MKVTabsItem = None, text: str = "", icon: str = ""
     ) -> None:
-        """Switches tabs by tab object/tab text/tab icon name."""
-
         Clock.schedule_once(lambda x: self._switch_tab(instance, text, icon), 0.8)
 
     def set_active_item(self, item: MKVTabsItem) -> None:
@@ -516,61 +371,25 @@ class MKVTabsPrimary(DeclarativeBehavior, ThemableBehavior, BoxLayout):
                         ).start(widget_item)
 
     def get_tabs_list(self) -> list:
-        """
-        Returns a list of :class:`~MKVTabsItem` objects.
-
-        .. versionchanged:: 2.0.0
-
-            Rename from `get_tab_list` to `get_tabs_list` method.
-        """
-
         return self.ids.container.children
 
     def get_slides_list(self) -> list:
-        """
-        Returns a list of user tab objects.
-
-        .. versionchanged:: 2.0.0
-
-            Rename from `get_slides` to `get_slides_list` method.
-        """
-
         if self._tabs_carousel:
             return self._tabs_carousel.slides
 
     def get_current_tab(self) -> MKVTabsItem:
-        """
-        Returns current tab object.
-
-        .. versionadded:: 1.0.0
-        """
-
         return self._current_tab
 
     def get_current_related_content(self) -> Widget:
-        """
-        Returns the carousel slide object (related content).
-
-        .. versionadded:: 2.0.0
-        """
-
         return self._current_related_content
 
     def on_tab_switch(self, *args) -> None:
-        """This event is launched every time the current tab is changed."""
+        pass
 
     def on_slide_progress(self, *args) -> None:
-        """
-        This event is deployed every available frame while the tab is
-        scrolling.
-        """
+        pass
 
     def on_carousel_index(self, instance: MKVTabsCarousel, value: int) -> None:
-        """
-        Fired when the Tab index have changed.
-        This event is deployed by the builtin carousel of the class.
-        """
-
         # When the index of the carousel change, update tab indicator,
         # select the current tab and reset threshold data.
         if instance.current_slide and hasattr(instance.current_slide, "tab_item"):
@@ -579,8 +398,6 @@ class MKVTabsPrimary(DeclarativeBehavior, ThemableBehavior, BoxLayout):
             )
 
     def on_size(self, instance, size) -> None:
-        """Fired when the application screen size changes."""
-
         width, height = size
         number_tabs = len(self.ids.container.children)
 
@@ -694,20 +511,7 @@ class MKVTabsItemSecondary(MKVTabsItemBase, AnchorLayout):
 
 class MKVTabsSecondary(MKVTabsPrimary):
     indicator_radius = VariableListProperty(0, lenght=4)
-    """
-    Radius of the tab indicator.
-
-    :attr:`indicator_radius` is an :class:`~kivy.properties.VariableListProperty`
-    and defaults to `[0, 0, 0, 0]`.
-    """
-
     indicator_height = NumericProperty("2dp")
-    """
-    Height of the tab indicator.
-
-    :attr:`indicator_height` is an :class:`~kivy.properties.NumericProperty`
-    and defaults to `'2dp'`.
-    """
 
     def _check_panel_height(self, *args):
         self.ids.tab_scroll.height = dp(48)
