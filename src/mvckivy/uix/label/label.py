@@ -31,10 +31,18 @@ from mvckivy.properties.alias_dedupe_mixin import AliasDedupeMixin
 from mvckivy.properties.extended_alias_property import ExtendedAliasProperty
 
 
-def _call_super_method(instance, name: str, *args):
-    method = getattr(super(type(instance), instance), name, None)
-    if method:
-        method(*args)
+def _call_super_method(owner_cls, instance, name: str, *args) -> None:
+    """Invoke the next implementation in the MRO after ``owner_cls``.
+
+    Passing ``owner_cls`` avoids infinite recursion when the current method
+    lives on a base class but is executed on a subclass instance.
+    """
+
+    for cls in owner_cls.__mro__[1:]:
+        method = cls.__dict__.get(name)
+        if method is not None:
+            method(instance, *args)
+            return
 
 
 class MKVBaseLabel(
@@ -200,7 +208,7 @@ class MKVBaseLabel(
 
     # --- sync helpers ---------------------------------------------------
     def on_font_size(self, instance, value):
-        _call_super_method(self, "on_font_size", instance, value)
+        _call_super_method(MKVBaseLabel, self, "on_font_size", instance, value)
         if self.theme_font_size == "Custom":
             self.font_size_custom = value
 
@@ -209,7 +217,7 @@ class MKVBaseLabel(
             self.font_size_custom = None
 
     def on_line_height(self, instance, value):
-        _call_super_method(self, "on_line_height", instance, value)
+        _call_super_method(MKVBaseLabel, self, "on_line_height", instance, value)
         if self.theme_line_height == "Custom":
             self.line_height_custom = value
 
@@ -218,7 +226,7 @@ class MKVBaseLabel(
             self.line_height_custom = None
 
     def on_font_name(self, instance, value):
-        _call_super_method(self, "on_font_name", instance, value)
+        _call_super_method(MKVBaseLabel, self, "on_font_name", instance, value)
         if self.theme_font_name == "Custom":
             self.font_name_custom = value
 
@@ -359,14 +367,21 @@ class MKVIcon(MKVLabel):
         return self._calc_alias_icon_color(prop)
 
     def _calc_alias_icon_color(self, prop: ExtendedAliasProperty):
-        if self.disabled and self.icon_color_disabled:
+        try:
+            is_disabled = self.disabled
+        except AttributeError:
+            # ``Widget`` has not finished initialising yet. Treat as enabled
+            # to avoid accessing ``_disabled_count`` before it exists.
+            is_disabled = False
+
+        if is_disabled and self.icon_color_disabled:
             return self.icon_color_disabled
         if self.icon_color:
             return self.icon_color
         base = getattr(
             self.theme_cls, "onSurfaceVariantColor", self.theme_cls.onSurfaceColor
         )
-        if self.disabled:
+        if is_disabled:
             muted = list(base)
             if len(muted) < 4:
                 muted = muted[:3] + [1.0]
