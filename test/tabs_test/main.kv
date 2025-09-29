@@ -24,7 +24,20 @@
         halign: "center"
 
     MKVBottomSwipeTabs:
-        id: bottom_tabs
+        id: bottom_swipe_tabs
+        item_spacing: dp(8)
+        bar_height: dp(64)
+        size_hint_y: None
+        height: dp(220)
+
+    MDLabel:
+        text: "MKVBottomTabs"
+        role: "large"
+        adaptive_height: True
+        halign: "center"
+
+    MKVBottomTabs:
+        id: bottom_fixed_tabs
         item_spacing: dp(8)
         bar_height: dp(64)
         size_hint_y: None

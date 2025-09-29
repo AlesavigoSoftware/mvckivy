@@ -8,7 +8,7 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.widget import Widget
 
 from mvckivy.app import MKVApp
-from mvckivy.uix.tab import MKVBottomSwipeTabs, MKVTabItem
+from mvckivy.uix.tab import MKVBottomSwipeTabs, MKVBottomTabs, MKVTabItem
 
 
 def pump_frames(count: int = 3) -> None:
@@ -115,3 +115,13 @@ class TestBottomTabs(BottomTabsTestCase):
             tabs.add_tab(f"Item {i}", content=self._content(str(i)))
         pump_frames()
         self.assertTrue(tabs._tab_bar._scroll_view.do_scroll_x)
+
+    def test_bottom_tabs_stack_bar_below(self) -> None:
+        tabs = MKVBottomTabs()
+        self.root.add_widget(tabs)
+        tabs.add_tab("One", content=self._content("one"))
+        tabs.add_tab("Two", content=self._content("two"))
+        pump_frames()
+        children = list(tabs.children)
+        self.assertIs(children[0], tabs._tab_bar)
+        self.assertIs(children[1], tabs._carousel)

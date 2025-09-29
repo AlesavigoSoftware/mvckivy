@@ -124,6 +124,8 @@ class MKVTabItem(
         self._update_display_trigger = Clock.create_trigger(
             self._update_display_icon, -1
         )
+        self._bound_icon_widget: Widget | None = None
+        self._bound_text_widget: Widget | None = None
         super().__init__(**kwargs)
 
     def _get_alias_implicit_width(self, prop: ExtendedAliasProperty) -> float:
@@ -168,6 +170,48 @@ class MKVTabItem(
         watch_before_use=True,
     )
 
+    def _get_alias_text_color(self, prop: ExtendedAliasProperty) -> list[float]:
+        return self._calc_alias_text_color(prop)
+
+    def _calc_alias_text_color(self, prop: ExtendedAliasProperty) -> list[float]:
+        user_value = self.active_text_color if self.active else self.inactive_text_color
+        return self._resolve_color(user_value, active=self.active)
+
+    alias_text_color = ExtendedAliasProperty(
+        _get_alias_text_color,
+        None,
+        bind=(
+            "active",
+            "active_text_color",
+            "inactive_text_color",
+            "theme_cls.primaryColor",
+            "theme_cls.onSurfaceVariantColor",
+        ),
+        cache=True,
+        watch_before_use=True,
+    )
+
+    def _get_alias_icon_color(self, prop: ExtendedAliasProperty) -> list[float]:
+        return self._calc_alias_icon_color(prop)
+
+    def _calc_alias_icon_color(self, prop: ExtendedAliasProperty) -> list[float]:
+        user_value = self.active_icon_color if self.active else self.inactive_icon_color
+        return self._resolve_color(user_value, active=self.active)
+
+    alias_icon_color = ExtendedAliasProperty(
+        _get_alias_icon_color,
+        None,
+        bind=(
+            "active",
+            "active_icon_color",
+            "inactive_icon_color",
+            "theme_cls.primaryColor",
+            "theme_cls.onSurfaceVariantColor",
+        ),
+        cache=True,
+        watch_before_use=True,
+    )
+
     def on_kv_post(self, base_widget):
         super().on_kv_post(base_widget)
         self._apply_active_state_trigger()
@@ -188,14 +232,41 @@ class MKVTabItem(
         self._apply_active_state_trigger()
 
     def on_icon_widget(self, *_):
+        if self._bound_icon_widget and self._bound_icon_widget is not self.icon_widget:
+            self._bound_icon_widget.unbind(texture_size=self._on_icon_texture)
         if self.icon_widget:
             self.icon_widget.bind(texture_size=self._on_icon_texture)
             self._on_icon_texture(self.icon_widget, self.icon_widget.texture_size)
+            self._apply_active_state_trigger()
+        self._bound_icon_widget = self.icon_widget
 
     def on_text_widget(self, *_):
+        if self._bound_text_widget and self._bound_text_widget is not self.text_widget:
+            self._bound_text_widget.unbind(texture_size=self._on_text_texture)
         if self.text_widget:
             self.text_widget.bind(texture_size=self._on_text_texture)
             self._on_text_texture(self.text_widget, self.text_widget.texture_size)
+            self._apply_active_state_trigger()
+        self._bound_text_widget = self.text_widget
+
+    def on_tabs_ref(self, *_):
+        if self.tabs_ref is None:
+            return
+        tabs = self.tabs_ref
+        has_active_text = hasattr(tabs, "active_text_color")
+        has_inactive_text = hasattr(tabs, "inactive_text_color")
+        has_active_icon = hasattr(tabs, "active_icon_color")
+        has_inactive_icon = hasattr(tabs, "inactive_icon_color")
+
+        if has_active_text and self.active_text_color is None:
+            self.active_text_color = tabs.active_text_color
+        if has_inactive_text and self.inactive_text_color is None:
+            self.inactive_text_color = tabs.inactive_text_color
+        if has_active_icon and self.active_icon_color is None:
+            self.active_icon_color = tabs.active_icon_color
+        if has_inactive_icon and self.inactive_icon_color is None:
+            self.inactive_icon_color = tabs.inactive_icon_color
+        self._apply_active_state_trigger()
 
     def on_release(self, *_):
         if self.tabs_ref is not None:
@@ -210,14 +281,8 @@ class MKVTabItem(
     def _apply_active_state(self, *_):
         if not self.text_widget:
             return
-        text_color = self._resolve_color(
-            self.active_text_color if self.active else self.inactive_text_color,
-            active=self.active,
-        )
-        icon_color = self._resolve_color(
-            self.active_icon_color if self.active else self.inactive_icon_color,
-            active=self.active,
-        )
+        text_color = list(self.alias_text_color)
+        icon_color = list(self.alias_icon_color)
         self.text_widget.text_color = text_color
         if self.icon_widget:
             self.icon_widget.icon_color = icon_color

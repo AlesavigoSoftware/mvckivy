@@ -10,7 +10,7 @@ from .components import (
     TabContentFactory,
     TabDefinition,
 )
-from .tabs_core import MKVBottomSwipeTabs, MKVTabBar, MKVTabs
+from .tabs_core import MKVBottomSwipeTabs, MKVBottomTabs, MKVTabBar, MKVTabs
 
 __all__ = [
     "TabDefinition",
@@ -22,4 +22,5 @@ __all__ = [
     "MKVTabBar",
     "MKVTabs",
     "MKVBottomSwipeTabs",
+    "MKVBottomTabs",
 ]

@@ -1,5 +1,6 @@
 from .tab import (
     MKVBottomSwipeTabs,
+    MKVBottomTabs,
     MKVBottomTabItem,
     MKVTabBar,
     MKVTabCarousel,
@@ -20,4 +21,5 @@ __all__ = [
     "MKVTabBar",
     "MKVTabs",
     "MKVBottomSwipeTabs",
+    "MKVBottomTabs",
 ]

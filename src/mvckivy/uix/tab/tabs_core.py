@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Callable
+from functools import partial
+from typing import Callable, Any
 
 from kivy.animation import Animation
 from kivy.clock import Clock
@@ -134,10 +135,17 @@ class MKVTabBar(AliasDedupeMixin, ThemableBehavior, BoxLayout):
             self._container.size_hint_x = 1
             self._container.width = self.width
             if self.equal_item_widths:
-                width = max(self.min_item_width, self.width / len(self._items))
+                item_count = len(self._items)
+                width = self.width / item_count if item_count else self.width
+                width = max(self.min_item_width, width)
                 width = min(width, self.max_item_width)
+                total_width = width * item_count
+                if total_width > self.width and item_count:
+                    self._scroll_view.do_scroll_x = True
+                    self._container.size_hint_x = None
+                    self._container.width = total_width
                 for item in self._items:
-                    item.size_hint_x = 1
+                    item.size_hint_x = None
                     item.width = width
             else:
                 for item in self._items:
@@ -304,9 +312,13 @@ class MKVTabs(AliasDedupeMixin, ThemableBehavior, BoxLayout):
         content_cls = (
             self.tab_content_cls if isinstance(self.tab_content_cls, type) else MKVTabContent
         )
+        prev_index = self.current_index
+
         content_slide: MKVTabContent = content_cls()
         content_slide.definition = definition
         content_slide.lazy = self.lazy_content
+        if not self.lazy_content:
+            content_slide.ensure_content()
         definition.content_widget = content_slide
 
         tab_item = self._tab_bar.add_tab_item(definition)
@@ -316,6 +328,14 @@ class MKVTabs(AliasDedupeMixin, ThemableBehavior, BoxLayout):
 
         if self.current_index == -1:
             self.switch_to(tab_item, animate=False)
+            self._refresh_current_tab_state()
+        elif prev_index != -1:
+            Clock.schedule_once(
+                partial(self._restore_previous_selection, prev_index),
+                0,
+            )
+        else:
+            self._refresh_current_tab_state()
 
         return tab_item
 
@@ -350,6 +370,16 @@ class MKVTabs(AliasDedupeMixin, ThemableBehavior, BoxLayout):
             self._carousel.load_slide(definition.content_widget)
         else:
             self._carousel.index = index
+
+    def _restore_previous_selection(self, index: int, *_args: Any) -> None:
+        self.switch_to(index, animate=False)
+        self._refresh_current_tab_state()
+
+    def _refresh_current_tab_state(self) -> None:
+        if self.current_tab is None:
+            return
+        self.current_tab._apply_active_state()
+        self.current_tab._update_display_icon()
 
     def next(self) -> None:
         if not self._definitions:
@@ -390,6 +420,8 @@ class MKVTabs(AliasDedupeMixin, ThemableBehavior, BoxLayout):
         for definition in self._definitions:
             if definition.content_widget is not None:
                 definition.content_widget.lazy = self.lazy_content
+                if not self.lazy_content:
+                    definition.content_widget.ensure_content()
 
     def _on_carousel_index(self, carousel: MKVTabCarousel, index: int) -> None:
         if index < 0 or index >= len(self._definitions):
@@ -477,6 +509,7 @@ class MKVBottomSwipeTabs(MKVTabs):
         item.inactive_text_color = self.inactive_text_color
         item.active_icon_color = self.active_icon_color
         item.inactive_icon_color = self.inactive_icon_color
+        item._apply_active_state()
         return item
 
     def _align_carousel_position(self, *_):
@@ -495,3 +528,11 @@ class MKVBottomSwipeTabs(MKVTabs):
             item.active_icon_color = self.active_icon_color
             item.inactive_icon_color = self.inactive_icon_color
             item._apply_active_state()
+
+
+class MKVBottomTabs(MKVBottomSwipeTabs):
+    """Variant with a fixed bottom bar and content stacked above it."""
+
+    def __init__(self, **kwargs):
+        kwargs.setdefault("swiper_position", "top")
+        super().__init__(**kwargs)

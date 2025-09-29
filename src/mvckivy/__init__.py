@@ -27,6 +27,7 @@ register("MKVDialogButtonContainer", module="mvckivy.uix.dialog")
 
 register("MKVTabs", module="mvckivy.uix.tab")
 register("MKVBottomSwipeTabs", module="mvckivy.uix.tab")
+register("MKVBottomTabs", module="mvckivy.uix.tab")
 register("MKVTabBar", module="mvckivy.uix.tab")
 register("MKVTabItem", module="mvckivy.uix.tab")
 register("MKVBottomTabItem", module="mvckivy.uix.tab")

@@ -1,18 +1,17 @@
-"""Ручной стенд, совпадающий с demo/main.py, для визуальной проверки табов."""
+"""Ручной стенд, повторяющий demo/main.py."""
 
 from __future__ import annotations
 
 from pathlib import Path
 
 from kivy.lang import Builder
-from kivy.metrics import dp
 from kivy.uix.widget import Widget
 
 from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.label import MDLabel
 
 from mvckivy.app import MKVApp
-from mvckivy.uix.tab import MKVBottomSwipeTabs, MKVTabs
+from mvckivy.uix.tab import MKVBottomSwipeTabs, MKVBottomTabs, MKVTabs
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 KV_PATH = Path(__file__).with_name("main.kv")
@@ -32,40 +31,55 @@ class TabsDemoApp(MKVApp):
             Builder.load_string(_KV_FALLBACK)
         root = Root()
         self._populate_primary_tabs(root.ids.primary_tabs)
-        self._populate_bottom_tabs(root.ids.bottom_tabs)
+        self._populate_swipe_tabs(root.ids.bottom_swipe_tabs)
+        self._populate_fixed_bottom_tabs(root.ids.bottom_fixed_tabs)
         return root
 
     def _make_label(self, text: str) -> MDLabel:
-        label = MDLabel(text=text, halign="center", size_hint=(1, 1))
-        return label
+        return MDLabel(text=text, halign="center", size_hint=(1, 1))
 
     def _populate_primary_tabs(self, tabs: MKVTabs) -> None:
         tabs.tab_mode = "scrollable"
-        sections = ["Новости", "Спорт", "Музыка", "Видео", "Фото", "Игры", "Почта"]
-        for title in sections:
+        for title in ("Новости", "Спорт", "Музыка", "Видео", "Фото", "Игры", "Почта"):
             tabs.add_tab(
                 title,
                 icon="label-outline",
                 content=self._make_label(f"Раздел: {title}"),
             )
 
-    def _populate_bottom_tabs(self, tabs: MKVBottomSwipeTabs) -> None:
+    def _populate_swipe_tabs(self, tabs: MKVBottomSwipeTabs) -> None:
         tabs.active_text_color = (0.94, 0.33, 0.40, 1)
         tabs.inactive_text_color = (0.45, 0.45, 0.45, 1)
         tabs.active_icon_color = (0.94, 0.33, 0.40, 1)
         tabs.inactive_icon_color = (0.55, 0.55, 0.55, 1)
-        definitions = (
+        for title, icon, active_icon in (
             ("Главная", "home-outline", "home"),
             ("Избранное", "star-outline", "star"),
             ("Профиль", "account-outline", "account"),
             ("Настройки", "cog-outline", "cog"),
-        )
-        for title, icon, active_icon in definitions:
+        ):
             tabs.add_tab(
                 title,
                 icon=icon,
                 active_icon=active_icon,
                 content=self._make_label(f"Раздел: {title}"),
+            )
+
+    def _populate_fixed_bottom_tabs(self, tabs: MKVBottomTabs) -> None:
+        tabs.active_text_color = (0.20, 0.50, 0.90, 1)
+        tabs.inactive_text_color = (0.55, 0.55, 0.55, 1)
+        tabs.active_icon_color = (0.20, 0.50, 0.90, 1)
+        tabs.inactive_icon_color = (0.55, 0.55, 0.55, 1)
+        for title, icon, active_icon in (
+            ("Лента", "view-stream-outline", "view-stream"),
+            ("Задачи", "format-list-checkbox", "check-circle-outline"),
+            ("Профиль", "account-outline", "account"),
+        ):
+            tabs.add_tab(
+                title,
+                icon=icon,
+                active_icon=active_icon,
+                content=self._make_label(f"Экран: {title}"),
             )
 
 
@@ -96,7 +110,20 @@ _KV_FALLBACK = """
         halign: "center"
 
     MKVBottomSwipeTabs:
-        id: bottom_tabs
+        id: bottom_swipe_tabs
+        item_spacing: dp(8)
+        bar_height: dp(64)
+        size_hint_y: None
+        height: dp(220)
+
+    MDLabel:
+        text: "MKVBottomTabs"
+        role: "large"
+        adaptive_height: True
+        halign: "center"
+
+    MKVBottomTabs:
+        id: bottom_fixed_tabs
         item_spacing: dp(8)
         bar_height: dp(64)
         size_hint_y: None
