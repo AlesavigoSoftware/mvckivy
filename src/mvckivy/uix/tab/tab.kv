@@ -1,54 +1,32 @@
 #:import dp kivy.metrics.dp
-#:import DampedScrollEffect kivy.effects.dampedscroll.DampedScrollEffect
 
-<MKVTabsBadge>
-
-
-<MKVTabsCarousel>
-
-
-<MKVTabsScrollView>
-    size_hint: 1, None
-    do_scroll_y: False
-    bar_width: 0
-    effect_cls: DampedScrollEffect
-
-
-<MKVTabsItemText>
-    adaptive_size: True
-    pos_hint: {"center_x": .5, "center_y": .5}
-    font_style: "Title"
-    role: "small"
-
-
-<MKVTabsItemIcon>
-    pos_hint: {"center_x": .5}
-
-
-<MKVTabsItem>
-    orientation: "vertical"
+<MKVTabItem>:
     size_hint: None, None
+    width: self.alias_implicit_width
+    height: self.alias_height
+    orientation: "vertical"
+    padding: dp(12), dp(10), dp(12), dp(10)
     spacing: dp(4)
-    padding: 0, dp(12), 0, dp(8)
+    icon_widget: icon_widget
+    text_widget: text_widget
 
+    MDIcon:
+        id: icon_widget
+        icon: root.display_icon
+        adaptive_size: True
+        theme_icon_color: "Custom"
+        icon_color: root.theme_cls.onSurfaceVariantColor
 
-<MKVTabsItemSecondaryContainer>
+    MDLabel:
+        id: text_widget
+        text: root.text
+        adaptive_size: True
+        role: "small"
+        halign: "center"
+        theme_text_color: "Custom"
+        text_color: root.theme_cls.onSurfaceVariantColor
+
+<MKVBottomTabItem>:
     orientation: "horizontal"
-    size_hint: None, None
-    spacing: dp(8)
-
-
-<MKVTabsItemSecondary>
-    size_hint: None, None
-    height: dp(48)
-    anchor_x: "center"
-    anchor_y: "center"
-
-
-<MKVTabsPrimary>
-    orientation: "vertical"
-    size_hint_y: None
-
-
-<MKVTabsSecondary>
-    padding: 0, dp(8), 0, 0
+    padding: dp(16), 0, dp(16), 0
+    spacing: root.tabs_ref.item_spacing if root.tabs_ref and hasattr(root.tabs_ref, "item_spacing") else dp(8)
