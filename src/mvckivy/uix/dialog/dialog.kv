@@ -1,3 +1,4 @@
+#:import dp kivy.metrics.dp
 <MKVBaseDialog>
     radius: root.radius
     size_hint_min_x: dp(280)
@@ -8,92 +9,6 @@
     theme_shadow_color: "Custom"
     shadow_color: self.theme_cls.transparentColor
     focus_behavior: False
-
-
-<MKVDialog>
-    content_stack: content_stack
-    icon_container: icon_container
-    headline_container: headline_container
-    supporting_text_container: supporting_text_container
-    content_container: content_container
-    button_container: button_container
-
-    BoxLayout:
-        orientation: "vertical"
-        size_hint_y: None
-        height: self.minimum_height
-
-        BoxLayout:
-            id: content_stack
-            orientation: "vertical"
-            size_hint_y: None
-            height: self.minimum_height
-            spacing: dp(16)
-            padding: dp(24)
-
-            AnchorLayout:
-                id: icon_container
-                size_hint_y: None
-                height: 0
-                anchor_x: "center"
-
-            BoxLayout:
-                id: headline_container
-                size_hint_y: None
-                height: self.minimum_height
-
-            BoxLayout:
-                id: supporting_text_container
-                size_hint_y: None
-                height: self.minimum_height
-
-            BoxLayout:
-                id: content_container
-                size_hint_y: None
-                height: self.minimum_height
-
-        BoxLayout:
-            id: button_container
-            size_hint_y: None
-            height: self.minimum_height
-#            padding: dp(24), 0, dp(24), dp(24)
-
-
-<MKVDialogIcon>
-    size_hint: None, None
-    size: dp(24), dp(24)
-    theme_font_size: "Custom"
-    font_size: sp(24)
-    icon_color: self.alias_icon_color
-
-
-<MKVDialogHeadlineText>
-    adaptive_height: True
-    halign: "center"
-    font_style: "Headline"
-    role: "small"
-    markup: True
-    color: self.alias_color
-
-
-<MKVDialogSupportingText>
-    adaptive_height: True
-    halign: "center"
-    font_style: "Body"
-    role: "medium"
-    markup: True
-    text_color: self.alias_text_color
-
-
-<MKVDialogContentContainer>
-    size_hint_y: None
-    height: self.minimum_height
-
-
-<MKVDialogButtonContainer>
-    size_hint_y: None
-    height: self.minimum_height
-    padding: dp(24), 0, dp(24), 0
 
 
 <MKVDialogScrim>

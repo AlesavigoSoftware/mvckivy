@@ -1,0 +1,44 @@
+#:import dp kivy.metrics.dp
+
+<Root>:
+    orientation: "vertical"
+    padding: dp(24)
+    spacing: dp(24)
+    md_bg_color: app.theme_cls.backgroundColor
+
+    MDLabel:
+        text: "MKVTabs"
+        role: "large"
+        adaptive_height: True
+        halign: "center"
+
+    MKVTabs:
+        id: primary_tabs
+        size_hint_y: None
+        height: dp(240)
+
+    MDLabel:
+        text: "MKVBottomSwipeTabs"
+        role: "large"
+        adaptive_height: True
+        halign: "center"
+
+    MKVBottomSwipeTabs:
+        id: bottom_swipe_tabs
+        item_spacing: dp(8)
+        bar_height: dp(64)
+        size_hint_y: None
+        height: dp(220)
+
+    MDLabel:
+        text: "MKVBottomTabs"
+        role: "large"
+        adaptive_height: True
+        halign: "center"
+
+    MKVBottomTabs:
+        id: bottom_fixed_tabs
+        item_spacing: dp(8)
+        bar_height: dp(64)
+        size_hint_y: None
+        height: dp(220)
