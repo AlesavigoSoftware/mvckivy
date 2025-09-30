@@ -215,9 +215,6 @@ class MKVListItem(MKVBaseListItem, BoxLayout):
                 else {"center_y": 0.5}
             )
 
-    def on_use_divider(self, instance: Self, value: bool) -> None:
-        self.h_divider.divider_width = dp(1) if value else 0
-
     def on_disabled(self, instance: Self, value: bool) -> None:
         if self.leading_container.children:
             self.leading_container.children[0].disabled = value

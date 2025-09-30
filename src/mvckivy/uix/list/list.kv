@@ -18,25 +18,22 @@
     text_container: text_container
     trailing_container: trailing_container
 
-    BoxLayout:
+    MDBoxLayout:
         id: leading_container
-        size_hint_x: None
-        width: 0
+        adaptive_width: True
 
-    AnchorLayout:
+    MDAnchorLayout:
         anchor_y: "center"
 
-        BoxLayout:
+        MDBoxLayout:
             id: text_container
             orientation: "vertical"
-            size_hint_y: None
-            height: self.minimum_height
+            adaptive_height: True
             spacing: dp(2)
 
-    BoxLayout:
+    MDBoxLayout:
         id: trailing_container
-        size_hint_x: None
-        width: 0
+        adaptive_width: True
 
 
 <MKVBaseListItemText>
