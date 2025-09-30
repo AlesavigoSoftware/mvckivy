@@ -1,13 +1,10 @@
 <MKVBaseDialog>
-    radius: root.radius
+    orientation: "vertical"
     size_hint_min_x: dp(280)
     size_hint_max_x: dp(560)
     pos_hint: {"center_x": .5, "center_y": .5}
-    size_hint_y: None
-    height: root.alias_height
-    theme_shadow_color: "Custom"
-    shadow_color: self.theme_cls.transparentColor
     focus_behavior: False
+    adaptive_height: True
 
 
 <MKVDialog>
@@ -18,45 +15,35 @@
     content_container: content_container
     button_container: button_container
 
-    BoxLayout:
+    MDBoxLayout:
+        id: content_stack
         orientation: "vertical"
-        size_hint_y: None
-        height: self.minimum_height
+        adaptive_height: True
+        spacing: dp(16)
+        padding: dp(24)
 
-        BoxLayout:
-            id: content_stack
-            orientation: "vertical"
+        MDAnchorLayout:
+            id: icon_container
+            anchor_x: "center"
             size_hint_y: None
-            height: self.minimum_height
-            spacing: dp(16)
-            padding: dp(24)
+            height: 0
 
-            AnchorLayout:
-                id: icon_container
-                size_hint_y: None
-                height: 0
-                anchor_x: "center"
+        MDBoxLayout:
+            id: headline_container
+            adaptive_height: True
 
-            BoxLayout:
-                id: headline_container
-                size_hint_y: None
-                height: self.minimum_height
+        MDBoxLayout:
+            id: supporting_text_container
+            adaptive_height: True
 
-            BoxLayout:
-                id: supporting_text_container
-                size_hint_y: None
-                height: self.minimum_height
+        MDBoxLayout:
+            id: content_container
+            adaptive_height: True
 
-            BoxLayout:
-                id: content_container
-                size_hint_y: None
-                height: self.minimum_height
-
-        BoxLayout:
-            id: button_container
-            size_hint_y: None
-            height: self.minimum_height
-#            padding: dp(24), 0, dp(24), dp(24)
+    MDBoxLayout:
+        id: button_container
+        adaptive_height: True
+        padding: dp(24), 0, dp(24), dp(24)
 
 
 <MKVDialogIcon>
@@ -86,14 +73,11 @@
 
 
 <MKVDialogContentContainer>
-    size_hint_y: None
-    height: self.minimum_height
+    adaptive_height: True
 
 
 <MKVDialogButtonContainer>
-    size_hint_y: None
-    height: self.minimum_height
-    padding: dp(24), 0, dp(24), 0
+    adaptive_height: True
 
 
 <MKVDialogScrim>

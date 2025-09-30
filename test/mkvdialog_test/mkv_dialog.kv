@@ -16,19 +16,55 @@
         size_hint_y: None
 
         MDLabel:
-            text: "Используйте кнопку ниже для проверки диалога."
+            text: "Сравнение кастомного MKVDialog и оригинального MDDialog"
             halign: "center"
             adaptive_height: True
 
+        MDBoxLayout:
+            adaptive_height: True
+            spacing: dp(8)
+            size_hint_y: None
+
+            MDButton:
+                style: "filled"
+                on_release: app.open_mkv_dialog()
+                MDButtonText:
+                    text: "Открыть MKVDialog"
+
+            MDButton:
+                style: "filled"
+                on_release: app.open_md_dialog()
+                MDButtonText:
+                    text: "Открыть MDDialog (ориг.)"
+
+        MDBoxLayout:
+            adaptive_height: True
+            spacing: dp(8)
+            size_hint_y: None
+
+            MDButton:
+                style: "text"
+                on_release: app.close_mkv_dialog()
+                MDButtonText:
+                    text: "Закрыть MKVDialog"
+
+            MDButton:
+                style: "text"
+                on_release: app.close_md_dialog()
+                MDButtonText:
+                    text: "Закрыть MDDialog"
+
         MDButton:
-            style: "filled"
+            style: "tonal"
             pos_hint: {"center_x": 0.5}
-            on_release: app.open_dialog()
+            on_release: app.toggle_theme()
             MDButtonText:
-                text: "Открыть диалог"
+                text: "Смена темы"
 
     Widget:
 
+
+# ----- ваш кастомный диалог -----
 <DemoDialog@MKVDialog>:
     MKVDialogIcon:
         icon: "forum"
@@ -50,9 +86,47 @@
             halign: "center"
     MKVDialogButtonContainer:
         spacing: dp(8)
+        Widget:
         MDButton:
             style: "text"
-            on_release: app.close_dialog()
+            on_release: app.close_mkv_dialog()
+            MDButtonText:
+                text: "Закрыть"
+        MDButton:
+            style: "text"
+            on_release: app.toggle_theme()
+            MDButtonText:
+                text: "Смена темы"
+
+
+# ----- оригинальный MDDialog для сравнения -----
+<DemoMDDialog@MDDialog>:
+    MDDialogIcon:
+        icon: "forum"
+    MDDialogHeadlineText:
+        text: "Оригинальный MDDialog"
+    MDDialogSupportingText:
+        text: "Это диалог из KivyMD для сравнения визуала и анимации."
+
+    MDDialogContentContainer:
+        orientation: "vertical"
+        adaptive_height: True
+        spacing: dp(8)
+        MDLabel:
+            text: "• Иконка/заголовок/текст — стандартные."
+            adaptive_height: True
+            halign: "center"
+        MDLabel:
+            text: "• Кнопки — обычные MDButton(style='text')."
+            adaptive_height: True
+            halign: "center"
+
+    MDDialogButtonContainer:
+        spacing: dp(8)
+        Widget:
+        MDButton:
+            style: "text"
+            on_release: app.close_md_dialog()
             MDButtonText:
                 text: "Закрыть"
         MDButton:
