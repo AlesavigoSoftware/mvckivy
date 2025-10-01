@@ -1,25 +1,10 @@
 from .tab import (
-    MKVBottomSwipeTabs,
-    MKVBottomTabs,
-    MKVBottomTabItem,
-    MKVTabBar,
-    MKVTabCarousel,
-    MKVTabContent,
-    MKVTabItem,
-    MKVTabs,
-    TabContentFactory,
-    TabDefinition,
+    MKVTabsPrimary,
+    MKVTabsSecondary,
+    MKVTabsItem,
+    MKVTabsItemSecondary,
+    MKVTabsItemIcon,
+    MKVTabsItemText,
+    MKVTabsCarousel,
+    MKVTabsBadge,
 )
-
-__all__ = [
-    "TabDefinition",
-    "TabContentFactory",
-    "MKVTabItem",
-    "MKVBottomTabItem",
-    "MKVTabContent",
-    "MKVTabCarousel",
-    "MKVTabBar",
-    "MKVTabs",
-    "MKVBottomSwipeTabs",
-    "MKVBottomTabs",
-]

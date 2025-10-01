@@ -31,20 +31,6 @@ from mvckivy.properties.alias_dedupe_mixin import AliasDedupeMixin
 from mvckivy.properties.extended_alias_property import ExtendedAliasProperty
 
 
-def _call_super_method(owner_cls, instance, name: str, *args) -> None:
-    """Invoke the next implementation in the MRO after ``owner_cls``.
-
-    Passing ``owner_cls`` avoids infinite recursion when the current method
-    lives on a base class but is executed on a subclass instance.
-    """
-
-    for cls in owner_cls.__mro__[1:]:
-        method = cls.__dict__.get(name)
-        if method is not None:
-            method(instance, *args)
-            return
-
-
 class MKVBaseLabel(
     AliasDedupeMixin,
     DeclarativeBehavior,
@@ -80,8 +66,12 @@ class MKVBaseLabel(
             "Secondary": getattr(
                 self.theme_cls, "onSurfaceVariantColor", self.theme_cls.onSurfaceColor
             ),
-            "Hint": getattr(self.theme_cls, "outlineColor", self.theme_cls.onSurfaceColor),
-            "Error": getattr(self.theme_cls, "errorColor", self.theme_cls.onSurfaceColor),
+            "Hint": getattr(
+                self.theme_cls, "outlineColor", self.theme_cls.onSurfaceColor
+            ),
+            "Error": getattr(
+                self.theme_cls, "errorColor", self.theme_cls.onSurfaceColor
+            ),
         }
         if self.theme_text_color == "Custom" and self.text_color:
             return self.text_color
@@ -101,6 +91,28 @@ class MKVBaseLabel(
             "theme_cls.onSurfaceVariantColor",
             "theme_cls.outlineColor",
             "theme_cls.errorColor",
+        ),
+        cache=True,
+        watch_before_use=True,
+    )
+
+    def _get_alias_text_size(self, prop: ExtendedAliasProperty):
+        return self._calc_alias_text_size(prop)
+
+    def _calc_alias_text_size(self, prop: ExtendedAliasProperty):
+        if self.adaptive_size:
+            return None, None
+
+        width_value = None if self.adaptive_width else self.width
+        return width_value, None
+
+    alias_text_size = ExtendedAliasProperty(
+        _get_alias_text_size,
+        None,
+        bind=(
+            "adaptive_size",
+            "adaptive_width",
+            "width",
         ),
         cache=True,
         watch_before_use=True,
@@ -208,7 +220,10 @@ class MKVBaseLabel(
 
     # --- sync helpers ---------------------------------------------------
     def on_font_size(self, instance, value):
-        _call_super_method(MKVBaseLabel, self, "on_font_size", instance, value)
+        try:
+            super().on_font_size(instance, value)
+        except AttributeError:
+            pass
         if self.theme_font_size == "Custom":
             self.font_size_custom = value
 
@@ -217,7 +232,10 @@ class MKVBaseLabel(
             self.font_size_custom = None
 
     def on_line_height(self, instance, value):
-        _call_super_method(MKVBaseLabel, self, "on_line_height", instance, value)
+        try:
+            super().on_line_height(instance, value)
+        except AttributeError:
+            pass
         if self.theme_line_height == "Custom":
             self.line_height_custom = value
 
@@ -226,7 +244,10 @@ class MKVBaseLabel(
             self.line_height_custom = None
 
     def on_font_name(self, instance, value):
-        _call_super_method(MKVBaseLabel, self, "on_font_name", instance, value)
+        try:
+            super().on_font_name(instance, value)
+        except AttributeError:
+            pass
         if self.theme_font_name == "Custom":
             self.font_name_custom = value
 
@@ -244,11 +265,7 @@ class MKVLabel(MKVBaseLabel):
     radius = VariableListProperty([0], length=4)
     _canvas_bg = ObjectProperty(allownone=True)
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.register_event_type("on_copy")
-        self.register_event_type("on_selection")
-        self.register_event_type("on_cancel_selection")
+    __events__ = ("on_copy", "on_selection", "on_cancel_selection")
 
     def do_selection(self) -> None:
         if not self.is_selected:
