@@ -181,6 +181,9 @@ class MKVTabsPrimary(DeclarativeBehavior, ThemableBehavior, BoxLayout):
     _current_related_content = None  # Carousel slide (related content) object
     _do_releasing = True
 
+    def _is_secondary(self) -> bool:
+        return False
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.register_event_type("on_tab_switch")
@@ -251,7 +254,7 @@ class MKVTabsPrimary(DeclarativeBehavior, ThemableBehavior, BoxLayout):
             item_text_object = self._get_tab_item_text_icon_object()
 
             if item_text_object:
-                if self.__class__.__name__ == "MKVTabsSecondary":
+                if self._is_secondary():
                     tab_text_width = a.width
                 else:
                     tab_text_width = item_text_object.texture_size[0]
@@ -272,9 +275,7 @@ class MKVTabsPrimary(DeclarativeBehavior, ThemableBehavior, BoxLayout):
                         a.x + (a.width / 2 - tab_text_width / 2) + dp(4) - gap_x * step
                     )
 
-                w_step = tab_text_width - (
-                    dp(8) if self.__class__.__name__ == "MKVTabsPrimary" else 0
-                )
+                w_step = tab_text_width - (dp(8) if not self._is_secondary() else 0)
                 self.update_indicator(x_step, w_step)
 
     def update_indicator(
@@ -284,7 +285,7 @@ class MKVTabsPrimary(DeclarativeBehavior, ThemableBehavior, BoxLayout):
             indicator_pos = (0, 0)
             indicator_size = (0, 0)
 
-            if self.__class__.__name__ == "MKVTabsPrimary":
+            if not self._is_secondary():
                 item_text_object = self._get_tab_item_text_icon_object()
 
                 if item_text_object:
@@ -301,7 +302,7 @@ class MKVTabsPrimary(DeclarativeBehavior, ThemableBehavior, BoxLayout):
                         tab_text_width - dp(8),
                         self.indicator_height,
                     )
-            elif self.__class__.__name__ == "MKVTabsSecondary":
+            else:
                 indicator_pos = (instance.x, self.indicator.pos[1])
                 indicator_size = (instance.width, self.indicator_height)
 
@@ -392,10 +393,16 @@ class MKVTabsPrimary(DeclarativeBehavior, ThemableBehavior, BoxLayout):
     def on_carousel_index(self, instance: MKVTabsCarousel, value: int) -> None:
         # When the index of the carousel change, update tab indicator,
         # select the current tab and reset threshold data.
-        if instance.current_slide and hasattr(instance.current_slide, "tab_item"):
-            Clock.schedule_once(
-                lambda x: instance.current_slide.tab_item.dispatch("on_release")
-            )
+        current_slide = instance.current_slide
+        if not current_slide:
+            return
+
+        try:
+            tab_item = current_slide.tab_item
+        except AttributeError:
+            return
+
+        Clock.schedule_once(lambda _: tab_item.dispatch("on_release"))
 
     def on_size(self, instance, size) -> None:
         width, height = size
@@ -413,44 +420,48 @@ class MKVTabsPrimary(DeclarativeBehavior, ThemableBehavior, BoxLayout):
             )
 
     def _switch_tab(self, instance: MKVTabsItem = None, text: str = "", icon: str = ""):
-        def get_match(widget_to_compare, widget_to_compare_with, value, attr):
-            if isinstance(widget_to_compare, widget_to_compare_with):
-                if getattr(widget_to_compare, attr) == value:
-                    return True
-
-        def switch_by(by_attr, attr):
-            for tab_item in self.ids.container.children:
-                for child in tab_item.children:
-                    if isinstance(child, MKVTabsItemSecondaryContainer):
-                        for w in child.children:
-                            if get_match(
-                                w,
-                                (
-                                    MKVTabsItemText
-                                    if by_attr == "text"
-                                    else MKVTabsItemIcon
-                                ),
-                                attr,
-                                by_attr,
-                            ):
-                                tab_item.dispatch("on_release")
-                                break
-                    else:
-                        if get_match(
-                            child,
-                            MKVTabsItemText if by_attr == "text" else MKVTabsItemIcon,
-                            attr,
-                            by_attr,
-                        ):
-                            tab_item.dispatch("on_release")
-                            break
-
         if instance and isinstance(instance, MKVTabsItem):
             instance.dispatch("on_release")
-        elif text:
-            switch_by("text", text)
-        elif icon:
-            switch_by("icon", icon)
+            return
+
+        if text:
+            self._switch_tab_by_text(text)
+            return
+
+        if icon:
+            self._switch_tab_by_icon(icon)
+
+    def _switch_tab_by_text(self, target_text: str) -> None:
+        for tab_item in self.ids.container.children:
+            if self._tab_contains_text(tab_item, target_text):
+                tab_item.dispatch("on_release")
+                break
+
+    def _switch_tab_by_icon(self, target_icon: str) -> None:
+        for tab_item in self.ids.container.children:
+            if self._tab_contains_icon(tab_item, target_icon):
+                tab_item.dispatch("on_release")
+                break
+
+    def _tab_contains_text(self, tab_item: MKVTabsItem, target_text: str) -> bool:
+        for child in tab_item.children:
+            if isinstance(child, MKVTabsItemSecondaryContainer):
+                for widget in child.children:
+                    if isinstance(widget, MKVTabsItemText) and widget.text == target_text:
+                        return True
+            elif isinstance(child, MKVTabsItemText) and child.text == target_text:
+                return True
+        return False
+
+    def _tab_contains_icon(self, tab_item: MKVTabsItem, target_icon: str) -> bool:
+        for child in tab_item.children:
+            if isinstance(child, MKVTabsItemSecondaryContainer):
+                for widget in child.children:
+                    if isinstance(widget, MKVTabsItemIcon) and widget.icon == target_icon:
+                        return True
+            elif isinstance(child, MKVTabsItemIcon) and child.icon == target_icon:
+                return True
+        return False
 
     def _set_slides_attributes(self, *args):
         if self._tabs_carousel:
@@ -458,8 +469,8 @@ class MKVTabsPrimary(DeclarativeBehavior, ThemableBehavior, BoxLayout):
             tabs_item_list.reverse()
 
             for i, tab_item in enumerate(tabs_item_list):
-                setattr(tab_item, "_tab_content", self._tabs_carousel.slides[i])
-                setattr(self._tabs_carousel.slides[i], "tab_item", tab_item)
+                tab_item._tab_content = self._tabs_carousel.slides[i]
+                self._tabs_carousel.slides[i].tab_item = tab_item
 
     def _get_tab_item_text_icon_object(
         self, get_type="text"
@@ -512,6 +523,9 @@ class MKVTabsItemSecondary(MKVTabsItemBase, AnchorLayout):
 class MKVTabsSecondary(MKVTabsPrimary):
     indicator_radius = VariableListProperty(0, lenght=4)
     indicator_height = NumericProperty("2dp")
+
+    def _is_secondary(self) -> bool:
+        return True
 
     def _check_panel_height(self, *args):
         self.ids.tab_scroll.height = dp(48)
