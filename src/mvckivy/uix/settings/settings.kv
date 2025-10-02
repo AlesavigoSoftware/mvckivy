@@ -1,435 +1,322 @@
-#:import kivy kivy
-#:import MDSwitch kivymd.uix.selectioncontrol.selectioncontrol.MDSwitch
-#:import MDLabel kivymd.uix.label.MDLabel
+#:kivy 2.3.0
+#:import dp kivy.metrics.dp
+#:import MKVScrollView mvckivy.uix.scroll_view.MKVScrollView
+#:import get_color_from_hex kivy.utils.get_color_from_hex
+#:import MKVListItemHeadlineText mvckivy.uix.list.MKVListItemHeadlineText
+#:import MKVBaseListItemText mvckivy.uix.list.MKVBaseListItemText
+
+<MKVSettingsNav>:
+    size_hint_y: None if root.axis == "x" else 1
+    size_hint_x: 1 if root.axis == "x" else None
+    height: dp(70) if root.axis == "x" else self.minimum_height
+    width: dp(200) if root.axis == "y" else self.minimum_width
+    items_container: items_container
+
+    MKVScrollView:
+        do_scroll_x: root.axis == "x"
+        do_scroll_y: root.axis == "y"
+        bar_width: dp(3)
+
+        MDBoxLayout:
+            id: items_container
+            size_hint_x: None if root.axis == "x" else 1
+            size_hint_y: 1 if root.axis == "x" else None
+            width: self.minimum_width if root.axis == "x" else 1
+            height: self.minimum_height if root.axis == "y" else 1
+            orientation: "horizontal" if root.axis == "x" else "vertical"
+            padding: dp(8), dp(4)
+            spacing: dp(4)
 
 
-<MKVDefaultSettingItem>
-    size_hint_x: 1.
-    content: content
-
-    MDListItemLeadingIcon:
-        icon: root.icon
-
-    MDListItemHeadlineText:
-        text: root.title
-
-    MDListItemSupportingText:
-        text: root.desc
-
-    MDBoxLayout:
-        id: content
-        size_hint_x: .1
-
-
-<MKVSettingItem>
-    size_hint_x: 1.
-    content: content
-
-    MDListItemLeadingIcon:
-        icon: root.icon
-
-    MDListItemHeadlineText:
-        text: root.title
-
-    MDListItemSupportingText:
-        text: root.desc
-
-    MDBoxLayout:
-        id: content
-        size_hint_x: .1
-
-
-<MKVSettingBoolean>
-    icon: 'toggle-switch-off-outline'
-
-    MDSwitch:
-        text: 'Boolean'
-        pos: root.pos
-        pos_hint: {'center_y': .5, 'center_x': .5}
-        active: bool(root.values.index(root.value)) if root.value in root.values else False
-        on_active: root.value = root.values[int(args[1])]
-        disabled: root.disabled
-
-
-<MKVSettingString>
-    icon: 'form-textbox'
-
-    MDLabel:
-        text: root.value or ''
-        pos: root.pos
-        theme_font_size: 'Custom'
-        font_size: sp(15)
-
-
-<MKVSettingPath>
-    icon: 'folder-edit-outline'
-
-    MDLabel:
-        text: root.value or ''
-        pos: root.pos
-        theme_font_size: 'Custom'
-        font_size: sp(15)
-
-
-<MKVSettingColor>
-    icon: 'palette-outline'
-
-    MDBoxLayout:
-        MDLabel:
-            size_hint_x: None
-            width: dp(44)
-            padding: (0, dp(5))
-            canvas.before:
-                # white border to see that there's a color tile at dark colors e.g. black
-                Color:
-                    rgba: (1,1,1,1.)
-                Line:
-                    rectangle: self.x,self.y,self.width,self.height
-                Color:
-                    rgba: kivy.utils.get_color_from_hex(root.value) if root.value else (1,1,1,1.)
-                Rectangle:
-                    pos: self.pos
-                    size: self.size
-
-        MDLabel:
-            text: root.value or ''
-            pos: root.pos
-            theme_font_size: 'Custom'
-            font_size: sp(15)
-            valign: 'middle'
-            halign: 'center'
-            padding: (5,0)
-
-
-<MKVSettingButton>
-    icon: 'gesture-tap-button'
-
-
-<MKVSettingInfo>
-    icon: 'information-outline'
-
-
-<MKVSettingOptions>
-    icon: 'format-list-bulleted'
-
-    MDLabel:
-        text: root.value or ''
-        pos: root.pos
-        theme_font_size: 'Custom'
-        font_size: sp(15)
-
-
-<MKVSettingTitle>
-    orientation: 'vertical'
-    size_hint_y: None
-    height: label.height + divider.height
-
-    MDLabel:
-        id: label
-        text: root.title
-        size_hint_y: None
-        height: max(dp(20), self.font_size + dp(20))
-        theme_font_size: 'Custom'
-        font_size: sp(16)
-
-    MDDivider:
-        id: divider
-        orientation: 'horizontal'
-        size_hint_x: 1.
-
-
-<MKVSettingSidebarLabel>
-    size_hint: 1, None
-    text_size: self.width - 32, None
-    height: self.texture_size[1] + dp(20)
-    font_size: sp(15)
+<MKVSettingsNavItem>:
+    size_hint: None, None
+    height: dp(44)
+    width: max(self.minimum_width, dp(120))
+    padding: dp(16), dp(10)
+    spacing: dp(12)
 
     canvas.before:
         Color:
-            rgba: app.theme_cls.primaryContainerColor[:3] + [int(self.selected)]
+            rgba: root.theme_cls.primaryColor if root.selected else root.theme_cls.transparentColor
         RoundedRectangle:
-            pos: self.pos
-            size: self.size
-            radius: dp(10), dp(10), dp(10), dp(10)
+            radius: [dp(12), ]
+            pos: root.pos
+            size: root.size
+
+    MDIcon:
+        icon: root.panel_icon if root.panel_icon else ""
+        opacity: 1 if root.panel_icon else 0
+        size_hint: None, None
+        size: dp(20), dp(20)
+
+    MDLabel:
+        text: root.panel_title
+        adaptive_height: True
+        shorten: True
+        shorten_from: "right"
+        theme_text_color: "Custom"
+        text_color: self.theme_cls.onPrimaryColor if root.selected else self.theme_cls.onSurfaceVariantColor
 
 
-<MKVSettingsPanel>
-    spacing: dp(5)
-    padding: dp(5)
-    size_hint_y: None
-    height: self.minimum_height
+<MKVSettingsTop>:
+    orientation: "vertical"
+    nav_axis: "x"
+    nav_container: nav
+    nav_items_box: nav.items_container
+    content_container: content
 
-
-<MKVSettings>
-    orientation: 'horizontal'
-
-
-<MKVInterfaceWithSidebar>
-    orientation: 'horizontal'
-    menu: menu
-    content: content
-
-    MKVContentPanel:
-        id: content
-        current_uid: menu.selected_uid
-
-    MKVMenuSidebar:
-        id: menu
-
-
-#<MKVInterfaceWithSpinner>
-#    orientation: 'vertical'
-#    menu: menu
-#    content: content
-#
-#    MKVMenuSpinner:
-#        id: menu
-#
-#    MKVContentPanel:
-#        id: content
-#        current_uid: menu.selected_uid
-
-
-#<MKVMenuSpinner>
-#    orientation: 'horizontal'
-#    size_hint_y: None
-#    height: '50dp'
-#    spinner: spinner
-#    spinner_text: spinner.text
-#    close_button: button
-#
-#    Spinner:
-#        id: spinner
-#
-#    Button:
-#        text: 'Close'
-#        id: button
-#        size_hint_x: None
-#        width: min(dp(200), 0.4*root.width)
-#        font_size: '15sp'
-
-
-<MKVMenuSidebar>
-    size_hint_x: None
-    width: dp(200)
-    buttons_layout: menu
-    spacing: dp(20)
-
-    MDGridLayout:
-        pos: root.pos
-        cols: 1
-        id: menu
-        padding: dp(5)
-
-        canvas.after:
-            Color:
-                rgba: app.theme_cls.backgroundColor
-            RoundedRectangle:
-                pos: self.right - 1, self.y
-                size: 1, self.height
-                radius: dp(10), dp(10), dp(10), dp(10)
-
-#    MDButton:
-#        id: load_button
-#        size_hint: None, None
-#        theme_width: 'Custom'
-#        width: root.width - dp(20)
-#        height: min(dp(50), self.width * 2.5)
-#
-#        pos: root.x + dp(10), root.y + dp(10)
-#
-#        theme_font_size: 'Custom'
-#        font_size: sp(15)
-#
-#        style: 'tonal'
-#
-#        MDButtonIcon:
-#            x: load_button_text.x - (self.width + dp(10))
-#            icon: "download"
-#
-#        MDButtonText:
-#            id: load_button_text
-#            text: 'Загрузить'
-#            pos_hint: {"center_x": .5, "center_y": .5}
-#
-#    MDButton:
-#        id: upload_button
-#        size_hint: None, None
-#        theme_width: 'Custom'
-#        width: root.width - dp(20)
-#        height: min(dp(50), self.width * 2.5)
-#
-#        pos: root.x + dp(10), root.y + dp(10) + upload_button.height + root.spacing
-#
-#        theme_font_size: 'Custom'
-#        font_size: sp(15)
-#
-#        style: 'tonal'
-#
-#        MDButtonIcon:
-#            x: upload_button_text.x - (self.width + dp(10))
-#            icon: "upload"
-#
-#        MDButtonText:
-#            id: upload_button_text
-#            text: 'Отправить'
-#            pos_hint: {"center_x": .5, "center_y": .5}
-
-
-<MKVContentPanel>
-    do_scroll_x: False
-    container: content
+    MKVSettingsNav:
+        id: nav
+        axis: "x"
 
     MDBoxLayout:
         id: content
         orientation: "vertical"
-        adaptive_height: True
 
 
-#<MKVInterfaceWithTabbedPanel>
-#    tabbedpanel: tp
-#
-#    TabbedPanel:
-#        id: tp
-#        size: root.size
-#        pos: root.pos
-#        #do_default_tab: False
-#        background_color: app.theme_cls.backgroundColor
+<MKVSettingsRight>:
+    orientation: "horizontal"
+    nav_axis: "y"
+    nav_container: nav
+    nav_items_box: nav.items_container
+    content_container: content_container
 
-# ───────────────── StringValueDialog ─────────────────
-<StringValueDialog>:
-    type: "custom"
+    MDBoxLayout:
+        orientation: "vertical"
+        size_hint_x: 1
+
+        MKVScrollView:
+
+            MKVList:
+                id: content_container
+
+    MKVSettingsNav:
+        id: nav
+        axis: "y"
+        size_hint_x: None
+
+
+<MKVSettingItemBase>:
+    on_release: root.open_dialog()
+
+    MKVListItemLeadingIcon:
+        icon: root.icon
+
+    MKVListItemHeadlineText:
+        text: root.title
+
+    MKVListItemSupportingText:
+        text: root.subtitle
+
+
+<MKVSettingBooleanItem>:
+    on_release: root.toggle()
+
+    MDSwitch:
+        id: value_switch
+        active: bool(root.value)
+        disabled: not root.enabled
+        on_active:
+            root.commit_value(self.active) if bool(root.value) != bool(self.active) else None
+
+
+<MKVSettingStringItem>:
+    MDBoxLayout:
+        id: trailing_container
+        adaptive_width: True
+        spacing: dp(8)
+
+        MDLabel:
+            text: root.display_value
+            theme_text_color: "Custom"
+            text_color: self.theme_cls.onSurfaceVariantColor
+            adaptive_height: True
+            shorten: True
+            shorten_from: "right"
+            size_hint_x: None
+            width: min(dp(160), self.texture_size[0])
+
+        MDIconButton:
+            icon: "pencil"
+            disabled: not root.enabled
+            on_release: root.open_dialog()
+
+
+<MKVSettingPathItem>:
+    MDBoxLayout:
+        id: trailing_container
+        adaptive_width: True
+        spacing: dp(8)
+
+        MDLabel:
+            text: root.display_value
+            theme_text_color: "Custom"
+            text_color: self.theme_cls.onSurfaceVariantColor
+            adaptive_height: True
+            shorten: True
+            shorten_from: "left"
+            size_hint_x: None
+            width: min(dp(200), self.texture_size[0])
+
+        MDIconButton:
+            icon: "folder"
+            disabled: not root.enabled
+            on_release: root.open_dialog()
+
+
+<MKVSettingColorItem>:
+    MDBoxLayout:
+        id: trailing_container
+        adaptive_width: True
+        spacing: dp(12)
+
+        MDBoxLayout:
+            size_hint: None, None
+            size: dp(32), dp(32)
+            radius: [dp(8), ]
+            md_bg_color: get_color_from_hex(root.value) if root.value else (1, 1, 1, 1)
+
+        MDLabel:
+            text: root.display_value
+            theme_text_color: "Custom"
+            text_color: self.theme_cls.onSurfaceVariantColor
+            adaptive_height: True
+            shorten: True
+            shorten_from: "right"
+            size_hint_x: None
+            width: min(dp(120), self.texture_size[0])
+
+        MDIconButton:
+            icon: "eyedropper"
+            disabled: not root.enabled
+            on_release: root.open_dialog()
+
+
+<MKVSettingsDialogBase>:
     auto_dismiss: False
-    md_bg_color: "Surface"
-
-    MKVDialogIcon:
-        icon: "textbox"
 
     MKVDialogHeadlineText:
-        text: root.title if root.title else "Введите значение"
+        text: root.dialog_title
+        opacity: 1 if root.dialog_title else 0
+        size_hint_y: None
+        height: self.texture_size[1] if root.dialog_title else 0
+
+
+<MKVSettingsStringDialog>:
+    input_field: input_field
 
     MKVDialogSupportingText:
-        text: ""
+        text: root.validation_error
+        opacity: 1 if root.validation_error else 0
+        size_hint_y: None
+        height: self.texture_size[1] if root.validation_error else 0
 
     MKVDialogContentContainer:
-        orientation: "vertical"
-        spacing: "12dp"
-        padding: "12dp"
-
         MDTextField:
-            id: input
-            text: root.initial
-            hint_text: "Значение"
-            on_text_validate: root.on_ok()
+            id: input_field
+            text: root.current_value or ""
+            helper_text: root.validation_error
+            helper_text_mode: "on_error"
+            on_text:
+                root.update_current_value(self.text, trigger_commit=root.commit_mode == "on_validate")
+            on_text_validate: root.confirm()
 
     MKVDialogButtonContainer:
-        spacing: "8dp"
-        Widget:
         MDButton:
-            style: "text"
             on_release: root.dismiss()
             MDButtonText:
-                text: "Отмена"
+                text: root.cancel_text
+
         MDButton:
-            on_release: root.on_ok()
+            disabled:
+                root.commit_mode != "on_validate" and bool(root.validation_error)
+            on_release: root.confirm()
             MDButtonText:
-                text: "OK"
+                text: root.confirm_text
 
-# ───────────────── OptionsValueDialog ─────────────────
-<OptionsValueDialog>:
-    type: "custom"
-    auto_dismiss: True
-    md_bg_color: "Surface"
 
-    MKVDialogIcon:
-        icon: "format-list-bulleted"
-
-    MKVDialogHeadlineText:
-        text: root.title if root.title else "Выберите значение"
+<MKVSettingsPathDialog>:
+    input_field: input_field
 
     MKVDialogSupportingText:
-        text: ""
-
-    MKVDialogContentContainer:
-        orientation: "vertical"
-        padding: "0dp"
-
-        MDList:
-            id: opts
-
-    MKVDialogButtonContainer:
-        spacing: "8dp"
-        Widget:
-        MDButton:
-            style: "text"
-            on_release: root.dismiss()
-            MDButtonText:
-                text: "Закрыть"
-
-# ───────────────── PathValueDialog ─────────────────
-<PathValueDialog>:
-    type: "custom"
-    auto_dismiss: False
-    md_bg_color: "Surface"
-
-    MKVDialogIcon:
-        icon: "folder"
-
-    MKVDialogHeadlineText:
-        text: root.title if root.title else "Выбор пути"
-
-        text: ""
-    MKVDialogSupportingText:
-
-    MKVDialogContentContainer:
-        orientation: "vertical"
-        padding: "0dp"
-
-        MDFileManager:
-            id: fm
-            selector: "folder" if root.dirselect else "any"
-            on_select_path: root.on_accept_path(args[1])
-            search: True
-            show_hidden_files: root.show_hidden
-            current_path: root.initial if root.initial else "/"
-
-    MKVDialogButtonContainer:
-        spacing: "8dp"
-        Widget:
-        MDButton:
-            style: "text"
-            on_release: root.dismiss()
-            MDButtonText:
-                text: "Закрыть"
-
-# ───────────────── ColorValueDialog ─────────────────
-<ColorValueDialog>:
-    type: "custom"
-    auto_dismiss: False
-    md_bg_color: "Surface"
-
-    MKVDialogIcon:
-        icon: "palette"
-
-    MKVDialogHeadlineText:
-        text: root.title if root.title else "Выбор цвета"
+        text: root.validation_error
+        opacity: 1 if root.validation_error else 0
+        size_hint_y: None
+        height: self.texture_size[1] if root.validation_error else 0
 
     MKVDialogSupportingText:
-        text: ""
+        text: ", ".join(root.filters) if root.filters else ""
+        opacity: 1 if root.filters else 0
+        size_hint_y: None
+        height: self.texture_size[1] if root.filters else 0
 
     MKVDialogContentContainer:
-        orientation: "vertical"
-        padding: "8dp"
-
-        ColorPicker:
-            id: cp
-            on_color: root.on_color(self.color)
+        MDTextField:
+            id: input_field
+            text: root.current_value or ""
+            helper_text: root.validation_error
+            helper_text_mode: "on_error"
+            on_text:
+                root.update_current_value(self.text, trigger_commit=root.commit_mode == "on_validate",)
+            on_text_validate: root.confirm()
 
     MKVDialogButtonContainer:
-        spacing: "8dp"
-        Widget:
         MDButton:
-            style: "text"
+            on_release: root.dismiss()
+
+            MDButtonText:
+                text: root.cancel_text
+
+        MDButton:
+            disabled:
+                root.commit_mode != "on_validate" and bool(root.validation_error)
+            on_release: root.confirm()
+
+            MDButtonText:
+                text: root.confirm_text
+
+
+<MKVSettingsColorDialog>:
+    hex_field: hex_field
+    preview_box: preview_box
+
+    MKVDialogSupportingText:
+        text: root.validation_error
+        opacity: 1 if root.validation_error else 0
+        size_hint_y: None
+        height: self.texture_size[1] if root.validation_error else 0
+
+    MKVDialogContentContainer:
+        MDBoxLayout:
+            orientation: "horizontal"
+            adaptive_height: True
+            spacing: dp(12)
+
+            MDTextField:
+                id: hex_field
+                text: root.current_value or "#FFFFFFFF"
+                helper_text: root.validation_error
+                helper_text_mode: "on_error"
+                on_text: root.update_current_value(self.text.strip(), trigger_commit=True)
+                on_text_validate: root.confirm()
+
+            MDBoxLayout:
+                id: preview_box
+                size_hint: None, None
+                size: dp(36), dp(36)
+                radius: [dp(10), ]
+                md_bg_color:
+                    get_color_from_hex(root.current_value) if root.current_value else (1, 1, 1, 1)
+
+    MKVDialogButtonContainer:
+        MDButton:
             on_release: root.dismiss()
             MDButtonText:
-                text: "Отмена"
+                text: root.cancel_text
+
+        MDButton:
+            disabled:
+                root.commit_mode != "on_validate" and bool(root.validation_error)
+            on_release: root.confirm()
+            MDButtonText:
+                text: root.confirm_text

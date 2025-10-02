@@ -1,0 +1,36 @@
+#:kivy 2.3.0
+#:import dp kivy.metrics.dp
+#:import MKVSpeedDialAction mvckivy.uix.button.speed_dial.MKVSpeedDialAction
+#:import MKVSpeedDialMainButton mvckivy.uix.button.speed_dial.MKVSpeedDialMainButton
+
+MDScreen:
+    md_bg_color: app.theme_cls.surfaceColor
+
+    FloatLayout:
+        MKVSpeedDial:
+            id: sd
+            size_hint: 1, 1
+
+            MKVSpeedDialMainButton:
+                id: main_btn
+                size_hint: None, None
+                size: dp(56), dp(56)
+                pos_hint: {"right": 0.95, "y": 0.08}
+                icon: "plus"
+                style: "tonal"
+                radius: [dp(16)]
+
+            MKVSpeedDialAction:
+                icon: "map-marker-plus"
+                on_release: app.on_add_point()
+
+            MKVSpeedDialAction:
+                icon: "download"
+                on_release: app.on_download()
+
+            FavoriteAction:
+                on_release: app.on_stats()
+
+            MKVSpeedDialAction:
+                icon: "pencil"
+                on_release: app.on_edit()

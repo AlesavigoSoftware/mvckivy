@@ -36,6 +36,8 @@ This allows multiple layouts for the same base behavior without subclassing chai
   * `_calc_alias_padding(self, prop)` → actual calculation
 * **Alias override safety:** use `AliasDedupeMixin` so a child’s KV rule **can override** a parent alias-driven property 
 (even with a **constant**); the mixin will detach the parent alias’ internal bindings on that child instance.
+* **Alias only for a single target:** each `ExtendedAliasProperty` must map to a **single** property (e.g., `alias_height` → `height`).
+* **Alias must be bound only to top-level widget**: never (!) bind an alias property to a sub-widget (e.g., `height: root.alias_label_height` forbidden!).
 
 ### Step-by-Step Plan
 

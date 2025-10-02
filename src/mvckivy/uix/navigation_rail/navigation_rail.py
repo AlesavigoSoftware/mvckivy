@@ -12,17 +12,17 @@ from kivymd_extensions.akivymd.uix.behaviors.labelanimation import (
     AKAnimationIconBehavior,
 )
 
-from mvckivy import ButtonHoverBehavior, MVCBehavior
+from mvckivy.uix.behaviors.hover_behavior import ButtonHoverBehavior
 
 
-class NavigationRailItem(MDNavigationRailItem, MVCBehavior):
+class MKVNavigationRailItem(MDNavigationRailItem):
     text = StringProperty()
     icon = StringProperty()
     theme_font_name = StringProperty()
     font_name = StringProperty()
 
 
-class NavigationRailItemIcon(MDNavigationRailItemIcon):
+class MKVNavigationRailItemIcon(MDNavigationRailItemIcon):
     def finish_ripple(self) -> None:
         if self._doing_ripple and not self._finishing_ripple:
             self._finishing_ripple = True
@@ -58,11 +58,11 @@ class NavigationRailItemIcon(MDNavigationRailItemIcon):
         self.parent.dispatch("on_release")
 
 
-class NavigationRailItemLabel(MDNavigationRailItemLabel):
+class MKVNavigationRailItemLabel(MDNavigationRailItemLabel):
     pass
 
 
-class NavigationRailButton(
+class MKVNavigationRailButton(
     MDNavigationRailFabButton, ButtonHoverBehavior, AKAnimationIconBehavior
 ):
     def __init__(self, *args, **kwargs):
@@ -90,9 +90,9 @@ class NavigationRailButton(
         lp.remove_widget(self)
 
 
-class NavigationRailMenuButton(MDNavigationRailMenuButton, ButtonHoverBehavior):
+class MKVNavigationRailMenuButton(MDNavigationRailMenuButton, ButtonHoverBehavior):
     pass
 
 
-class NavigationRail(MDNavigationRail, MVCBehavior):
+class MKVNavigationRail(MDNavigationRail):
     pass

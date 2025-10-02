@@ -1,639 +1,522 @@
 from __future__ import annotations
 
-import os
+from pathlib import Path
+import re
+from typing import Any, Iterable, Self
 
-import kivy.utils as utils
 from kivy.factory import Factory
-from kivy.metrics import dp, sp
-from kivy.config import ConfigParser
-from kivy.compat import string_types, text_type
-from kivy.core.window import Window
-from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.tabbedpanel import TabbedPanelHeader
-from kivy.uix.button import Button
-from kivy.uix.filechooser import FileChooserListView
-from kivy.uix.colorpicker import ColorPicker
-from kivy.uix.popup import Popup
-from kivy.uix.textinput import TextInput
-from kivy.uix.togglebutton import ToggleButton
-from kivy.uix.widget import Widget
+from kivy.uix.behaviors import ButtonBehavior
 from kivy.properties import (
-    ObjectProperty,
-    StringProperty,
-    ListProperty,
     BooleanProperty,
+    ListProperty,
     NumericProperty,
-    DictProperty,
+    ObjectProperty,
+    OptionProperty,
+    StringProperty,
+    Clock,
 )
-from kivymd.uix.floatlayout import MDFloatLayout
-from kivymd.uix.gridlayout import MDGridLayout
+from kivy.utils import get_color_from_hex, get_hex_from_color
 from kivymd.uix.boxlayout import MDBoxLayout
-from kivymd.uix.behaviors import CommonElevationBehavior
-from kivymd.uix.button import MDIconButton
-from kivymd.uix.label import MDLabel
-from kivymd.uix.list import MDListItem
-from kivymd.uix.divider import MDDivider
 
+from mvckivy.properties.alias_dedupe_mixin import AliasDedupeMixin
 from mvckivy.uix.dialog import MKVDialog
-from mvckivy.uix.scroll_view import MKVScrollView
+from mvckivy.uix.list import MKVListItem
 
 
-class AttributeIsUnset(ValueError):
-    pass
+_HEX_COLOR_RE = re.compile(r"^#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$")
 
 
-class MKVSettingItem(MDListItem):
-    icon = StringProperty("checkbox-blank-circle")
-    title = StringProperty("<No title set>")
-    desc = StringProperty(None, allownone=True)
-    key = StringProperty(None)
-    value = ObjectProperty(None)
-    panel = ObjectProperty(None)
-    content = ObjectProperty(None)
+class MKVSettingsPanel(AliasDedupeMixin, MDBoxLayout):
+    name = StringProperty("")
+    title = StringProperty("")
+    icon = StringProperty("tune")
+    order = NumericProperty(0)
+    settings_ref = ObjectProperty(None, rebind=True, allownone=True)
+    orientation = "vertical"
+    spacing = 0
+    padding = (0, 0, 0, 0)
 
-    def _open_dialog(self):
-        pass
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+        self._items: list[MKVSettingItemBase] = []
+
+    def add_widget(self, widget, *args: Any, **kwargs: Any):
+        if isinstance(widget, MKVSettingItemBase):
+            self._items.append(widget)
+            widget.panel_ref = self
+            widget.settings_ref = self.settings_ref
+            if self.settings_ref is not None:
+                self.settings_ref.dispatch("on_item_registered", widget)
+        return super().add_widget(widget, *args, **kwargs)
+
+    def remove_widget(self, widget):
+        if isinstance(widget, MKVSettingItemBase):
+            if widget in self._items:
+                self._items.remove(widget)
+            if self.settings_ref is not None:
+                self.settings_ref.dispatch("on_item_unregistered", widget)
+            widget.panel_ref = None
+            widget.settings_ref = None
+        return super().remove_widget(widget)
+
+    def iter_items(self) -> Iterable[MKVSettingItemBase]:
+        return tuple(self._items)
+
+
+class MKVSettingsNav(AliasDedupeMixin, MDBoxLayout):
+    axis = OptionProperty("x", options=("x", "y"))
+    items_container = ObjectProperty(None, rebind=True, allownone=True)
+    orientation = "vertical"
+
+
+class MKVSettingsNavItem(AliasDedupeMixin, ButtonBehavior, MDBoxLayout):
+    panel_name = StringProperty("")
+    panel_title = StringProperty("")
+    panel_icon = StringProperty("tune")
+    selected = BooleanProperty(False)
+    settings_ref = ObjectProperty(None, rebind=True, allownone=True)
+    orientation = "horizontal"
 
     def on_release(self):
-        self._open_dialog()
-
-    def add_widget(self, *args, **kwargs):
-        if self.content is None:
-            return super(MKVSettingItem, self).add_widget(*args, **kwargs)
-        return self.content.add_widget(*args, **kwargs)
-
-
-class MKVSettingBoolean(MKVSettingItem):
-    values = ListProperty([0, 1])
-
-
-class MKVSettingString(MKVSettingItem):
-    popup = ObjectProperty(None, allownone=True)
-    textinput = ObjectProperty(None)
-
-    def _dismiss(self, *largs):
-        if self.textinput:
-            self.textinput.focus = False
-        if self.popup:
-            self.popup.dismiss()
-        self.popup = None
-
-    def _validate(self, instance):
-        self._dismiss()
-        value = self.textinput.text.strip()
-        self.value = value
-
-    def _create_popup(self, instance):
-        # create popup layout
-        content = BoxLayout(orientation="vertical", spacing="5dp")
-        popup_width = min(0.95 * Window.width, dp(500))
-        self.popup = popup = Popup(
-            title=self.title,
-            content=content,
-            size_hint=(None, None),
-            size=(popup_width, dp(250)),
-        )
-
-        # create the textinput used for numeric input
-        self.textinput = textinput = TextInput(
-            text=self.value,
-            font_size=sp(24),
-            multiline=False,
-            size_hint_y=None,
-            height=sp(42),
-        )
-        textinput.bind(on_text_validate=self._validate)
-        self.textinput = textinput
-
-        # construct the content, widget are used as a spacer
-        content.add_widget(Widget())
-        content.add_widget(textinput)
-        content.add_widget(Widget())
-        content.add_widget(MDDivider())
-
-        # 2 buttons are created for accept or cancel the current value
-        btnlayout = BoxLayout(size_hint_y=None, height=dp(50), spacing=dp(5))
-        btn = Button(text="Ok")
-        btn.bind(on_release=self._validate)
-        btnlayout.add_widget(btn)
-        btn = Button(text="Cancel")
-        btn.bind(on_release=self._dismiss)
-        btnlayout.add_widget(btn)
-        content.add_widget(btnlayout)
-
-        # all done, open the popup
-        popup.open()
-
-
-class MKVSettingInfo(MKVSettingItem):
-    pass
-
-
-class MKVSettingButton(MKVSettingItem):
-    def __init__(self, **kwargs):
-        super(MKVSettingItem, self).__init__(**kwargs)
-
-    def on_release(self, *args):
-        pass
-
-
-class MKVSettingPath(MKVSettingItem):
-    popup = ObjectProperty(None, allownone=True)
-    textinput = ObjectProperty(None)
-    show_hidden = BooleanProperty(False)
-    dirselect = BooleanProperty(True)
-
-    def on_panel(self, instance, value):
-        if value is None:
-            return
-        self.fbind("on_release", self._create_popup)
-
-    def _dismiss(self, *largs):
-        if self.textinput:
-            self.textinput.focus = False
-        if self.popup:
-            self.popup.dismiss()
-        self.popup = None
-
-    def _validate(self, instance):
-        self._dismiss()
-        value = self.textinput.selection
-
-        if not value:
-            return
-
-        self.value = os.path.realpath(value[0])
-
-    def _create_popup(self, instance):
-        # create popup layout
-        content = BoxLayout(orientation="vertical", spacing=5)
-        popup_width = min(0.95 * Window.width, dp(500))
-        self.popup = popup = Popup(
-            title=self.title, content=content, size_hint=(None, 0.9), width=popup_width
-        )
-
-        # create the filechooser
-        initial_path = self.value or os.getcwd()
-        self.textinput = textinput = FileChooserListView(
-            path=initial_path,
-            size_hint=(1, 1),
-            dirselect=self.dirselect,
-            show_hidden=self.show_hidden,
-        )
-        textinput.bind(on_path=self._validate)
-
-        # construct the content
-        content.add_widget(textinput)
-        content.add_widget(MDDivider())
-
-        # 2 buttons are created for accept or cancel the current value
-        btnlayout = BoxLayout(size_hint_y=None, height="50dp", spacing="5dp")
-        btn = Button(text="Ok")
-        btn.bind(on_release=self._validate)
-        btnlayout.add_widget(btn)
-        btn = Button(text="Cancel")
-        btn.bind(on_release=self._dismiss)
-        btnlayout.add_widget(btn)
-        content.add_widget(btnlayout)
-
-        # all done, open the popup !
-        popup.open()
-
-
-class MKVSettingColor(MKVSettingItem):
-    popup = ObjectProperty(None, allownone=True)
-
-    def on_panel(self, instance, value):
-        if value is None:
-            return
-        self.bind(on_release=self._create_popup)
-
-    def _dismiss(self, *largs):
-        if self.popup:
-            self.popup.dismiss()
-        self.popup = None
-
-    def _validate(self, instance):
-        self._dismiss()
-        value = utils.get_hex_from_color(self.colorpicker.color)
-        self.value = value
-
-    def _create_popup(self, instance):
-        # create popup layout
-        content = BoxLayout(orientation="vertical", spacing="5dp")
-        popup_width = min(0.95 * Window.width, dp(500))
-        self.popup = popup = Popup(
-            title=self.title, content=content, size_hint=(None, 0.9), width=popup_width
-        )
-
-        self.colorpicker = colorpicker = ColorPicker(
-            color=utils.get_color_from_hex(self.value)
-        )
-        colorpicker.bind(on_color=self._validate)
-
-        self.colorpicker = colorpicker
-        content.add_widget(colorpicker)
-        content.add_widget(MDDivider())
-
-        # 2 buttons are created for accept or cancel the current value
-        btnlayout = BoxLayout(size_hint_y=None, height="50dp", spacing="5dp")
-        btn = Button(text="Ok")
-        btn.bind(on_release=self._validate)
-        btnlayout.add_widget(btn)
-        btn = Button(text="Cancel")
-        btn.bind(on_release=self._dismiss)
-        btnlayout.add_widget(btn)
-        content.add_widget(btnlayout)
-
-        # all done, open the popup !
-        popup.open()
-
-
-class MKVSettingNumeric(MKVSettingString):
-    def _validate(self, instance):
-        # we know the type just by checking if there is a '.' in the original
-        # value
-        is_float = "." in str(self.value)
-        self._dismiss()
-        try:
-            if is_float:
-                self.value = text_type(float(self.textinput.text))
-            else:
-                self.value = text_type(int(self.textinput.text))
-        except ValueError:
-            return
-
-
-class MKVSettingOptions(MKVSettingItem):
-    options = ListProperty([])
-    popup = ObjectProperty(None, allownone=True)
-
-    def on_panel(self, instance, value):
-        if value is None:
-            return
-        self.fbind("on_release", self._create_popup)
-
-    def _set_option(self, instance):
-        self.value = instance.text
-        self.popup.dismiss()
-
-    def _create_popup(self, instance):
-        # create the popup
-        content = BoxLayout(orientation="vertical", spacing="5dp")
-        popup_width = min(0.95 * Window.width, dp(500))
-        self.popup = popup = Popup(
-            content=content,
-            title=self.title,
-            size_hint=(None, None),
-            size=(popup_width, "400dp"),
-        )
-        popup.height = len(self.options) * dp(55) + dp(150)
-
-        # add all the options
-        content.add_widget(Widget(size_hint_y=None, height=1))
-        uid = str(self.uid)
-        for option in self.options:
-            state = "down" if option == self.value else "normal"
-            btn = ToggleButton(text=option, state=state, group=uid)
-            btn.bind(on_release=self._set_option)
-            content.add_widget(btn)
-
-        # finally, add a cancel button to return on the previous panel
-        content.add_widget(MDDivider())
-        btn = Button(text="Cancel", size_hint_y=None, height=dp(50))
-        btn.bind(on_release=popup.dismiss)
-        content.add_widget(btn)
-
-        # and open the popup !
-        popup.open()
-
-
-class MKVSettingTitle(MDBoxLayout):
-    title = StringProperty()
-    panel = ObjectProperty(None)
-
-
-class MKVSettingsPanel(MDGridLayout):
-    title = StringProperty("Default title")
-    config = ObjectProperty(None, allownone=True)
-    settings = ObjectProperty(None)
-
-    def __init__(self, **kwargs):
-        kwargs.setdefault("cols", 1)
-        super(MKVSettingsPanel, self).__init__(**kwargs)
-
-    def on_config(self, instance, value):
-        if value is None:
-            return
-        if not isinstance(value, ConfigParser):
-            raise Exception(
-                "Invalid utils object, you must use a"
-                "kivy.utils.ConfigParser, not another one !"
-            )
-
-    def get_value(self, key):
-        return self.get_property_value_from_model(key)
-
-    def set_value(self, key, value):
-        self.controller.dispatch_to_model(**{key: value})
-        print(f"Dispatched to model: {key=}, {value=}")
-
-
-class MKVInterfaceWithSidebar(MDBoxLayout):
-    menu = ObjectProperty()
-    content = ObjectProperty()
-
-    __events__ = ("on_close",)
-
-    def __init__(self, *args, **kwargs):
-        super(MKVInterfaceWithSidebar, self).__init__(*args, **kwargs)
-        if self.menu.close_button:
-            self.menu.close_button.bind(on_release=lambda j: self.dispatch("on_close"))
-
-    def add_panel(self, panel, name, uid):
-        """This method is used by MDSettings to add new panels for possible
-        display. Any replacement for ContentPanel *must* implement
-        this method.
-
-        :Parameters:
-            `panel`: :class:`MDSettingsPanel`
-                It should be stored and the interface should provide a way to
-                switch between panels.
-            `name`:
-                The name of the panel as a string. It may be used to represent
-                the panel but isn't necessarily unique.
-            `uid`:
-                A unique int identifying the panel. It should be used to
-                identify and switch between panels.
-
-        """
-        self.menu.add_item(name, uid)
-        self.content.add_panel(panel, name, uid)
-
-    def on_close(self, *args):
-        pass
-
-
-class MKVContentPanel(MKVScrollView):
-    panels = DictProperty({})
-    container = ObjectProperty()
-    current_panel = ObjectProperty(None)
-    current_uid = NumericProperty(0)
-
-    def __init__(self, *args, ignore_parent_mvc=True, **kwargs):
-        super().__init__(*args, ignore_parent_mvc=ignore_parent_mvc, **kwargs)
-
-    def add_panel(self, panel, name, uid):
-        self.panels[uid] = panel
-        if not self.current_uid:
-            self.current_uid = uid
-
-    def on_current_uid(self, *args):
-        uid = self.current_uid
-        if uid in self.panels:
-            if self.current_panel is not None:
-                self.remove_widget(self.current_panel)
-            new_panel = self.panels[uid]
-            self.add_widget(new_panel)
-            self.current_panel = new_panel
-            return True
-        return False  # New uid doesn't exist
-
-    def add_widget(self, *args, **kwargs):
-        if self.container is None:
-            super(MKVContentPanel, self).add_widget(*args, **kwargs)
-        else:
-            self.container.add_widget(*args, **kwargs)
-
-    def remove_widget(self, *args, **kwargs):
-        self.container.remove_widget(*args, **kwargs)
-
-
-class MKVSettings(MDBoxLayout):
-    interface = ObjectProperty(None)
-    interface_cls = ObjectProperty(MKVInterfaceWithSidebar)
-
-    NO_PROPERTY_CLASSES = [MKVSettingButton, MKVSettingTitle]
-
-    def __init__(self, *args, **kwargs):
-        self._types = {}
-        self._items: dict[str, MKVSettingItem] = dict()
+        settings = self.settings_ref
+        if settings is not None and self.panel_name:
+            settings.switch_to(self.panel_name)
+
+
+class MKVSettingsBase(AliasDedupeMixin, MDBoxLayout):
+    orientation = "vertical"
+    panels = ListProperty([])
+    active_panel_name = StringProperty("")
+    active_panel = ObjectProperty(None, rebind=True, allownone=True)
+    nav_axis = OptionProperty("x", options=("x", "y"))
+
+    nav_container = ObjectProperty(None, rebind=True, allownone=True)
+    nav_items_box = ObjectProperty(None, rebind=True, allownone=True)
+    content_container = ObjectProperty(None, rebind=True, allownone=True)
+
+    __events__ = (
+        "on_panel_added",
+        "on_panel_removed",
+        "on_active_panel",
+        "on_item_registered",
+        "on_item_unregistered",
+        "on_item_value_changed",
+        "on_dispatch_new_val",
+    )
+
+    def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
-        self.add_interface()
-        self.register_type("string", MKVSettingString)
-        self.register_type("bool", MKVSettingBoolean)
-        self.register_type("numeric", MKVSettingNumeric)
-        self.register_type("options", MKVSettingOptions)
-        self.register_type("path", MKVSettingPath)
-        self.register_type("color", MKVSettingColor)
-        self.register_type("info", MKVSettingInfo)
+        self._nav_items: dict[str, MKVSettingsNavItem] = {}
+        self._pending_panels: list[MKVSettingsPanel] = []
+        self._flush_trigger = Clock.create_trigger(self._flush_pending_panels, 0)
 
-        self.register_type("title", MKVSettingTitle)
-        self.register_type("button", MKVSettingButton)
+    def on_panel_added(self, panel: MKVSettingsPanel) -> None:
+        pass
 
-    def on_touch_down(self, touch):
-        if self.collide_point(*touch.pos):
-            super().on_touch_down(touch)
-            return True
+    def on_panel_removed(self, instance: Self, panel: MKVSettingsPanel) -> None:
+        pass
 
-    def register_type(self, tp, cls):
-        self._types[tp] = cls
+    def on_active_panel(self, *args) -> None:
+        pass
 
-    def add_interface(self):
-        cls = self.interface_cls
-        if isinstance(cls, string_types):
-            cls = Factory.get(cls)
-        interface = cls()
-        self.interface = interface
-        self.add_widget(interface)
-        self.interface.bind(on_close=lambda j: self.dispatch("on_close"))
+    def on_item_registered(self, item: MKVSettingItemBase) -> None:
+        pass
 
-    def create_panel(self, title: str, data: list) -> MKVSettingsPanel:
-        panel = MKVSettingsPanel(title=title, settings=self)
+    def on_item_unregistered(self, item: MKVSettingItemBase) -> None:
+        pass
 
-        for setting in data:
-            # determine the type and the class to use
-            if "type" not in setting:
-                print(setting)
-                raise ValueError('One setting is missing the "type" element')
-            ttype = setting["type"]
-            cls = self._types.get(ttype)
-            if cls is None:
-                raise ValueError(
-                    f'No class registered to handle the {setting["type"]} type'
-                )
+    def on_item_value_changed(
+        self, item: MKVSettingItemBase, old_value: Any, new_value: Any
+    ) -> None:
+        pass
 
-            # create an instance of the class, without the type attribute
-            del setting["type"]
+    def on_dispatch_new_val(self, key: str, value: Any) -> None:
+        pass
 
-            debug_mode = False
-            str_settings = {}
+    def add_widget(self, widget, *args: Any, **kwargs: Any):
+        if isinstance(widget, MKVSettingsPanel):
+            self._pending_panels.append(widget)
+            self._flush_trigger()
+            return widget
+        return super().add_widget(widget, *args, **kwargs)
 
-            for key, item in setting.items():
+    def _flush_pending_panels(self, *_: Any) -> None:
+        while self._pending_panels:
+            panel = self._pending_panels.pop(0)
+            self.add_panel(panel)
 
-                if str(key) == "debug_only":
-                    if debug_mode == item:
-                        continue
-                    else:
-                        str_settings = None
-                        break
+    def add_panel(self, panel: MKVSettingsPanel) -> None:
+        if panel in self.panels:
+            return
+        if not panel.name:
+            panel.name = f"panel_{len(self.panels) + 1}"
+        panel.settings_ref = self
+        self.panels.append(panel)
+        self.panels.sort(key=lambda p: p.order)
+        for item in panel.iter_items():
+            item.settings_ref = self
+            self.dispatch("on_item_registered", item)
+        self.dispatch("on_panel_added", panel)
+        self._ensure_nav_item(panel)
+        if not self.active_panel:
+            self.switch_to(panel.name)
+        else:
+            self._reorder_nav_items()
 
-                str_settings[str(key)] = item
+    def remove_panel(self, name: str) -> None:
+        panel = self.get_panel(name)
+        if panel is None:
+            return
+        if panel is self.active_panel and self.content_container:
+            self.content_container.remove_widget(panel)
+        for item in panel.iter_items():
+            self.dispatch("on_item_unregistered", item)
+            if item.settings_ref is self:
+                item.settings_ref = None
+        if panel in self.panels:
+            self.panels.remove(panel)
+        self.dispatch("on_panel_removed", panel)
+        nav_item = self._nav_items.pop(panel.name, None)
+        if nav_item is not None and self.nav_items_box is not None:
+            self.nav_items_box.remove_widget(nav_item)
+        panel.settings_ref = None
+        if self.panels:
+            self.switch_to(self.panels[0].name)
+        else:
+            self.active_panel = None
+            self.active_panel_name = ""
 
-            if str_settings is not None:
-                instance = cls(panel=panel, **str_settings)
-                panel.add_widget(instance)
+    def get_panel(self, name: str) -> MKVSettingsPanel | None:
+        for panel in self.panels:
+            if panel.name == name:
+                return panel
+        return None
 
-                if str_settings.get("key", None):
-                    self._items[str_settings["key"]]: MKVSettingItem = instance
+    def switch_to(self, name: str) -> None:
+        panel = self.get_panel(name)
+        if panel is None or panel is self.active_panel:
+            return
+        if self.content_container is not None:
+            self.content_container.clear_widgets()
+            self.content_container.add_widget(panel)
+        previous = self.active_panel
+        self.active_panel = panel
+        self.active_panel_name = panel.name
+        self.dispatch("on_active_panel", panel)
+        if previous is not None:
+            nav_prev = self._nav_items.get(previous.name)
+            if nav_prev:
+                nav_prev.selected = False
+        nav_item = self._nav_items.get(panel.name)
+        if nav_item:
+            nav_item.selected = True
 
-        return panel
+    def collect_items(
+        self, panel: MKVSettingsPanel | None = None
+    ) -> list["MKVSettingItemBase"]:
+        target = panel or self.active_panel
+        if target is None:
+            return []
+        return [
+            item for item in target.iter_items() if isinstance(item, MKVSettingItemBase)
+        ]
 
-    def add_panel_to_interface(self, panel: MKVSettingsPanel) -> None:
-        self.interface.add_panel(panel, panel.title, panel.uid)
+    def dispatch_new_val(self, key: str, value: Any) -> None:
+        self.dispatch("on_dispatch_new_val", key, value)
 
-    def create_and_add_panel_to_interface(self, title: str, data: list):
-        self.add_panel_to_interface(self.create_panel(title, data))
+    def _ensure_nav_item(self, panel: MKVSettingsPanel) -> None:
+        nav_box = self.nav_items_box
+        if nav_box is None:
+            return
+        nav_item = self._nav_items.get(panel.name)
+        if nav_item is None:
+            nav_item = Factory.MKVSettingsNavItem()
+            nav_item.panel_name = panel.name
+            nav_item.settings_ref = self
+            self._nav_items[panel.name] = nav_item
+        nav_item.panel_title = panel.title or panel.name
+        nav_item.panel_icon = panel.icon
+        if nav_item.parent is not nav_box:
+            nav_box.add_widget(nav_item)
+        self._reorder_nav_items()
 
-    def disable_item(self, key: str):
-        self._items[key].disabled = True
-
-    def enable_item(self, key: str):
-        self._items[key].disabled = False
-
-    def bind_all(self, model):
-        for key, instance in self._items.items():
-            if instance.__class__ not in self.NO_PROPERTY_CLASSES:
-                self.bind_property_to_model(
-                    prop_name="value", model_prop_name=key, prop_source=instance
-                )
-                print(f'Bind: "value"\tModel: {key}\tInstance: {instance}')
-
-    def init_all(self, controller):
-        for key, instance in self._items.items():
-            if instance.__class__ not in self.NO_PROPERTY_CLASSES:
-                instance.value = self.get_property_value_from_model(key)
-                print(f"Init: {instance}\tValue: {instance.value}")
+    def _reorder_nav_items(self) -> None:
+        nav_box = self.nav_items_box
+        if nav_box is None:
+            return
+        nav_box.clear_widgets()
+        for panel in self.panels:
+            nav_item = self._nav_items.get(panel.name)
+            if nav_item is None:
+                continue
+            nav_item.panel_title = panel.title or panel.name
+            nav_item.panel_icon = panel.icon
+            nav_box.add_widget(nav_item)
 
 
-class MKVSettingsWithSidebar(MKVSettings):
+class MKVSettingsTop(MKVSettingsBase):
+    nav_axis = "x"
+
+
+class MKVSettingsRight(MKVSettingsBase):
+    nav_axis = "y"
+
+
+class MKVSettingItemBase(MKVListItem):
+    key = StringProperty("")
+    title = StringProperty("")
+    subtitle = StringProperty("", allownone=True)
+    icon = StringProperty("tune", allownone=True)
+    value = ObjectProperty(None, rebind=True, allownone=True)
+    default = ObjectProperty(None, allownone=True)
+    enabled = BooleanProperty(True)
+    visible = BooleanProperty(True)
+    formatter = ObjectProperty(None, allownone=True)
+    commit_mode = OptionProperty("on_save", options=("on_save", "on_validate"))
+    validator = ObjectProperty(None, allownone=True)
+
+    settings_ref = ObjectProperty(None, rebind=True, allownone=True)
+    panel_ref = ObjectProperty(None, rebind=True, allownone=True)
+    dialog_ref = ObjectProperty(None, rebind=True, allownone=True)
+    display_value = StringProperty("")
+
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+        self._display_trigger = Clock.create_trigger(self._refresh_display, 0)
+        self._refresh_display()
+
+    def on_kv_post(self, base_widget) -> None:
+        super().on_kv_post(base_widget)
+        self._refresh_display()
+
+    def on_value(self, *_: Any) -> None:
+        self._display_trigger()
+
+    def on_formatter(self, *_: Any) -> None:
+        self._refresh_display()
+
+    def on_visible(self, *_: Any) -> None:
+        self.opacity = 1.0 if self.visible else 0.0
+        self.disabled = not self.visible or not self.enabled
+
+    def on_enabled(self, *_: Any) -> None:
+        self.disabled = not self.enabled or not self.visible
+
+    def _refresh_display(self, *_: Any) -> None:
+        value = self.value
+        formatter = self.formatter
+        if callable(formatter):
+            try:
+                value = formatter(value)
+            except Exception:  # pragma: no cover - defensive
+                value = self.value
+        self.display_value = str(value)
+
+    def open_dialog(self) -> None:
+        dialog = self.dialog_ref
+        if dialog:
+            dialog.open()
+            return
+        dialog = self._create_dialog()
+        dialog.bind(on_dismiss=lambda *_: self._release_dialog())
+        dialog.open()
+        self.dialog_ref = dialog
+
+    def _create_dialog(self) -> "MKVSettingsDialogBase":  # pragma: no cover
+        raise NotImplementedError
+
+    def _release_dialog(self) -> None:
+        self.dialog_ref = None
+
+    def commit_value(self, new_value: Any) -> None:
+        old_value = self.value
+        if old_value == new_value:
+            return
+        self.value = new_value
+        settings = self.settings_ref
+        if settings is not None:
+            settings.dispatch("on_item_value_changed", self, old_value, new_value)
+            if self.key:
+                settings.dispatch_new_val(self.key, new_value)
+
+
+class MKVSettingBooleanItem(MKVSettingItemBase):
+    value = BooleanProperty(False)
+
+    def toggle(self, *_: Any) -> None:
+        if self.enabled:
+            self.commit_value(not bool(self.value))
+
+
+class MKVSettingStringItem(MKVSettingItemBase):
+    def _create_dialog(self) -> "MKVSettingsDialogBase":
+        return MKVSettingsStringDialog()
+
+
+class MKVSettingPathItem(MKVSettingItemBase):
+    path_mode = OptionProperty("file", options=("file", "dir"))
+    must_exist = BooleanProperty(True)
+    filters = ListProperty([])
+
+    def _create_dialog(self) -> "MKVSettingsDialogBase":
+        return MKVSettingsPathDialog(
+            path_mode=self.path_mode,
+            must_exist=self.must_exist,
+            filters=list(self.filters),
+        )
+
+
+class MKVSettingColorItem(MKVSettingItemBase):
+    def _create_dialog(self) -> "MKVSettingsDialogBase":
+        return MKVSettingsColorDialog(current_value=self.value or "#FFFFFFFF")
+
+
+class MKVSettingsDialogBase(MKVDialog):
+    commit_mode = OptionProperty("on_save", options=("on_save", "on_validate"))
+    validator = ObjectProperty(None, allownone=True)
+    current_value = ObjectProperty(None, rebind=True, allownone=True)
+    item_ref = ObjectProperty(None, rebind=True, allownone=True)
+    validation_error = StringProperty("")
+    dialog_title = StringProperty("")
+    confirm_text = StringProperty("Save")
+    cancel_text = StringProperty("Cancel")
+
+    def on_open(self, *_: Any) -> None:
+        super().on_open(*_)
+        self.update_current_value(self.current_value, trigger_commit=False)
+
+    def update_current_value(self, value: Any, *, trigger_commit: bool = False) -> None:
+        norm_value = value if value is not None else ""
+        self.current_value = norm_value
+        ok = self._update_validation_state(norm_value)
+        if trigger_commit and self.commit_mode == "on_validate" and ok:
+            self._commit_value(norm_value)
+
+    def confirm(self, *_: Any) -> None:
+        value = self.current_value if self.current_value is not None else ""
+        if self._update_validation_state(value):
+            self._commit_value(value)
+
+    def validate(self, value: Any) -> tuple[bool, str | None]:
+        validator = self.validator
+        if not callable(validator):
+            return True, None
+        try:
+            result = validator(value)
+        except Exception as exc:  # pragma: no cover - defensive
+            return False, str(exc)
+        if isinstance(result, tuple):
+            ok = bool(result[0])
+            message = result[1] if len(result) > 1 else None
+            return ok, message
+        return bool(result), None
+
+    def _update_validation_state(self, value: Any) -> bool:
+        ok, message = self.validate(value)
+        self.validation_error = message or "" if not ok else ""
+        self.on_validation_error()
+        return ok
+
+    def _commit_value(self, value: Any) -> None:
+        item = self.item_ref
+        if item is not None:
+            item.commit_value(value)
+        self.dismiss()
+
+    def on_validation_error(self) -> None:  # pragma: no cover - UI hook
+        pass
+
+
+class MKVSettingsTextDialog(MKVSettingsDialogBase):
+    input_field = ObjectProperty(None, rebind=True, allownone=True)
+
+    def on_open(self, *_: Any) -> None:
+        super().on_open(*_)
+        field = self.input_field
+        if field is not None:
+            field.text = self.current_value or ""
+            field.focus = True
+        self.on_validation_error()
+
+    def on_validation_error(self) -> None:
+        field = self.input_field
+        if field is not None:
+            field.helper_text = self.validation_error
+
+
+class MKVSettingsStringDialog(MKVSettingsTextDialog):
     pass
 
 
-class MKVSettingsWithNoMenu(MKVSettings):
-    def __init__(self, *args, **kwargs):
-        self.interface_cls = MKVInterfaceWithNoMenu
-        super(MKVSettingsWithNoMenu, self).__init__(*args, **kwargs)
+class MKVSettingsPathDialog(MKVSettingsTextDialog):
+    path_mode = OptionProperty("file", options=("file", "dir"))
+    must_exist = BooleanProperty(True)
+    filters = ListProperty([])
+
+    confirm_text = StringProperty("Choose")
+
+    def on_open(self, *_: Any) -> None:
+        super().on_open(*_)
+        field = self.input_field
+        if field is not None:
+            field.text = self.current_value or ""
+            field.focus = True
+        self.on_validation_error()
+
+    def validate(self, value: Any) -> tuple[bool, str | None]:
+        text = str(value or "")
+        if not text:
+            return super().validate(text)
+        path = Path(text)
+        if self.must_exist and not path.exists():
+            return False, "Path does not exist"
+        if self.path_mode == "dir" and not path.is_dir():
+            return False, "Directory required"
+        if self.path_mode == "file" and self.filters:
+            suffix = path.suffix.lower()
+            filters = {f.lower() for f in self.filters}
+            if suffix and suffix not in filters:
+                return False, "Invalid extension"
+        return super().validate(text)
+
+    def on_validation_error(self) -> None:
+        field = self.input_field
+        if field is not None:
+            field.helper_text = self.validation_error
 
 
-class MKVInterfaceWithNoMenu(MKVContentPanel):
-    def add_widget(self, *args, **kwargs):
-        if self.container is not None and len(self.container.children) > 0:
-            raise Exception("ContentNoMenu cannot accept more than one settings panel")
-        super(MKVInterfaceWithNoMenu, self).add_widget(*args, **kwargs)
+class MKVSettingsColorDialog(MKVSettingsDialogBase):
+    hex_field = ObjectProperty(None, rebind=True, allownone=True)
+    preview_box = ObjectProperty(None, rebind=True, allownone=True)
 
+    confirm_text = StringProperty("Apply")
 
-class MKVMenuSidebar(MDFloatLayout):
-    selected_uid = NumericProperty(0)
-    buttons_layout = ObjectProperty(None)
-    close_button = ObjectProperty(None)
+    def on_open(self, *_: Any) -> None:
+        super().on_open(*_)
+        field = self.hex_field
+        if field is not None:
+            field.text = self.current_value or "#FFFFFFFF"
+        self._sync_preview()
 
-    def add_item(self, name, uid):
-        """This method is used to add new panels to the menu.
+    def validate(self, value: Any) -> tuple[bool, str | None]:
+        text = str(value or "").strip()
+        if not text:
+            return False, "Value required"
+        if not _HEX_COLOR_RE.match(text):
+            return False, "Use #RRGGBB or #RRGGBBAA"
+        return super().validate(text)
 
-        :Parameters:
-            `name`:
-                The name (a string) of the panel. It should be used
-                to represent the panel in the menu.
-            `uid`:
-                The name (an int) of the panel. It should be used internally
-                to represent the panel and used to set self.selected_uid when
-                the panel is changed.
+    def update_current_value(self, value: Any, *, trigger_commit: bool = False) -> None:
+        super().update_current_value(value, trigger_commit=trigger_commit)
+        self._sync_preview()
 
-        """
-
-        label = MKVSettingSidebarLabel(text=name, uid=uid, menu=self)
-        if self.buttons_layout and len(self.buttons_layout.children) == 0:
-            label.selected = True
-        if self.buttons_layout is not None:
-            self.buttons_layout.add_widget(label)
-
-    def on_selected_uid(self, *args):
-        for button in self.buttons_layout.children:
-            if button.uid != self.selected_uid:
-                button.selected = False
-
-
-class MKVSettingSidebarLabel(MDLabel):
-    # Internal class, not documented.
-    selected = BooleanProperty(False)
-    uid = NumericProperty(0)
-    menu = ObjectProperty(None)
-
-    def on_touch_down(self, touch):
-        if not self.collide_point(*touch.pos):
+    def _sync_preview(self) -> None:
+        box = self.preview_box
+        if box is None:
             return
-        self.selected = True
-        self.menu.selected_uid = self.uid
-
-
-class StringValueDialog(MKVDialog):
-    title = StringProperty("")
-    initial = StringProperty("")
-    target_item = ObjectProperty(None)
-
-    def on_ok(self):
-        text = self.content_cls.ids.input.text
-        self.target_item.value = text
-        self.dismiss()
-
-
-class OptionsValueDialog(MKVDialog):
-    title = StringProperty("")
-    options = ListProperty([])
-    target_item = ObjectProperty(None)
-
-    def on_open(self, *args):
-        # заполняем список вариантов программно (убрали on_open из kv)
-        from kivymd.uix.list import MDListItem, MDListItemHeadlineText
-
-        opts = getattr(self.content_cls.ids, "opts", None)
-        if not opts:
-            return
-        opts.clear_widgets()
-
-        # создаём элементы списка и биндим выбор
-        for text in self.options or []:
-            item = MDListItem()
-            item.add_widget(MDListItemHeadlineText(text=text))
-            # захватываем текущее значение text через аргумент по умолчанию
-            item.bind(on_release=lambda _i, t=text: self.select(t))
-            opts.add_widget(item)
-
-    def select(self, text: str):
-        self.target_item.value = text
-        self.dismiss()
-
-
-class PathValueDialog(MKVDialog):
-    title = StringProperty("")
-    initial = StringProperty("")
-    dirselect = BooleanProperty(True)
-    show_hidden = BooleanProperty(False)
-    target_item = ObjectProperty(None)
-
-    def on_accept_path(self, path: str):
-        self.target_item.value = path
-        self.dismiss()
-
-
-class ColorValueDialog(MKVDialog):
-    title = StringProperty("")
-    initial = StringProperty("")
-    target_item = ObjectProperty(None)
-
-    def on_color(self, rgba):
-        from kivy.utils import get_hex_from_color
-
-        self.target_item.value = get_hex_from_color(rgba)
-        self.dismiss()
+        value = self.current_value or "#FFFFFFFF"
+        try:
+            color = get_color_from_hex(value)
+        except Exception:  # pragma: no cover - defensive
+            color = (1.0, 1.0, 1.0, 1.0)
+        box.md_bg_color = color

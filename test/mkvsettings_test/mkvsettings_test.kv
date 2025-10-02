@@ -1,0 +1,96 @@
+#:kivy 2.3.0
+#:import dp kivy.metrics.dp
+#:import MKVSettingBooleanItem mvckivy.uix.settings.settings.MKVSettingBooleanItem
+#:import MKVSettingStringItem mvckivy.uix.settings.settings.MKVSettingStringItem
+#:import MKVSettingPathItem mvckivy.uix.settings.settings.MKVSettingPathItem
+#:import MKVSettingColorItem mvckivy.uix.settings.settings.MKVSettingColorItem
+
+MDScreen:
+    md_bg_color: app.theme_cls.backgroundColor
+
+#    MKVSettingsTop:
+#        id: top_settings
+#        size_hint_y: None
+#        height: dp(280)
+#
+#        MKVSettingsPanel:
+#            name: "general"
+#            title: "General"
+#            icon: "tune"
+#            order: 0
+#
+#            MKVSettingBooleanItem:
+#                key: "auto_save"
+#                title: "Auto save"
+#                subtitle: "Persist changes immediately"
+#                value: True
+#
+#            MKVSettingStringItem:
+#                key: "username"
+#                title: "User name"
+#                subtitle: "Displayed in workspace"
+#                value: "mvckivy"
+#
+#            MKVSettingColorItem:
+#                key: "accent_color"
+#                title: "Accent color"
+#                value: "#4285F4FF"
+#
+#        MKVSettingsPanel:
+#            name: "network"
+#            title: "Network"
+#            icon: "wifi"
+#            order: 1
+#
+#            MKVSettingBooleanItem:
+#                key: "wifi_enabled"
+#                title: "Wi-Fi"
+#                value: True
+#
+#            MKVSettingPathItem:
+#                key: "cert_path"
+#                title: "Certificate path"
+#                subtitle: "PEM file used for TLS"
+#                value: "/etc/ssl/certs/ca-certificates.crt"
+#                filters: [".crt", ".pem"]
+
+#        MDDivider:
+#            orientation: "horizontal"
+#
+    MKVSettingsRight:
+        id: right_settings
+        size_hint_y: 1
+
+        MKVSettingsPanel:
+            name: "appearance"
+            title: "Appearance"
+            icon: "palette"
+            order: 0
+
+            MKVSettingBooleanItem:
+                key: "dark_mode"
+                title: "Enable dark mode"
+                value: False
+
+            MKVSettingStringItem:
+                key: "font_family"
+                title: "Font family"
+                value: "Roboto"
+
+        MKVSettingsPanel:
+            name: "storage"
+            title: "Storage"
+            icon: "database"
+            order: 1
+
+            MKVSettingPathItem:
+                key: "export_dir"
+                title: "Export directory"
+                path_mode: "dir"
+                value: "/home/user/exports"
+                must_exist: False
+
+            MKVSettingBooleanItem:
+                key: "cleanup"
+                title: "Cleanup on exit"
+                value: True
