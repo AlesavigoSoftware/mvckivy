@@ -303,6 +303,7 @@ class MKVApp(AppInfoBehavior, IdleBehavior, ThemeBehavior, App):
             primary_palette=self.theme_cls.set_colors,
         )
         self.theme_cls.set_colors()
+        self.register_fonts()
 
         if not self.config:
             self.load_config()  # AppModel contains ConfigParserProperties so utils must be loaded first
@@ -312,6 +313,9 @@ class MKVApp(AppInfoBehavior, IdleBehavior, ThemeBehavior, App):
         self._register_error_handlers()
 
         self._bind_and_init_theme_settings()
+
+    def register_fonts(self) -> None:
+        pass
 
     @property
     def appname(self):
