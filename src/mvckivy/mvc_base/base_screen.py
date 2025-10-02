@@ -1,14 +1,18 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Self
 
-from kivy.properties import BooleanProperty, ObjectProperty
+from kivy.properties import ObjectProperty
 from kivy.weakproxy import WeakProxy
+from kivy.uix.widget import Widget
+from kivy.uix.screenmanager import TransitionBase
 
 from kivymd.uix.screen import MDScreen
 from kivymd.uix.transition import MDFadeSlideTransition
 
+from mvckivy.properties.alias_dedupe_mixin import AliasDedupeMixin
+from mvckivy.properties.extended_alias_property import ExtendedAliasProperty
 from mvckivy.uix.behaviors import MKVAdaptiveBehavior, MVCBehavior
 from mvckivy.uix.screen_manager import MKVScreenManager
 
@@ -20,29 +24,39 @@ if TYPE_CHECKING:
 logger = logging.getLogger("mvckivy")
 
 
-class BaseScreen(MDScreen, MVCBehavior, MKVAdaptiveBehavior):
+class BaseScreen(AliasDedupeMixin, MVCBehavior, MKVAdaptiveBehavior, MDScreen):
     screen_manager: ObjectProperty[WeakProxy[MKVScreenManager] | None] = ObjectProperty(
         None, allownone=True
     )
 
+    def _get_alias_md_bg_color(self, prop: ExtendedAliasProperty):
+        return self._calc_alias_md_bg_color(prop)
+
+    def _calc_alias_md_bg_color(self, prop: ExtendedAliasProperty):
+        return self.theme_cls.backgroundColor
+
+    alias_md_bg_color = ExtendedAliasProperty(
+        _get_alias_md_bg_color,
+        None,
+        bind=["theme_cls.theme_style", "theme_cls.bg_darkening"],
+        cache=True,
+        rebind=True,
+    )
+
     def __init__(self, *args, ignore_parent_mvc=True, **kwargs):
         super().__init__(*args, ignore_parent_mvc=ignore_parent_mvc, **kwargs)
-        self.__default_transition: MDFadeSlideTransition = MDFadeSlideTransition(
-            duration=0.3
-        )
+        self._default_transition: TransitionBase | None = None
 
-    def switch_tab(self, tab_name: str) -> None:
-        """
-        Switch to a specific tab in the screen manager.
-        This method is a placeholder and should be implemented in subclasses.
-        """
-        logger.warning(
-            "Method 'switch_tab' is not implemented for screen '%s'.", self.name
-        )
+    def emit_default_transition(self) -> TransitionBase:
+        if self._default_transition is None:
+            self._default_transition = MDFadeSlideTransition(duration=0.3)
+
+        return self._default_transition
 
     def add_widget(self, widget, *args, **kwargs):
         if isinstance(widget, MKVScreenManager):
-            self.screen_manager = WeakProxy(widget)
+            if not self.screen_manager:
+                self.screen_manager = WeakProxy(widget)
             return super().add_widget(widget, *args, **kwargs)
 
         elif isinstance(widget, BaseScreen):
@@ -54,33 +68,32 @@ class BaseScreen(MDScreen, MVCBehavior, MKVAdaptiveBehavior):
 
         return super().add_widget(widget, *args, **kwargs)
 
-    def on_parent(self, widget, parent):
+    def on_parent(self, instance: Self, parent: Widget | None):
         if not parent:
             if self.screen_manager:
                 self.screen_manager.clear_widgets()
                 self.screen_manager = None
             self.clear_widgets()
         else:
-            return super().on_parent(widget, parent)
+            return super().on_parent(instance, parent)
 
-    def on_enter(self, *args):
+    def on_enter(self, *args) -> None:
         return super().on_enter(*args)
 
-    def on_leave(self, *args):
+    def on_leave(self, *args) -> None:
         return super().on_leave(*args)
 
     def switch_screen(
         self,
         screen_name: str,
-        transition: MDTransitionBase | None = None,
+        transition: TransitionBase | None = None,
     ) -> None:
         if transition is None:
-            transition = self.__default_transition
+            transition = self.emit_default_transition()
 
         if self.screen_manager:
 
-            if self.screen_manager.transition is not transition:
-                self.screen_manager.transition = transition
+            self.screen_manager.transition = transition
 
             if screen_name not in self.screen_manager.screen_names:
                 logger.warning(

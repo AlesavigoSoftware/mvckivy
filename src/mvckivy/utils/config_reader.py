@@ -1,5 +1,5 @@
 import os
-from kivy import platform
+from kivy.utils import platform
 
 
 class ConfigReader:

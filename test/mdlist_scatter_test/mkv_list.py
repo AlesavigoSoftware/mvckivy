@@ -49,9 +49,7 @@ class DemoListApp(MDApp):
         if os.path.exists(KV_LIST_PATH):
             Builder.load_file(KV_LIST_PATH)
 
-        return Builder.load_file(
-            r"C:\Users\alesa\Documents\AlesavigoSoftware\mvckivy\test\lists_test\mkv_list.kv"
-        )
+        return Builder.load_file(r"/mdlist_scatter_test\mkv_list.kv")
 
     def toggle_theme(self, active: bool):
         # если active True — включаем Dark, иначе Light

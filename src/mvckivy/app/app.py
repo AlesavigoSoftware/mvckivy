@@ -21,11 +21,13 @@ from kivy.properties import (
     NumericProperty,
     OptionProperty,
 )
+from kivy.uix.screenmanager import NoTransition, TransitionBase
 from kivy.utils import platform as _platform
 from kivymd.theming import ThemeManager
 from trio import Nursery
 
 from mvckivy.app import ScreenRegistrator
+from mvckivy.mvc_base import BaseScreen
 from mvckivy.project_management import PathItem
 from mvckivy.project_management.path_manager import MVCPathManager
 from mvckivy.utils.builder import MVCBuilder
@@ -229,14 +231,6 @@ class IdleBehavior:
         pass
 
 
-class GlobalModalCreationBehavior:
-    def create_and_open_dialog(self, *args, **kwargs) -> None:
-        return self.screen.create_and_open_dialog(*args, **kwargs)
-
-    def create_and_open_notification(self, *args, **kwargs) -> None:
-        return self.screen.create_and_open_notification(*args, **kwargs)
-
-
 class AppInfoBehavior(EventDispatcher):
     __events__ = ("on_device_profile_changed",)
 
@@ -382,16 +376,19 @@ class MKVApp(AppInfoBehavior, IdleBehavior, ThemeBehavior, App):
         self.config_loggers()
         return super().on_start()
 
+    def switch_screen(self, *args, **kwargs):
+        pass
+
 
 class MVCApp(
     PathManagerBehavior,
     ScreenRegistrationBehavior,
-    GlobalModalCreationBehavior,
     MKVApp,
 ):
     model: ObjectProperty[BaseAppModel] = ObjectProperty()
     controller: ObjectProperty[BaseAppController] = ObjectProperty()
     screen: ObjectProperty[BaseAppScreen] = ObjectProperty()
+    current_screen_name: StringProperty = StringProperty("initial_screen")
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -409,18 +406,97 @@ class MVCApp(
         self.screen: BaseAppScreen = self._registrator.get_app_screen()
         self.root = self.get_root()
 
-    def dispatch_to_all_controllers(self, event_type: str):
+    def dispatch_to_all_controllers(self, event_type: str, *args):
         for c in self.get_controllers():
-            c.dispatch(event_type)
+            c.dispatch(event_type, *args)
 
-    def switch_screen(self):
-        pass
+    def switch_screen(self, screen_name: str) -> None:
+        """
+        Switch to the specified screen, navigating through parent screens if necessary.
+        Allows to switch to any screen in the hierarchy, even if it's nested within other screens.
+        :param screen_name: str - Name of the target screen to switch to.
+        :return: None
+        """
+        if screen_name == self.current_screen_name:
+            logger.warning("Already on screen '%s'", screen_name)
+            return
+
+        to_screen_trio = self._registrator.trios.get(screen_name)
+
+        if not to_screen_trio:
+            logger.warning("Screen '%s' not found to switch", screen_name)
+            return
+
+        elif not to_screen_trio.parent:
+            logger.warning("Parent screen of '%s' not found to switch", screen_name)
+            return
+
+        def _switch_screen(
+            _parent_screen: BaseScreen,
+            _to_screen_name: str,
+            transition: TransitionBase | None = None,
+        ) -> None:
+            _parent_screen.switch_screen(_to_screen_name, transition=transition)
+            self.current_screen_name = _to_screen_name
+
+        def _find_screens_order_from_first_common_ancestor(
+            s1: str, s2: str
+        ) -> list[str]:
+            """Find the first common ancestor of two screens
+            in the screen hierarchy and return the path from s1 to the ancestor [inclusive and in order from parent to child].
+            """
+            ancestors_s1 = []
+            current = self._registrator.trios.get(s1)
+            while current:
+                ancestors_s1.append(current.name)
+
+                if not current.parent:
+                    break
+
+                current = self._registrator.trios.get(current.parent)
+
+            current = self._registrator.trios.get(s2)
+            while current:
+
+                if current.name in ancestors_s1:
+                    first_common_parent_index = ancestors_s1.index(current.name)
+                    ancestors = ancestors_s1[: first_common_parent_index + 1]
+                    return ancestors[::-1]
+
+                if not current.parent:
+                    break
+
+                current = self._registrator.trios.get(current.parent)
+
+            return []
+
+        if screens_order := _find_screens_order_from_first_common_ancestor(
+            screen_name, self.current_screen_name
+        ):
+            first_ancestor = True
+            parent_screen_name = screens_order.pop()
+            while len(screens_order) > 0:
+                parent_screen = self.get_screen(parent_screen_name)
+                screen_name = screens_order.pop()
+
+                if first_ancestor:
+                    if parent_screen:
+                        Clock.schedule_once(
+                            lambda dt: _switch_screen(parent_screen, screen_name),
+                            0,
+                        )
+                    first_ancestor = False
+                else:
+                    parent_screen.switch_screen(screen_name, transition=NoTransition())
+
+                parent_screen_name = screen_name
 
     def on_start(self):
         super().on_start()
         self.dispatch_to_all_controllers("on_app_start")
 
     def on_stop(self):
+        super().on_stop()
         self.dispatch_to_all_controllers("on_app_exit")
 
     def build(self):

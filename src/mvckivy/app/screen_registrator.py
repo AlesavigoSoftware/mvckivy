@@ -269,10 +269,8 @@ class ScreenRegistrator:
         self, name: str, *, create_children=False
     ) -> Generator[ScreenRegistrationReport, None, None]:
         """
-        Creates a screen by name, optionally creating its children as well. Uses in HotReload only.
-        :param name:
-        :param create_children:
-        :return:
+        Creates a screen by name, optionally creating its children as well.
+        Uses in HotReload only.
         """
         if name not in self.trios:
             raise ValueError(f"Screen '{name}' is not registered")
@@ -349,7 +347,7 @@ class ScreenRegistrator:
             yield self._report(name, step, total)
             return
 
-        # --- preserve children (do not recreate them) ---
+        # preserve children (do not recreate them)
         old_screen = trio.get_screen()
         old_parent = old_screen.parent if old_screen else None
 
@@ -373,7 +371,7 @@ class ScreenRegistrator:
             else:
                 self._attach_to_parent(name, new_screen)
 
-        # Reattach children back (create missing if needed)
+        # Reattach children back and create missing if needed
         for child_name in children_names:
             child_trio = self.trios[child_name]
             cs = child_trio.get_screen() or child_trio.ensure_screen()

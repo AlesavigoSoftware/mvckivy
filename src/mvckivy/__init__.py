@@ -5,9 +5,8 @@ from kivy.factory import Factory
 
 logger = logging.getLogger("mvckivy")
 logger.setLevel(logging.DEBUG if ConfigReader.get_debug_mode() else logging.INFO)
-
-
 register = Factory.register
+
 register("MVCGridLayout", module="mvckivy.uix.layout")
 register("MVCRelativeLayout", module="mvckivy.uix.layout")
 register("MVCBoxLayout", module="mvckivy.uix.layout")
@@ -49,6 +48,8 @@ register("MKVDialogButtonContainer", module="mvckivy.uix.dialog")
 # register("MKVTabsCarousel", module="mvckivy.uix.tabs")
 # register("MKVTabsBadge", module="mvckivy.uix.tabs")
 
+register("MKVScreenManager", module="mvckivy.uix.screen_manager")
+
 register("AutoResizeMDIconButton", module="mvckivy.uix.button")
 
 register("MKVBaseSpeedDial", module="mvckivy.uix.button")
@@ -56,4 +57,4 @@ register("MKVSpeedDial", module="mvckivy.uix.button")
 register("MKVSpeedDialAction", module="mvckivy.uix.button")
 register("MKVSpeedDialMainButton", module="mvckivy.uix.button")
 
-register("MKVScreenManager", module="mvckivy.uix.screen_manager")
+register("dp", module="kivy.metrics")
