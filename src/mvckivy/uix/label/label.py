@@ -4,7 +4,8 @@ from kivy.animation import Animation
 from kivy.clock import Clock
 from kivy.core.clipboard import Clipboard
 from kivy.core.window import Window
-from kivy.graphics import Color, SmoothRoundedRectangle
+from kivy.graphics import Color
+from kivy.graphics.vertex_instructions import SmoothRoundedRectangle
 from kivy.properties import (
     BooleanProperty,
     ColorProperty,
@@ -31,20 +32,6 @@ from mvckivy.properties.alias_dedupe_mixin import AliasDedupeMixin
 from mvckivy.properties.extended_alias_property import ExtendedAliasProperty
 
 
-def _call_super_method(owner_cls, instance, name: str, *args) -> None:
-    """Invoke the next implementation in the MRO after ``owner_cls``.
-
-    Passing ``owner_cls`` avoids infinite recursion when the current method
-    lives on a base class but is executed on a subclass instance.
-    """
-
-    for cls in owner_cls.__mro__[1:]:
-        method = cls.__dict__.get(name)
-        if method is not None:
-            method(instance, *args)
-            return
-
-
 class MKVBaseLabel(
     AliasDedupeMixin,
     DeclarativeBehavior,
@@ -65,8 +52,13 @@ class MKVBaseLabel(
     font_name_custom = StringProperty(None, allownone=True)
 
     def _get_font_style_value(self, token: str, default):
-        styles = getattr(self.theme_cls, "font_styles", {}) or {}
-        style_block = styles.get(self.font_style, {})
+        font_styles = {}
+        theme_cls = self.theme_cls
+        if theme_cls is not None and hasattr(theme_cls, "font_styles"):
+            styles_attr = theme_cls.font_styles or {}
+            if isinstance(styles_attr, dict):
+                font_styles = styles_attr
+        style_block = font_styles.get(self.font_style, {})
         role_block = style_block.get(self.role, {})
         return role_block.get(token, default)
 
@@ -75,17 +67,32 @@ class MKVBaseLabel(
         return self._calc_alias_color(prop)
 
     def _calc_alias_color(self, prop: ExtendedAliasProperty):
+        theme_cls = self.theme_cls
+        on_surface = theme_cls.onSurfaceColor
+
+        on_surface_variant = on_surface
+        if hasattr(theme_cls, "onSurfaceVariantColor"):
+            variant_value = theme_cls.onSurfaceVariantColor
+            if variant_value is not None:
+                on_surface_variant = variant_value
+
+        outline_color = on_surface
+        if hasattr(theme_cls, "outlineColor"):
+            outline_value = theme_cls.outlineColor
+            if outline_value is not None:
+                outline_color = outline_value
+
+        error_color = on_surface
+        if hasattr(theme_cls, "errorColor"):
+            error_value = theme_cls.errorColor
+            if error_value is not None:
+                error_color = error_value
+
         mapping = {
-            "Primary": self.theme_cls.onSurfaceColor,
-            "Secondary": getattr(
-                self.theme_cls, "onSurfaceVariantColor", self.theme_cls.onSurfaceColor
-            ),
-            "Hint": getattr(
-                self.theme_cls, "outlineColor", self.theme_cls.onSurfaceColor
-            ),
-            "Error": getattr(
-                self.theme_cls, "errorColor", self.theme_cls.onSurfaceColor
-            ),
+            "Primary": on_surface,
+            "Secondary": on_surface_variant,
+            "Hint": outline_color,
+            "Error": error_color,
         }
         if self.theme_text_color == "Custom" and self.text_color:
             return self.text_color
@@ -114,10 +121,11 @@ class MKVBaseLabel(
         return self._calc_alias_text_size(prop)
 
     def _calc_alias_text_size(self, prop: ExtendedAliasProperty):
-        if not self.adaptive_size and not self.adaptive_width:
-            return self.width, self.height
-
-        return None, None
+        if self.adaptive_size:
+            return None, None
+        if self.adaptive_width:
+            return None, None
+        return self.width, None
 
     alias_text_size = ExtendedAliasProperty(
         _get_alias_text_size,
@@ -234,7 +242,10 @@ class MKVBaseLabel(
 
     # --- sync helpers ---------------------------------------------------
     def on_font_size(self, instance, value):
-        _call_super_method(MKVBaseLabel, self, "on_font_size", instance, value)
+        try:
+            super().on_font_size(instance, value)
+        except AttributeError:
+            pass
         if self.theme_font_size == "Custom":
             self.font_size_custom = value
 
@@ -243,7 +254,10 @@ class MKVBaseLabel(
             self.font_size_custom = None
 
     def on_line_height(self, instance, value):
-        _call_super_method(MKVBaseLabel, self, "on_line_height", instance, value)
+        try:
+            super().on_line_height(instance, value)
+        except AttributeError:
+            pass
         if self.theme_line_height == "Custom":
             self.line_height_custom = value
 
@@ -252,7 +266,10 @@ class MKVBaseLabel(
             self.line_height_custom = None
 
     def on_font_name(self, instance, value):
-        _call_super_method(MKVBaseLabel, self, "on_font_name", instance, value)
+        try:
+            super().on_font_name(instance, value)
+        except AttributeError:
+            pass
         if self.theme_font_name == "Custom":
             self.font_name_custom = value
 
@@ -400,9 +417,12 @@ class MKVIcon(MKVLabel):
             return self.icon_color_disabled
         if self.icon_color:
             return self.icon_color
-        base = getattr(
-            self.theme_cls, "onSurfaceVariantColor", self.theme_cls.onSurfaceColor
-        )
+        theme_cls = self.theme_cls
+        base = theme_cls.onSurfaceColor
+        if hasattr(theme_cls, "onSurfaceVariantColor"):
+            variant_value = theme_cls.onSurfaceVariantColor
+            if variant_value is not None:
+                base = variant_value
         if is_disabled:
             muted = list(base)
             if len(muted) < 4:
